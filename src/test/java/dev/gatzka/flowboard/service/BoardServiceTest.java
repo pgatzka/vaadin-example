@@ -40,6 +40,12 @@ class BoardServiceTest {
     private ActivityLog activityLog;
 
     @Autowired
+    private DependencyService dependencies;
+
+    @Autowired
+    private ChecklistService checklistService;
+
+    @Autowired
     private BoardChangeBroadcaster broadcaster;
 
     private BoardSnapshot board;
@@ -288,6 +294,48 @@ class BoardServiceTest {
         assertThat(activityLog.recent(board.id()).getFirst().message()).isEqualTo("stopped \"Water the plants\" from repeating");
         service.moveCard(next.id(), done, 0, ACTOR);
         assertThat(service.findBoard(board.id()).orElseThrow().lane(doing).orElseThrow().cards()).isEmpty();
+    }
+
+    @Test
+    void cardsMoveAndCopyAcrossBoards() {
+        BoardSnapshot source = service.createBoard(new BoardDraft("Source", null), ACTOR);
+        BoardSnapshot target = service.createBoard(new BoardDraft("Target", null), ACTOR);
+        long from = source.lanes().get(0).id();
+        long to = target.lanes().get(1).id();
+        CardSnapshot blocker = service.createCard(from, CardDraft.titled("Blocker"), ACTOR);
+        CardSnapshot moving = service.createCard(from, new CardDraft("Travelling", "Notes", Priority.HIGH, null, "Mara", Set.of("x"), 2), ACTOR);
+        service.createCard(to, CardDraft.titled("Already there"), ACTOR);
+        service.setRecurrence(moving.id(), Recurrence.WEEKLY, ACTOR);
+        dependencies.addBlocker(moving.id(), blocker.id(), ACTOR);
+
+        CardSnapshot moved = service.transferCard(moving.id(), to, ACTOR);
+
+        assertThat(moved.id()).isEqualTo(moving.id());
+        assertThat(moved.laneId()).isEqualTo(to);
+        assertThat(moved.position()).isEqualTo(1);
+        assertThat(moved.blockers()).as("dependencies are board-local").isEmpty();
+        assertThat(moved.recurrence()).isEqualTo(Recurrence.WEEKLY);
+        assertThat(service.findBoard(source.id()).orElseThrow().lane(from).orElseThrow().cards()).extracting(CardSnapshot::title).containsExactly("Blocker");
+        assertThat(service.findBoard(target.id()).orElseThrow().lane(to).orElseThrow().cards()).extracting(CardSnapshot::title)
+                .containsExactly("Already there", "Travelling");
+        assertThat(activityLog.recent(source.id()).getFirst().message()).isEqualTo("moved \"Travelling\" to the board \"Target\"");
+        assertThat(activityLog.recent(target.id()).getFirst().message()).isEqualTo("moved \"Travelling\" here from the board \"Source\"");
+
+        checklistService.addItem(moved.id(), "Step", ACTOR);
+        CardSnapshot copy = service.copyCard(moved.id(), from, ACTOR);
+        assertThat(copy.id()).isNotEqualTo(moved.id());
+        assertThat(copy.laneId()).isEqualTo(from);
+        assertThat(copy.title()).isEqualTo("Travelling");
+        assertThat(copy.assignee()).isEqualTo("Mara");
+        assertThat(copy.estimate()).isEqualTo(2);
+        assertThat(copy.recurrence()).isEqualTo(Recurrence.WEEKLY);
+        assertThat(copy.checklist()).extracting(item -> item.text()).containsExactly("Step");
+        assertThat(service.findBoard(target.id()).orElseThrow().lane(to).orElseThrow().cards()).as("the original stays").hasSize(2);
+
+        service.transferCard(copy.id(), source.lanes().get(2).id(), ACTOR);
+        assertThat(service.findBoard(source.id()).orElseThrow().lanes().get(2).cards()).extracting(CardSnapshot::id).containsExactly(copy.id());
+        service.archiveCard(copy.id(), ACTOR);
+        assertThatThrownBy(() -> service.transferCard(copy.id(), to, ACTOR)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

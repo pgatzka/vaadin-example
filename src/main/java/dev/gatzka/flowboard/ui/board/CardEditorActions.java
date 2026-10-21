@@ -1,6 +1,8 @@
 package dev.gatzka.flowboard.ui.board;
 
 import dev.gatzka.flowboard.domain.ActivityEntry;
+import dev.gatzka.flowboard.domain.BoardSnapshot;
+import dev.gatzka.flowboard.domain.BoardSummary;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.domain.TimerSnapshot;
@@ -19,6 +21,14 @@ interface CardEditorActions {
     CardSnapshot addComment(long cardId, String text);
 
     CardSnapshot setRecurrence(long cardId, Recurrence recurrence);
+
+    /** Boards the current user may move or copy cards to, including this one. */
+    List<BoardSummary> boardsForTransfer();
+
+    java.util.Optional<BoardSnapshot> boardFor(long boardId);
+
+    /** Moves ({@code copy == false}) or copies the card to the end of the given lane, which may be on another board. */
+    CardSnapshot transferCard(long cardId, long targetLaneId, boolean copy);
 
     /** Turns the card into a template of its board under the given name. */
     void saveAsTemplate(long cardId, String name);

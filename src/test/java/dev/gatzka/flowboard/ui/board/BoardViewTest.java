@@ -31,6 +31,7 @@ import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.service.AttachmentService;
 import dev.gatzka.flowboard.service.BoardService;
@@ -193,6 +194,36 @@ class BoardViewTest extends FlowboardUiTest {
 
         test($(Button.class).withText("Clear filters").single()).click();
         assertThat(visibleCardTitles()).containsExactly("Late and mine", "On time");
+    }
+
+    @Test
+    void cardsMoveToOtherBoardsFromTheEditor() {
+        BoardSnapshot other = service.createBoard(new BoardDraft("Elsewhere", null), SEEDER);
+        CardSnapshot card = createCard("Wanderer");
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        view.openCard(card);
+        CardEditorDialog editor = $(CardEditorDialog.class).single();
+        test($(Button.class, editor).withText("Move…").single()).click();
+
+        MoveCardDialog dialog = $(MoveCardDialog.class).single();
+        $(ComboBox.class, dialog).withId("move-board").single().setValue(
+                view.boardsForTransfer().stream().filter(b -> b.id() == other.id()).findFirst().orElseThrow());
+        LaneSnapshot targetLane = other.lanes().get(2);
+        $(ComboBox.class, dialog).withId("move-lane").single().setValue(
+                service.findBoard(other.id()).orElseThrow().lane(targetLane.id()).orElseThrow());
+        test($(Button.class, dialog).withId("move-confirm").single()).click();
+
+        assertThat($(CardEditorDialog.class).all()).as("the editor closes once the card left").isEmpty();
+        assertThat($(CardComponent.class).all()).isEmpty();
+        assertThat(service.findBoard(other.id()).orElseThrow().lane(targetLane.id()).orElseThrow().cards())
+                .extracting(CardSnapshot::title).containsExactly("Wanderer");
+    }
+
+    @Test
+    void inboxOffersDesktopAlerts() {
+        navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        test($(Button.class).withClassName("inbox-button").single()).click();
+        assertThat($(Button.class).withId("desktop-alerts").all()).hasSize(1);
     }
 
     @Test

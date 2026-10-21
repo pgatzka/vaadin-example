@@ -240,6 +240,51 @@ public class BoardService {
                 "deleted \"%s\"".formatted(card.getTitle())).forCard(cardId));
     }
 
+    /**
+     * Moves a live card to the end of any lane, on this or another board. Across boards the
+     * card's dependencies are dropped, since those are board-local; everything else travels.
+     */
+    public CardSnapshot transferCard(long cardId, long targetLaneId, String actor) {
+        Card card = requireCard(cardId);
+        if (card.isArchived()) {
+            throw new IllegalArgumentException("Archived cards cannot be moved; restore the card first");
+        }
+        Lane source = card.getLane();
+        Lane target = requireLane(targetLaneId);
+        if (boardIdOf(source) == boardIdOf(target)) {
+            moveCard(cardId, targetLaneId, Integer.MAX_VALUE, actor);
+            return CardSnapshot.of(card);
+        }
+        Instant now = clock.instant();
+        List.copyOf(card.getBlockers()).forEach(blocker -> card.removeBlocker(blocker, now));
+        cards.findAllBlockedBy(cardId).forEach(blocked -> blocked.removeBlocker(card, now));
+        List<Card> sourceCards = cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(source.getId());
+        sourceCards.remove(card);
+        renumberCards(sourceCards);
+        int end = (int) cards.countByLaneIdAndArchivedAtIsNull(targetLaneId);
+        card.moveTo(target, now);
+        card.setPosition(end);
+        activityLog.record(BoardChangedEvent.content(boardIdOf(source), actor,
+                "moved \"%s\" to the board \"%s\"".formatted(card.getTitle(), target.getBoard().getName())));
+        activityLog.record(BoardChangedEvent.content(boardIdOf(target), actor,
+                "moved \"%s\" here from the board \"%s\"".formatted(card.getTitle(), source.getBoard().getName())).forCard(cardId));
+        return CardSnapshot.of(card);
+    }
+
+    /** Copies a card's fields, checklist and repetition to the end of any lane; history, comments and files stay. */
+    public CardSnapshot copyCard(long cardId, long targetLaneId, String actor) {
+        Card original = requireCard(cardId);
+        Lane target = requireLane(targetLaneId);
+        Instant now = clock.instant();
+        Card copy = new Card(target, original.toDraft(), (int) cards.countByLaneIdAndArchivedAtIsNull(targetLaneId), now);
+        copy.setRecurrence(original.getRecurrence(), now);
+        original.getChecklist().forEach(item -> copy.addChecklistItem(item.getText(), now));
+        cards.saveAndFlush(copy);
+        activityLog.record(BoardChangedEvent.content(boardIdOf(target), actor,
+                "copied \"%s\" here from the board \"%s\"".formatted(copy.getTitle(), original.getLane().getBoard().getName())).forCard(copy.getId()));
+        return CardSnapshot.of(copy);
+    }
+
     /** Reorders a lane's live cards by votes, most first; ties keep their current order. */
     public void sortLaneByVotes(long laneId, String actor) {
         Lane lane = requireLane(laneId);

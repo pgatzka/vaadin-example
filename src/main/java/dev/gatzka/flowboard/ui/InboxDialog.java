@@ -10,6 +10,8 @@ import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import dev.gatzka.flowboard.domain.NotificationSnapshot;
 import dev.gatzka.flowboard.service.NotificationService;
+import dev.gatzka.flowboard.ui.support.Toasts;
+import dev.gatzka.flowboard.ui.support.DesktopAlerts;
 import dev.gatzka.flowboard.ui.board.BoardView;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -47,7 +49,18 @@ final class InboxDialog extends Dialog {
         Button close = new Button(VaadinIcon.CLOSE_SMALL.create(), event -> close());
         close.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
         close.setAriaLabel("Close inbox");
-        getHeader().add(markAll, close);
+        Button alerts = new Button(VaadinIcon.BELL.create(), event -> getUI().ifPresent(ui -> DesktopAlerts.requestPermission(ui, outcome -> {
+            switch (outcome) {
+                case "granted" -> Toasts.success("Desktop alerts are on while this tab is open in the background");
+                case "unsupported" -> Toasts.error("This browser does not support desktop alerts");
+                default -> Toasts.info("Desktop alerts stay off until the browser permission is granted");
+            }
+        })));
+        alerts.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        alerts.setAriaLabel("Desktop alerts");
+        alerts.setTooltipText("Turn on desktop alerts for new inbox items");
+        alerts.setId("desktop-alerts");
+        getHeader().add(alerts, markAll, close);
 
         list.addClassName("inbox__list");
         empty.addClassName("activity-sheet__empty");

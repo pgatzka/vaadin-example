@@ -30,6 +30,8 @@ import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.theme.lumo.Lumo;
 import jakarta.annotation.security.PermitAll;
 import dev.gatzka.flowboard.domain.BoardSummary;
+import dev.gatzka.flowboard.domain.NotificationSnapshot;
+import dev.gatzka.flowboard.ui.support.DesktopAlerts;
 import dev.gatzka.flowboard.service.AccessService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardService;
@@ -241,6 +243,8 @@ public class MainLayout extends AppLayout {
             if (inboxDialog.isOpened()) {
                 inboxDialog.refresh();
             }
+            notificationService.recent(session.getDisplayName()).stream().filter(NotificationSnapshot::unread).findFirst()
+                    .ifPresent(latest -> DesktopAlerts.show(ui, latest.actor(), latest.message()));
         }));
     }
 

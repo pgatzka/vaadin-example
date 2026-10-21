@@ -94,6 +94,7 @@ final class CardEditorDialog extends Dialog {
         dialog.addDeleteButton(card, onDelete);
         dialog.addArchiveButton(onArchive);
         dialog.addTemplateButton(card, actions);
+        dialog.addMoveButton(card, actions);
         return dialog;
     }
 
@@ -307,6 +308,17 @@ final class CardEditorDialog extends Dialog {
         delete.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
         delete.addClassName("dialog-footer__start");
         getFooter().addComponentAsFirst(delete);
+    }
+
+    private void addMoveButton(CardSnapshot card, CardEditorActions actions) {
+        Button move = new Button("Move…", VaadinIcon.EXCHANGE.create(), event -> new MoveCardDialog(card, board, actions, moved -> {
+            if (moved.id() == card.id()) {
+                close(); // the card moved; the board re-renders it where it landed
+            }
+        }).open());
+        move.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        move.setTooltipText("Move or copy the card to another lane or board");
+        getFooter().addComponentAtIndex(1, move);
     }
 
     private void addTemplateButton(CardSnapshot card, CardEditorActions actions) {

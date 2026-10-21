@@ -35,6 +35,7 @@ import com.vaadin.flow.shared.Registration;
 import dev.gatzka.flowboard.assistant.AssistantService;
 import dev.gatzka.flowboard.domain.ActivityEntry;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
+import dev.gatzka.flowboard.domain.BoardSummary;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardFilter;
 import dev.gatzka.flowboard.domain.CardFilterCodec;
@@ -657,6 +658,23 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             CardSnapshot created = templateService.instantiate(template.id(), lane.id(), actor());
             Toasts.success("\"" + created.title() + "\" created from " + template.name());
         });
+    }
+
+    @Override
+    public List<BoardSummary> boardsForTransfer() {
+        return access.visibleBoards(session.login());
+    }
+
+    @Override
+    public Optional<BoardSnapshot> boardFor(long boardId) {
+        return boardService.findBoard(boardId);
+    }
+
+    @Override
+    public CardSnapshot transferCard(long cardId, long targetLaneId, boolean copy) {
+        CardSnapshot result = copy ? boardService.copyCard(cardId, targetLaneId, actor()) : boardService.transferCard(cardId, targetLaneId, actor());
+        reload();
+        return result;
     }
 
     @Override
