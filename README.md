@@ -29,7 +29,9 @@ Java on top of Vaadin Flow's server push.
 - **Checklists, comments and history** on every card; **deep links** to cards.
 - **Insights** per board: completion rate, cycle time, load per lane, completions per day, work per person.
 - **Persistent.** Boards live in a file-based H2 database under `./data`, so they survive restarts.
-  A demo board is seeded on the first start.
+  The schema is managed with Flyway migrations and validated by Hibernate on startup. A demo board
+  is seeded on the first start.
+- **Operations.** A health endpoint at `/actuator/health`, a Dockerfile and a CI workflow.
 
 ## Running
 

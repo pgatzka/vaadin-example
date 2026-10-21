@@ -7,15 +7,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
 /** One line in a board's activity feed, e.g. "Mara moved "Dark mode" to Done". */
 @Entity
-@Table(name = "activities", indexes = {
-        @Index(columnList = "board_id, occurred_at"),
-        @Index(columnList = "card_id, occurred_at")})
+@Table(name = "activities")
 public class Activity {
 
     @Id
