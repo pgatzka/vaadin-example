@@ -11,6 +11,10 @@ import com.vaadin.flow.component.avatar.AvatarGroup.AvatarGroupItem;
 import com.vaadin.flow.component.avatar.AvatarGroupVariant;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.contextmenu.SubMenu;
+import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
@@ -25,6 +29,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.shared.Registration;
+import dev.gatzka.flowboard.assistant.AssistantService;
 import dev.gatzka.flowboard.domain.ActivityEntry;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
@@ -42,6 +47,9 @@ import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.service.PresenceTracker;
 import dev.gatzka.flowboard.ui.ProfileChangedEvent;
 import dev.gatzka.flowboard.ui.UserSession;
+import dev.gatzka.flowboard.ui.assistant.NotesToCardsDialog;
+import dev.gatzka.flowboard.ui.assistant.StandupDialog;
+import dev.gatzka.flowboard.ui.assistant.SuggestChecklistDialog;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
 import dev.gatzka.flowboard.ui.calendar.CalendarView;
 import dev.gatzka.flowboard.ui.support.Toasts;
@@ -51,6 +59,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
 /**
@@ -68,6 +77,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final ChecklistService checklistService;
     private final CommentService commentService;
     private final InsightsService insightsService;
+    private final AssistantService assistant;
+    private final ExecutorService executor;
     private final ActivityLog activityLog;
     private final BoardChangeBroadcaster broadcaster;
     private final PresenceTracker presence;
@@ -93,12 +104,14 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private Registration profileSubscription;
 
     public BoardView(BoardService boardService, ChecklistService checklistService, CommentService commentService,
-            InsightsService insightsService, ActivityLog activityLog, BoardChangeBroadcaster broadcaster,
-            PresenceTracker presence, UserSession session, Clock clock) {
+            InsightsService insightsService, AssistantService assistant, ExecutorService executor, ActivityLog activityLog,
+            BoardChangeBroadcaster broadcaster, PresenceTracker presence, UserSession session, Clock clock) {
         this.boardService = boardService;
         this.checklistService = checklistService;
         this.commentService = commentService;
         this.insightsService = insightsService;
+        this.assistant = assistant;
+        this.executor = executor;
         this.activityLog = activityLog;
         this.broadcaster = broadcaster;
         this.presence = presence;
@@ -161,9 +174,33 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         Button addLane = new Button("Add lane", VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        Div toolbar = new Div(titles, search, filters, participants, activity, insights, calendar, archive, addLane);
+        Div toolbar = new Div(titles, search, filters, participants, activity, insights, calendar, archive);
+        if (assistant.isAvailable()) {
+            toolbar.add(assistantMenu());
+        }
+        toolbar.add(addLane);
         toolbar.addClassName("board-toolbar");
         return toolbar;
+    }
+
+    private MenuBar assistantMenu() {
+        MenuBar menu = new MenuBar();
+        menu.addThemeVariants(MenuBarVariant.LUMO_TERTIARY);
+        MenuItem root = menu.addItem(VaadinIcon.MAGIC.create());
+        root.add(new Span("Assistant"));
+        root.setAriaLabel("Assistant");
+        SubMenu items = root.getSubMenu();
+        items.addItem("Standup summary", event -> new StandupDialog(board, activityLog.recent(board.id()), assistant, executor).open());
+        items.addItem("Cards from notes…", event -> new NotesToCardsDialog(board, assistant, executor, this::createCards).open());
+        return menu;
+    }
+
+    private void createCards(List<CardDraft> drafts, LaneSnapshot lane) {
+        if (drafts.isEmpty() || lane == null) {
+            return;
+        }
+        perform(() -> drafts.forEach(draft -> boardService.createCard(lane.id(), draft, actor())));
+        Toasts.success(drafts.size() == 1 ? "1 card created in " + lane.name() : drafts.size() + " cards created in " + lane.name());
     }
 
     // ------------------------------------------------------------ navigation
@@ -183,7 +220,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     /** Path of this board, or of one of its cards when {@code cardId} is given. */
-    static String pathTo(long boardId, Long cardId) {
+    public static String pathTo(long boardId, Long cardId) {
         String boardPath = "board/" + boardId;
         return cardId == null ? boardPath : boardPath + "/card/" + cardId;
     }
@@ -420,6 +457,17 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Override
     public List<ActivityEntry> history(long cardId) {
         return activityLog.recentForCard(cardId);
+    }
+
+    @Override
+    public boolean assistantAvailable() {
+        return assistant.isAvailable();
+    }
+
+    @Override
+    public void suggestChecklist(CardSnapshot card) {
+        new SuggestChecklistDialog(card, board, assistant, executor,
+                steps -> perform(() -> steps.forEach(step -> checklistService.addItem(card.id(), step, actor())))).open();
     }
 
     private CardSnapshot changeCard(Supplier<CardSnapshot> change) {

@@ -17,4 +17,10 @@ interface CardEditorActions {
 
     /** The card's history, newest first. */
     List<ActivityEntry> history(long cardId);
+
+    /** Whether the AI assistant is configured. */
+    boolean assistantAvailable();
+
+    /** Opens the assistant's checklist suggestions for the card. */
+    void suggestChecklist(CardSnapshot card);
 }

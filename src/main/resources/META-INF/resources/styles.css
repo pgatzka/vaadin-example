@@ -946,6 +946,28 @@ html {
   flex-shrink: 0;
 }
 
+.assistant-dialog__status {
+  display: block;
+  margin-bottom: var(--lumo-space-s);
+  color: var(--lumo-secondary-text-color);
+}
+
+.proposal {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+}
+
+.proposal__title {
+  font-weight: 500;
+}
+
+.proposal__description,
+.proposal__meta {
+  font-size: var(--lumo-font-size-xs);
+  color: var(--lumo-secondary-text-color);
+}
+
 .dialog-footer__start {
   margin-inline-end: auto;
 }

@@ -35,6 +35,12 @@ final class ChecklistSection extends Div {
         summary.addClassName("checklist__summary");
         Div header = new Div(label, summary);
         header.addClassName("checklist__header");
+        if (actions.assistantAvailable()) {
+            Button suggest = new Button("Suggest steps", VaadinIcon.MAGIC.create(), event -> actions.suggestChecklist(this.card));
+            suggest.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+            suggest.setTooltipText("Let the assistant propose checklist items");
+            header.add(suggest);
+        }
 
         progress.addClassName("checklist__progress");
         items.addClassName("checklist__items");

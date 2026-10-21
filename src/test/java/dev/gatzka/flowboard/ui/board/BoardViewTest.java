@@ -321,6 +321,15 @@ class BoardViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void assistantIsHiddenWithoutAnApiKey() {
+        createCard("Plain");
+        openBoard();
+        assertThat($(MenuItem.class).withText("Standup summary").all()).isEmpty();
+        test($(CardComponent.class).single()).click();
+        assertThat($(Button.class).withText("Suggest steps").all()).isEmpty();
+    }
+
+    @Test
     void changesMadeElsewhereArePushedIntoTheView() {
         openBoard();
         assertThat(visibleCardTitles()).isEmpty();
