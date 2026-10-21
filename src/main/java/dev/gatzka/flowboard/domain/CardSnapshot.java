@@ -19,6 +19,7 @@ public record CardSnapshot(
         String assignee,
         Set<String> tags,
         Integer estimate,
+        Recurrence recurrence,
         Set<String> voters,
         List<BlockerSnapshot> blockers,
         List<AttachmentSnapshot> attachments,
@@ -57,6 +58,7 @@ public record CardSnapshot(
                 card.getAssignee(),
                 Collections.unmodifiableSet(sortedTags),
                 card.getEstimate(),
+                card.getRecurrence(),
                 Set.copyOf(card.getVoters()),
                 card.getBlockers().stream().map(BlockerSnapshot::of)
                         .sorted(java.util.Comparator.comparing(BlockerSnapshot::title, String.CASE_INSENSITIVE_ORDER)).toList(),
@@ -107,6 +109,10 @@ public record CardSnapshot(
 
     public boolean hasDescription() {
         return description != null;
+    }
+
+    public boolean isRecurring() {
+        return recurrence != null && recurrence.repeats();
     }
 
     /** Whether the card was created or edited after the given moment; a {@code null} moment means never. */

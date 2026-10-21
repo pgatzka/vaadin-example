@@ -104,6 +104,10 @@ public class Card {
     /** When the card last entered a done lane; {@code null} while it is open. */
     private Instant completedAt;
 
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(nullable = false, length = 20)
+    private Recurrence recurrence = Recurrence.NONE;
+
     /** When the card was archived; {@code null} while it is on the board. */
     private Instant archivedAt;
 
@@ -148,6 +152,24 @@ public class Card {
     }
 
     /** Keeps {@link #getCompletedAt()} in step with whether the card sits in a done lane. */
+    public Recurrence getRecurrence() {
+        return recurrence;
+    }
+
+    public boolean isRecurring() {
+        return recurrence.repeats();
+    }
+
+    public void setRecurrence(Recurrence recurrence, Instant now) {
+        this.recurrence = requireNonNull(recurrence);
+        this.updatedAt = requireNonNull(now);
+    }
+
+    /** The fields a user edits, e.g. to create the next occurrence of a recurring card. */
+    public CardDraft toDraft() {
+        return new CardDraft(title, description, priority, dueDate, assignee, getTags(), estimate);
+    }
+
     public void markCompletion(boolean done, Instant now) {
         if (done && completedAt == null) {
             completedAt = requireNonNull(now);

@@ -2,7 +2,7 @@ package dev.gatzka.flowboard.ui.boards;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.vaadin.browserless.SpringBrowserlessTest;
+import dev.gatzka.flowboard.ui.FlowboardUiTest;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.html.Anchor;
@@ -25,7 +25,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles("test")
 @WithMockUser(username = "mara")
-class BoardsViewTest extends SpringBrowserlessTest {
+class BoardsViewTest extends FlowboardUiTest {
 
     @Autowired
     private BoardService service;

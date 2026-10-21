@@ -116,6 +116,13 @@ public final class CardComponent extends Div {
             badge.addClassName("task-card__tag");
             meta.add(badge);
         }
+        if (card.isRecurring()) {
+            Badge repeats = new Badge(VaadinIcon.REFRESH.create());
+            repeats.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST, BadgeVariant.ICON_ONLY);
+            repeats.addClassName("task-card__repeats");
+            repeats.getElement().setAttribute("title", "Repeats: " + card.recurrence().label().toLowerCase(Locale.ROOT));
+            meta.add(repeats);
+        }
         if (card.isEstimated()) {
             Badge points = new Badge(card.estimate() + " pt");
             points.addThemeVariants(BadgeVariant.SMALL);

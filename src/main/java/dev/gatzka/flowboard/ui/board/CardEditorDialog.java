@@ -30,6 +30,7 @@ import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
+import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.ui.support.Toasts;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /** Create or edit a card. Assignees and tags already used on the board are offered as suggestions. */
@@ -49,11 +51,12 @@ final class CardEditorDialog extends Dialog {
     private final Select<Priority> priority = new Select<>();
     private final DatePicker dueDate = new DatePicker("Due date");
     private final IntegerField estimate = new IntegerField("Estimate");
+    private final Select<Recurrence> recurrence = new Select<>();
     private final ComboBox<String> assignee = new ComboBox<>("Assignee");
     private final MultiSelectComboBox<String> tags = new MultiSelectComboBox<>("Tags");
     private final List<String> assigneeOptions;
     private final List<String> tagOptions;
-    private final Consumer<CardDraft> onSave;
+    private final BiConsumer<CardDraft, Recurrence> onSave;
     private final BoardSnapshot board;
     private Long cardId;
     private ChecklistSection checklistSection;
@@ -66,7 +69,7 @@ final class CardEditorDialog extends Dialog {
     private CardEditorActions actions;
 
     static CardEditorDialog forNewCard(LaneSnapshot lane, BoardSnapshot board, String initialTitle,
-            Consumer<CardDraft> onSave) {
+            BiConsumer<CardDraft, Recurrence> onSave) {
         CardEditorDialog dialog = new CardEditorDialog("New card in " + lane.name(), "Add card", board, onSave);
         dialog.priority.setValue(Priority.MEDIUM);
         if (initialTitle != null && !initialTitle.isBlank()) {
@@ -77,8 +80,14 @@ final class CardEditorDialog extends Dialog {
 
     static CardEditorDialog forCard(CardSnapshot card, BoardSnapshot board, CardEditorActions actions,
             Consumer<CardDraft> onSave, Runnable onArchive, Runnable onDelete) {
-        CardEditorDialog dialog = new CardEditorDialog("Edit card", "Save", board, onSave);
+        CardEditorDialog dialog = new CardEditorDialog("Edit card", "Save", board, (draft, repeats) -> {
+            onSave.accept(draft);
+            if (repeats != card.recurrence()) {
+                actions.setRecurrence(card.id(), repeats);
+            }
+        });
         dialog.binder.readRecord(card.toDraft());
+        dialog.recurrence.setValue(card.recurrence() == null ? Recurrence.NONE : card.recurrence());
         dialog.addCardSections(card, actions);
         dialog.addDeleteButton(card, onDelete);
         dialog.addArchiveButton(onArchive);
@@ -147,7 +156,7 @@ final class CardEditorDialog extends Dialog {
         return card.hasComments() ? "Comments (" + card.comments().size() + ")" : "Comments";
     }
 
-    private CardEditorDialog(String heading, String saveLabel, BoardSnapshot board, Consumer<CardDraft> onSave) {
+    private CardEditorDialog(String heading, String saveLabel, BoardSnapshot board, BiConsumer<CardDraft, Recurrence> onSave) {
         this.onSave = onSave;
         this.board = board;
         this.assigneeOptions = new ArrayList<>(board.assignees());
@@ -191,6 +200,13 @@ final class CardEditorDialog extends Dialog {
         estimate.setStepButtonsVisible(true);
         estimate.setClearButtonVisible(true);
         estimate.setPlaceholder("points");
+
+        recurrence.setLabel("Repeats");
+        recurrence.setItems(Recurrence.values());
+        recurrence.setItemLabelGenerator(Recurrence::label);
+        recurrence.setValue(Recurrence.NONE);
+        recurrence.setHelperText("When finished, a fresh copy returns to its lane");
+        recurrence.addClassName("card-recurrence");
 
         assignee.setItems(assigneeOptions);
         assignee.setAllowCustomValue(true);
@@ -258,6 +274,7 @@ final class CardEditorDialog extends Dialog {
         form.add(descriptionSection, 2);
         form.add(priority, dueDate, assignee, estimate);
         form.add(tags, 2);
+        form.add(recurrence, 2);
         return form;
     }
 
@@ -292,7 +309,7 @@ final class CardEditorDialog extends Dialog {
 
     private void save() {
         try {
-            onSave.accept(binder.writeRecord());
+            onSave.accept(binder.writeRecord(), recurrence.getValue());
             close();
         } catch (ValidationException invalid) {
             // Field level messages are already visible.

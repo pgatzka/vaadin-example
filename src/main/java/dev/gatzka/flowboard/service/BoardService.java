@@ -13,6 +13,7 @@ import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.Lane;
 import dev.gatzka.flowboard.domain.LaneDraft;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
+import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.repository.CardRepository;
 import dev.gatzka.flowboard.repository.LaneRepository;
@@ -22,6 +23,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.domain.Sort;
@@ -198,6 +200,18 @@ public class BoardService {
         return CardSnapshot.of(card);
     }
 
+    public CardSnapshot setRecurrence(long cardId, Recurrence recurrence, String actor) {
+        Card card = requireCard(cardId);
+        if (card.getRecurrence() != recurrence) {
+            card.setRecurrence(recurrence, clock.instant());
+            String message = recurrence.repeats()
+                    ? "set \"%s\" to repeat (%s)".formatted(card.getTitle(), recurrence.label().toLowerCase(Locale.ROOT))
+                    : "stopped \"%s\" from repeating".formatted(card.getTitle());
+            activityLog.record(BoardChangedEvent.content(boardIdOf(card.getLane()), actor, message).forCard(cardId));
+        }
+        return CardSnapshot.of(card);
+    }
+
     public void deleteCard(long cardId, String actor) {
         Card card = requireCard(cardId);
         Lane lane = card.getLane();
@@ -312,7 +326,12 @@ public class BoardService {
             return;
         }
         targetCards.add(newIndex, card);
-        card.moveTo(target, clock.instant());
+        Instant now = clock.instant();
+        boolean completing = target.isDone() && !source.isDone();
+        card.moveTo(target, now);
+        if (completing && card.isRecurring()) {
+            sourceCards.add(nextOccurrence(card, source, sourceCards.size(), now));
+        }
         renumberCards(sourceCards);
         renumberCards(targetCards);
 
@@ -320,6 +339,25 @@ public class BoardService {
                 ? "reordered \"%s\" in %s".formatted(card.getTitle(), target.getName())
                 : "moved \"%s\" to %s".formatted(card.getTitle(), target.getName());
         activityLog.record(BoardChangedEvent.content(boardIdOf(target), actor, message).forCard(cardId));
+    }
+
+    /**
+     * Finishing a recurring card puts a fresh copy back where it came from, with the due date
+     * advanced by its period. The finished card itself stops repeating so it is only ever done once.
+     */
+    private Card nextOccurrence(Card finished, Lane lane, int position, Instant now) {
+        Recurrence recurrence = finished.getRecurrence();
+        CardDraft draft = finished.toDraft();
+        LocalDate nextDue = recurrence.next(draft.dueDate(), LocalDate.ofInstant(now, clock.getZone()));
+        Card next = new Card(lane, new CardDraft(draft.title(), draft.description(), draft.priority(), nextDue,
+                draft.assignee(), draft.tags(), draft.estimate()), position, now);
+        next.setRecurrence(recurrence, now);
+        finished.setRecurrence(Recurrence.NONE, now);
+        cards.save(next);
+        String when = nextDue == null ? "" : ", due " + nextDue;
+        activityLog.record(BoardChangedEvent.content(boardIdOf(lane), "Flowboard",
+                "scheduled the next \"%s\" in %s%s".formatted(next.getTitle(), lane.getName(), when)).forCard(next.getId()));
+        return next;
     }
 
     // -------------------------------------------------------------- internals

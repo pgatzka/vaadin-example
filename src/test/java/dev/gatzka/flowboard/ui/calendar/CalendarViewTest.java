@@ -2,7 +2,7 @@ package dev.gatzka.flowboard.ui.calendar;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.vaadin.browserless.SpringBrowserlessTest;
+import dev.gatzka.flowboard.ui.FlowboardUiTest;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.router.RouterLink;
@@ -27,7 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles("test")
 @WithMockUser(username = "mara")
-class CalendarViewTest extends SpringBrowserlessTest {
+class CalendarViewTest extends FlowboardUiTest {
 
     @Autowired
     private BoardService service;

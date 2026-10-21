@@ -105,6 +105,7 @@ public class BoardExchangeService {
             int cardPosition = 0;
             for (CardExport cardExport : laneExport.cards()) {
                 Card card = new Card(lane, draft(cardExport), cardPosition++, now);
+                card.setRecurrence(cardExport.recurrence(), now);
                 for (ChecklistItemExport item : cardExport.checklist()) {
                     ChecklistItem added = card.addChecklistItem(item.text(), now);
                     added.setDone(item.done());
@@ -129,6 +130,7 @@ public class BoardExchangeService {
                 card.getAssignee(),
                 card.getTags().stream().collect(Collectors.toCollection(java.util.TreeSet::new)),
                 card.getEstimate(),
+                card.getRecurrence(),
                 card.getChecklist().stream().map(item -> new ChecklistItemExport(item.getText(), item.isDone())).toList(),
                 card.getComments().stream().map(comment -> new CommentExport(comment.getAuthor(), comment.getText(), comment.getCreatedAt())).toList());
     }

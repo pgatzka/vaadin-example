@@ -17,6 +17,7 @@ import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import java.time.Duration;
 import java.time.LocalDate;
+import dev.gatzka.flowboard.domain.Recurrence;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -248,6 +249,45 @@ class BoardServiceTest {
     void cardsCannotBeMovedIntoTheLaneBeingDeleted() {
         assertThatThrownBy(() -> service.deleteLaneMovingCards(backlog, backlog, ACTOR))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void finishingARecurringCardSchedulesTheNextOne() {
+        BoardSnapshot board = service.createBoard(new BoardDraft("Chores", null), ACTOR);
+        long backlog = board.lanes().get(0).id();
+        long doing = board.lanes().get(1).id();
+        long done = board.lanes().get(3).id();
+        LocalDate lastMonday = LocalDate.now().minusDays(3);
+        CardSnapshot weekly = service.createCard(backlog,
+                new CardDraft("Water the plants", "Both rooms", Priority.LOW, lastMonday, "Mara", Set.of("home"), 1), ACTOR);
+        service.setRecurrence(weekly.id(), Recurrence.WEEKLY, ACTOR);
+        service.setRecurrence(weekly.id(), Recurrence.WEEKLY, ACTOR);
+        assertThat(activityLog.recent(board.id()).getFirst().message()).isEqualTo("set \"Water the plants\" to repeat (every week)");
+        service.moveCard(weekly.id(), doing, 0, ACTOR);
+        assertThat(service.findBoard(board.id()).orElseThrow().lane(backlog).orElseThrow().cards()).as("not finished yet").isEmpty();
+
+        service.moveCard(weekly.id(), done, 0, ACTOR);
+
+        BoardSnapshot after = service.findBoard(board.id()).orElseThrow();
+        CardSnapshot finished = after.lane(done).orElseThrow().cards().getFirst();
+        assertThat(finished.id()).isEqualTo(weekly.id());
+        assertThat(finished.isRecurring()).as("the finished copy stops repeating").isFalse();
+        CardSnapshot next = after.lane(doing).orElseThrow().cards().getFirst();
+        assertThat(next.id()).isNotEqualTo(weekly.id());
+        assertThat(next.title()).isEqualTo("Water the plants");
+        assertThat(next.description()).isEqualTo("Both rooms");
+        assertThat(next.assignee()).isEqualTo("Mara");
+        assertThat(next.tags()).containsExactly("home");
+        assertThat(next.estimate()).isEqualTo(1);
+        assertThat(next.recurrence()).isEqualTo(Recurrence.WEEKLY);
+        assertThat(next.dueDate()).isEqualTo(lastMonday.plusWeeks(1));
+        assertThat(activityLog.recent(board.id()).stream().map(entry -> entry.message()))
+                .anyMatch(message -> message.startsWith("scheduled the next \"Water the plants\" in In progress, due " + lastMonday.plusWeeks(1)));
+
+        service.setRecurrence(next.id(), Recurrence.NONE, ACTOR);
+        assertThat(activityLog.recent(board.id()).getFirst().message()).isEqualTo("stopped \"Water the plants\" from repeating");
+        service.moveCard(next.id(), done, 0, ACTOR);
+        assertThat(service.findBoard(board.id()).orElseThrow().lane(doing).orElseThrow().cards()).isEmpty();
     }
 
     @Test

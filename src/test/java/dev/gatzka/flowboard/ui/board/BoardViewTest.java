@@ -1,9 +1,9 @@
 package dev.gatzka.flowboard.ui.board;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
-import com.vaadin.browserless.SpringBrowserlessTest;
+import dev.gatzka.flowboard.ui.FlowboardUiTest;import static org.awaitility.Awaitility.await;
+
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.badge.Badge;
 import com.vaadin.flow.component.button.Button;
@@ -11,6 +11,8 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.contextmenu.MenuItem;
+import dev.gatzka.flowboard.domain.Recurrence;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.messages.MessageInput;
@@ -48,7 +50,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles("test")
 @WithMockUser(username = "mara")
-class BoardViewTest extends SpringBrowserlessTest {
+class BoardViewTest extends FlowboardUiTest {
 
     private static final String SEEDER = "Seeder";
 
@@ -264,7 +266,7 @@ class BoardViewTest extends SpringBrowserlessTest {
         comment(created.id(), "Priya", "Drive-by remark");
 
         await().pollInSameThread().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-            roundTrip();
+            pump();
             assertThat(test($(MessageList.class, $(CommentsSection.class, dialog).single()).single()).getMessages())
                     .extracting(MessageListItem::getText).containsExactly("Drive-by remark");
         });
@@ -385,6 +387,19 @@ class BoardViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void repeatsIsSetInTheEditorAndShownOnTheCard() {
+        CardSnapshot card = createCard("Weekly review");
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        view.openCard(card);
+        CardEditorDialog editor = $(CardEditorDialog.class).single();
+        $(Select.class, editor).withClassName("card-recurrence").single().setValue(Recurrence.WEEKLY);
+        test($(Button.class, editor).withText("Save").single()).click();
+
+        assertThat(service.findBoard(board.id()).orElseThrow().lanes().get(0).cards().getFirst().recurrence()).isEqualTo(Recurrence.WEEKLY);
+        assertThat($(Badge.class).withClassName("task-card__repeats").all()).hasSize(1);
+    }
+
+    @Test
     void movesAndLaneArchivingCanBeUndone() {
         CardSnapshot first = createCard("First");
         CardSnapshot second = createCard("Second");
@@ -479,7 +494,7 @@ class BoardViewTest extends SpringBrowserlessTest {
         comment(card.id(), "Jonas", "@Priya please check");
 
         await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-            roundTrip();
+            pump();
             assertThat(unreadBadge().isVisible()).isTrue();
             assertThat(unreadBadge().getText()).isEqualTo("1");
         });
@@ -507,7 +522,7 @@ class BoardViewTest extends SpringBrowserlessTest {
 
         // The push arrives on a background thread; roundTrip() must run on the thread owning the UI.
         await().pollInSameThread().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-            roundTrip();
+            pump();
             assertThat(visibleCardTitles()).containsExactly("Added from another session");
         });
     }

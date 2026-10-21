@@ -46,6 +46,8 @@ Java on top of Vaadin Flow's server push.
   and **file attachments** on cards (up to 5 MB each, stored in the database).
 - **Votes** on cards with "sort by votes" for backlogs, multi-line paste into a lane to create several
   cards, and a little confetti when a card lands in a done lane.
+- **Recurring cards.** Set a card to repeat daily, weekly, every two weeks or monthly; finishing it
+  puts a fresh copy back in its lane with the due date moved on.
 - **Undo.** Moving, finishing or archiving cards shows a toast with an Undo button.
 - **What's new.** Boards in the sidebar show how much happened since you last opened them, and cards
   edited since your last visit carry a dot.

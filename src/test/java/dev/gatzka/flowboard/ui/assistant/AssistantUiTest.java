@@ -1,9 +1,9 @@
 package dev.gatzka.flowboard.ui.assistant;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
-import com.vaadin.browserless.SpringBrowserlessTest;
+import dev.gatzka.flowboard.ui.FlowboardUiTest;import static org.awaitility.Awaitility.await;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.contextmenu.MenuItem;
@@ -29,7 +29,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 @Import(FakeAssistant.class)
 @WithMockUser(username = "mara")
-class AssistantUiTest extends SpringBrowserlessTest {
+class AssistantUiTest extends FlowboardUiTest {
 
     @Autowired
     private BoardService service;
@@ -54,7 +54,7 @@ class AssistantUiTest extends SpringBrowserlessTest {
         test($(Button.class).withText("Suggest steps").single()).click();
         SuggestChecklistDialog dialog = $(SuggestChecklistDialog.class).single();
         await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-            roundTrip();
+            pump();
             assertThat($(Button.class, dialog).withText("Add selected").single().isEnabled()).isTrue();
         });
         CheckboxGroup<String> steps = $(CheckboxGroup.class, dialog).single();
@@ -73,7 +73,7 @@ class AssistantUiTest extends SpringBrowserlessTest {
         StandupDialog dialog = $(StandupDialog.class).single();
 
         await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-            roundTrip();
+            pump();
             assertThat(dialog.markdown()).contains("Mara shipped the sync");
         });
     }
@@ -87,7 +87,7 @@ class AssistantUiTest extends SpringBrowserlessTest {
         test($(TextArea.class, dialog).withLabel("Notes").single()).setValue("Order the tiles. Call the plumber.");
         test($(Button.class, dialog).withText("Extract cards").single()).click();
         await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-            roundTrip();
+            pump();
             assertThat($(Button.class, dialog).withText("Create selected").single().isEnabled()).isTrue();
         });
         test($(Button.class, dialog).withText("Create selected").single()).click();
@@ -105,7 +105,7 @@ class AssistantUiTest extends SpringBrowserlessTest {
         StandupDialog dialog = $(StandupDialog.class).single();
 
         await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-            roundTrip();
+            pump();
             assertThat($(com.vaadin.flow.component.html.Span.class, dialog).withClassName("danger").all()).hasSize(1);
         });
     }

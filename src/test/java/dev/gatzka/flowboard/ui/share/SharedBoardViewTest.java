@@ -1,9 +1,9 @@
 package dev.gatzka.flowboard.ui.share;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
-import com.vaadin.browserless.SpringBrowserlessTest;
+import dev.gatzka.flowboard.ui.FlowboardUiTest;import static org.awaitility.Awaitility.await;
+
 import com.vaadin.flow.component.html.Div;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
@@ -23,7 +23,7 @@ import org.springframework.test.context.ActiveProfiles;
 /** The public view is anonymous: no mock user here on purpose. */
 @SpringBootTest
 @ActiveProfiles("test")
-class SharedBoardViewTest extends SpringBrowserlessTest {
+class SharedBoardViewTest extends FlowboardUiTest {
 
     @Autowired
     private BoardService boardService;
@@ -50,13 +50,13 @@ class SharedBoardViewTest extends SpringBrowserlessTest {
 
         boardService.createCard(board.lanes().get(1).id(), CardDraft.titled("Pushed later"), "Mara");
         await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-            roundTrip();
+            pump();
             assertThat($(CardComponent.class).all()).hasSize(2);
         });
 
         sharing.disable(board.id(), "Mara");
         await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-            roundTrip();
+            pump();
             assertThat($(Div.class).withClassName("shared__gone").all()).hasSize(1);
             assertThat($(Div.class).withClassName("lane").all()).isEmpty();
         });

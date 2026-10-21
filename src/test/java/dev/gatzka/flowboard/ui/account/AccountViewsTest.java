@@ -2,7 +2,7 @@ package dev.gatzka.flowboard.ui.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.vaadin.browserless.SpringBrowserlessTest;
+import dev.gatzka.flowboard.ui.FlowboardUiTest;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.textfield.PasswordField;
@@ -16,7 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 /** The sign-in and registration pages are the only ones reachable without an account. */
 @SpringBootTest
 @ActiveProfiles("test")
-class AccountViewsTest extends SpringBrowserlessTest {
+class AccountViewsTest extends FlowboardUiTest {
 
     @Autowired
     private AccountService accounts;

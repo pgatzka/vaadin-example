@@ -1,6 +1,7 @@
 package dev.gatzka.flowboard.exchange;
 
 import dev.gatzka.flowboard.domain.Priority;
+import dev.gatzka.flowboard.domain.Recurrence;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collections;
@@ -40,10 +41,12 @@ public record BoardExport(
             String assignee,
             Set<String> tags,
             Integer estimate,
+            Recurrence recurrence,
             List<ChecklistItemExport> checklist,
             List<CommentExport> comments) {
 
         public CardExport {
+            recurrence = recurrence == null ? Recurrence.NONE : recurrence;
             tags = tags == null ? Set.of() : Collections.unmodifiableSortedSet(new TreeSet<>(tags));
             checklist = checklist == null ? List.of() : List.copyOf(checklist);
             comments = comments == null ? List.of() : List.copyOf(comments);

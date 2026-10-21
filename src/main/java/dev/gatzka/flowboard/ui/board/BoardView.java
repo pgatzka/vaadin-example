@@ -37,6 +37,7 @@ import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
+import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.AttachmentService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
@@ -423,8 +424,12 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     @Override
     public void newCard(LaneSnapshot lane, String initialTitle) {
-        CardEditorDialog.forNewCard(lane, board, initialTitle,
-                draft -> perform(() -> boardService.createCard(lane.id(), draft, actor()))).open();
+        CardEditorDialog.forNewCard(lane, board, initialTitle, (draft, repeats) -> perform(() -> {
+            CardSnapshot created = boardService.createCard(lane.id(), draft, actor());
+            if (repeats.repeats()) {
+                boardService.setRecurrence(created.id(), repeats, actor());
+            }
+        })).open();
     }
 
     @Override
@@ -540,6 +545,13 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Override
     public CardSnapshot removeChecklistItem(long itemId) {
         return changeCard(() -> checklistService.removeItem(itemId, actor()));
+    }
+
+    @Override
+    public CardSnapshot setRecurrence(long cardId, Recurrence recurrence) {
+        CardSnapshot updated = boardService.setRecurrence(cardId, recurrence, actor());
+        reload();
+        return updated;
     }
 
     @Override
