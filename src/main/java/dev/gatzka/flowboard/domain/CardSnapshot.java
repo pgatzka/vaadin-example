@@ -3,6 +3,7 @@ package dev.gatzka.flowboard.domain;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
@@ -17,8 +18,13 @@ public record CardSnapshot(
         LocalDate dueDate,
         String assignee,
         Set<String> tags,
+        List<ChecklistItemSnapshot> checklist,
         int position,
         Instant updatedAt) {
+
+    public CardSnapshot {
+        checklist = List.copyOf(checklist);
+    }
 
     /** Cards due within this many days (inclusive) are flagged as due soon. */
     private static final int DUE_SOON_DAYS = 2;
@@ -35,8 +41,21 @@ public record CardSnapshot(
                 card.getDueDate(),
                 card.getAssignee(),
                 Collections.unmodifiableSet(sortedTags),
+                card.getChecklist().stream().map(ChecklistItemSnapshot::of).toList(),
                 card.getPosition(),
                 card.getUpdatedAt());
+    }
+
+    public boolean hasChecklist() {
+        return !checklist.isEmpty();
+    }
+
+    public long checklistDone() {
+        return checklist.stream().filter(ChecklistItemSnapshot::done).count();
+    }
+
+    public boolean isChecklistComplete() {
+        return hasChecklist() && checklistDone() == checklist.size();
     }
 
     public boolean hasDescription() {

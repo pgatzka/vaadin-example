@@ -3,10 +3,12 @@ package dev.gatzka.flowboard.bootstrap;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
+import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.service.BoardService;
+import dev.gatzka.flowboard.service.ChecklistService;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Set;
@@ -27,11 +29,13 @@ class SampleDataInitializer implements ApplicationRunner {
 
     private final BoardRepository boards;
     private final BoardService boardService;
+    private final ChecklistService checklistService;
     private final Clock clock;
 
-    SampleDataInitializer(BoardRepository boards, BoardService boardService, Clock clock) {
+    SampleDataInitializer(BoardRepository boards, BoardService boardService, ChecklistService checklistService, Clock clock) {
         this.boards = boards;
         this.boardService = boardService;
+        this.checklistService = checklistService;
         this.clock = clock;
     }
 
@@ -69,8 +73,12 @@ class SampleDataInitializer implements ApplicationRunner {
                 publishes a `BoardChangedEvent` **after commit**. Open browsers subscribe through
                 `BoardChangeBroadcaster` and reload the snapshot.
                 """, Priority.HIGH, today.plusDays(3), "Jonas", "backend", "feature");
-        card(inProgress, "Drag & drop between lanes", "Dropping on a card inserts before it, dropping on empty space appends.",
+        CardSnapshot dragAndDrop = card(inProgress, "Drag & drop between lanes",
+                "Dropping on a card inserts before it, dropping on empty space appends.",
                 Priority.HIGH, today.plusDays(1), "Mara", "ui", "feature");
+        checklist(dragAndDrop, "Cards are drag sources", true);
+        checklist(dragAndDrop, "Lanes accept drops", true);
+        checklist(dragAndDrop, "Keyboard alternative", false);
 
         card(review, "Card editor with Markdown preview", "Uses the Vaadin `Markdown` component in a preview tab.",
                 Priority.MEDIUM, today.minusDays(1), "Jonas", "ui");
@@ -93,8 +101,15 @@ class SampleDataInitializer implements ApplicationRunner {
         return lane.id();
     }
 
-    private void card(long laneId, String title, String description, Priority priority, LocalDate due, String assignee,
-            String... tags) {
-        boardService.createCard(laneId, new CardDraft(title, description, priority, due, assignee, Set.of(tags)), ACTOR);
+    private CardSnapshot card(long laneId, String title, String description, Priority priority, LocalDate due,
+            String assignee, String... tags) {
+        return boardService.createCard(laneId, new CardDraft(title, description, priority, due, assignee, Set.of(tags)), ACTOR);
+    }
+
+    private void checklist(CardSnapshot card, String text, boolean done) {
+        CardSnapshot updated = checklistService.addItem(card.id(), text, ACTOR);
+        if (done) {
+            checklistService.setDone(updated.checklist().getLast().id(), true, ACTOR);
+        }
     }
 }

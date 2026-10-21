@@ -2,6 +2,7 @@ package dev.gatzka.flowboard.domain;
 
 import static java.util.Objects.requireNonNull;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -14,10 +15,15 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -51,6 +57,10 @@ public class Card {
     @CollectionTable(name = "card_tags", joinColumns = @JoinColumn(name = "card_id"))
     @Column(name = "tag", nullable = false, length = 30)
     private Set<String> tags = new HashSet<>();
+
+    @OneToMany(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC")
+    private List<ChecklistItem> checklist = new ArrayList<>();
 
     @Column(name = "sort_order", nullable = false)
     private int position;
@@ -92,6 +102,26 @@ public class Card {
         this.position = position;
     }
 
+    public ChecklistItem addChecklistItem(String text, Instant now) {
+        ChecklistItem item = new ChecklistItem(this, text, checklist.size());
+        checklist.add(item);
+        updatedAt = requireNonNull(now);
+        return item;
+    }
+
+    public void removeChecklistItem(ChecklistItem item, Instant now) {
+        if (checklist.remove(item)) {
+            for (int i = 0; i < checklist.size(); i++) {
+                checklist.get(i).setPosition(i);
+            }
+            updatedAt = requireNonNull(now);
+        }
+    }
+
+    public void touch(Instant now) {
+        updatedAt = requireNonNull(now);
+    }
+
     public Long getId() {
         return id;
     }
@@ -122,6 +152,11 @@ public class Card {
 
     public Set<String> getTags() {
         return tags;
+    }
+
+    /** The checklist in order; read-only, modify through the card. */
+    public List<ChecklistItem> getChecklist() {
+        return Collections.unmodifiableList(checklist);
     }
 
     public int getPosition() {

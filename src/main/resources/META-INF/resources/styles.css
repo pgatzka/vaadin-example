@@ -460,6 +460,51 @@ html {
   gap: var(--lumo-space-s);
 }
 
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-xs);
+  margin-top: var(--lumo-space-m);
+}
+
+.checklist__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.checklist__summary {
+  font-size: var(--lumo-font-size-s);
+  color: var(--lumo-secondary-text-color);
+}
+
+.checklist__progress {
+  margin: 0;
+}
+
+.checklist__items {
+  display: flex;
+  flex-direction: column;
+}
+
+.checklist__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--lumo-space-s);
+}
+
+.checklist__item--done vaadin-checkbox {
+  text-decoration: line-through;
+  color: var(--lumo-secondary-text-color);
+}
+
+.checklist__composer {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-xs);
+}
+
 .dialog-footer__start {
   margin-inline-end: auto;
 }

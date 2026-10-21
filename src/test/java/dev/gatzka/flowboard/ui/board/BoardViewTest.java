@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import com.vaadin.browserless.SpringBrowserlessTest;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.badge.Badge;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
@@ -174,6 +175,22 @@ class BoardViewTest extends SpringBrowserlessTest {
         assertThat($(LaneComponent.class).all()).extracting(lane -> lane.lane().name())
                 .containsExactly("In progress", "Review", "Done");
         assertThat($(LaneComponent.class).first().lane().cards()).extracting(CardSnapshot::title).containsExactly("Keep me");
+    }
+
+    @Test
+    void checklistIsEditedInPlaceAndSummarisedOnTheCard() {
+        createCard("With checklist");
+        openBoard();
+        test($(CardComponent.class).single()).click();
+        CardEditorDialog dialog = $(CardEditorDialog.class).single();
+
+        test($(TextField.class, dialog).withPlaceholder("Add an item and press Enter").single()).setValue("Step one");
+        test($(Button.class, dialog).withText("Add").single()).click();
+        test($(Checkbox.class, dialog).withLabel("Step one").single()).click();
+
+        CardComponent card = $(CardComponent.class).single();
+        assertThat(card.card().checklist()).extracting(c -> c.done()).containsExactly(true);
+        assertThat($(Badge.class, card).withClassName("task-card__checklist").single().getText()).isEqualTo("1/1");
     }
 
     @Test

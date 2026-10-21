@@ -62,6 +62,13 @@ final class CardComponent extends Div {
             badge.addClassName("task-card__tag");
             meta.add(badge);
         }
+        if (card.hasChecklist()) {
+            Badge checklist = new Badge(card.checklistDone() + "/" + card.checklist().size(), VaadinIcon.CHECK_SQUARE_O.create());
+            checklist.addThemeVariants(BadgeVariant.SMALL, card.isChecklistComplete() ? BadgeVariant.SUCCESS : BadgeVariant.CONTRAST);
+            checklist.addClassName("task-card__checklist");
+            checklist.getElement().setAttribute("title", "Checklist");
+            meta.add(checklist);
+        }
         if (card.hasDescription()) {
             Icon notes = VaadinIcon.ALIGN_LEFT.create();
             notes.addClassName("task-card__notes");

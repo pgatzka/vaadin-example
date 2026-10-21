@@ -31,6 +31,7 @@ import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardChangedEvent;
 import dev.gatzka.flowboard.service.BoardService;
+import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.service.PresenceTracker;
@@ -50,11 +51,12 @@ import java.util.Optional;
  * whether through this user or through anybody else (via server push).
  */
 @Route("board/:boardId")
-public class BoardView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle, BoardActions {
+public class BoardView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle, BoardActions, ChecklistActions {
 
     public static final String BOARD_ID = "boardId";
 
     private final BoardService boardService;
+    private final ChecklistService checklistService;
     private final ActivityLog activityLog;
     private final BoardChangeBroadcaster broadcaster;
     private final PresenceTracker presence;
@@ -76,9 +78,10 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private Registration presenceSubscription;
     private Registration profileSubscription;
 
-    public BoardView(BoardService boardService, ActivityLog activityLog, BoardChangeBroadcaster broadcaster,
-            PresenceTracker presence, UserSession session, Clock clock) {
+    public BoardView(BoardService boardService, ChecklistService checklistService, ActivityLog activityLog,
+            BoardChangeBroadcaster broadcaster, PresenceTracker presence, UserSession session, Clock clock) {
         this.boardService = boardService;
+        this.checklistService = checklistService;
         this.activityLog = activityLog;
         this.broadcaster = broadcaster;
         this.presence = presence;
@@ -247,7 +250,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     @Override
     public void openCard(CardSnapshot card) {
-        CardEditorDialog.forCard(card, board,
+        CardEditorDialog.forCard(card, board, this,
                 draft -> perform(() -> boardService.updateCard(card.id(), draft, actor())),
                 () -> perform(() -> boardService.deleteCard(card.id(), actor()))).open();
     }
@@ -299,6 +302,29 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
                 boardService.deleteLaneMovingCards(lane.id(), target.id(), actor());
             }
         })).open();
+    }
+
+    // ----------------------------------------------------- ChecklistActions
+
+    @Override
+    public CardSnapshot addItem(long cardId, String text) {
+        return checklist(() -> checklistService.addItem(cardId, text, actor()));
+    }
+
+    @Override
+    public CardSnapshot setDone(long itemId, boolean done) {
+        return checklist(() -> checklistService.setDone(itemId, done, actor()));
+    }
+
+    @Override
+    public CardSnapshot removeItem(long itemId) {
+        return checklist(() -> checklistService.removeItem(itemId, actor()));
+    }
+
+    private CardSnapshot checklist(java.util.function.Supplier<CardSnapshot> change) {
+        CardSnapshot refreshed = change.get();
+        reload();
+        return refreshed;
     }
 
     private void addLane() {

@@ -58,9 +58,11 @@ final class CardEditorDialog extends Dialog {
         return dialog;
     }
 
-    static CardEditorDialog forCard(CardSnapshot card, BoardSnapshot board, Consumer<CardDraft> onSave, Runnable onDelete) {
+    static CardEditorDialog forCard(CardSnapshot card, BoardSnapshot board, ChecklistActions checklist,
+            Consumer<CardDraft> onSave, Runnable onDelete) {
         CardEditorDialog dialog = new CardEditorDialog("Edit card", "Save", board, onSave);
         dialog.binder.readRecord(card.toDraft());
+        dialog.add(new ChecklistSection(card, checklist, refreshed -> { }));
         dialog.addDeleteButton(card, onDelete);
         return dialog;
     }
