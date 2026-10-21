@@ -1,0 +1,138 @@
+package dev.gatzka.flowboard.api;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import dev.gatzka.flowboard.domain.BoardDraft;
+import dev.gatzka.flowboard.domain.BoardSnapshot;
+import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.service.ActivityLog;
+import dev.gatzka.flowboard.service.BoardService;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.ActiveProfiles;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/** Drives the API over real HTTP so the servlet routing next to Vaadin is covered too. */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
+class BoardsApiTest {
+
+    @LocalServerPort
+    private int port;
+
+    @Autowired
+    private BoardService boardService;
+
+    @Autowired
+    private ActivityLog activityLog;
+
+    @Autowired
+    private JsonMapper json;
+
+    private final HttpClient http = HttpClient.newHttpClient();
+    private BoardSnapshot board;
+
+    @BeforeEach
+    void seed() {
+        boardService.listBoards().forEach(existing -> boardService.deleteBoard(existing.id(), "Seeder"));
+        board = boardService.createBoard(new BoardDraft("Api board", "Reachable over HTTP"), "Seeder");
+    }
+
+    @Test
+    void listsAndReadsBoards() throws Exception {
+        HttpResponse<String> list = send("GET", "/api/boards", null);
+        assertThat(list.statusCode()).isEqualTo(200);
+        assertThat(list.headers().firstValue("content-type").orElse("")).contains("application/json");
+        JsonNode boards = json.readTree(list.body());
+        assertThat(boards.size()).isEqualTo(1);
+        assertThat(boards.get(0).get("name").asString()).isEqualTo("Api board");
+        assertThat(boards.get(0).get("laneCount").asInt()).isEqualTo(4);
+
+        JsonNode detail = json.readTree(send("GET", "/api/boards/" + board.id(), null).body());
+        assertThat(detail.get("version").asInt()).isEqualTo(1);
+        assertThat(detail.get("lanes").size()).isEqualTo(4);
+        assertThat(detail.get("lanes").get(0).get("name").asString()).isEqualTo("Backlog");
+    }
+
+    @Test
+    void createsMovesUpdatesAndDeletesCards() throws Exception {
+        long backlog = board.lanes().get(0).id();
+        long done = board.lanes().get(3).id();
+
+        HttpResponse<String> created = send("POST", "/api/boards/" + board.id() + "/lanes/" + backlog + "/cards",
+                "{\"title\": \"From the API\", \"priority\": \"high\", \"tags\": [\"ops\"], \"estimate\": 3}", "X-Flowboard-Actor", "deploy-bot");
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        JsonNode card = json.readTree(created.body());
+        long cardId = card.get("id").asLong();
+        assertThat(created.headers().firstValue("location")).contains("/api/cards/" + cardId);
+        assertThat(card.get("priority").asString()).isEqualTo("HIGH");
+        assertThat(card.get("tags").get(0).asString()).isEqualTo("ops");
+        assertThat(activityLog.recent(board.id()).getFirst().actor()).isEqualTo("deploy-bot");
+
+        assertThat(send("POST", "/api/cards/" + cardId + "/move", "{\"targetLaneId\": " + done + ", \"targetIndex\": 0}").statusCode()).isEqualTo(204);
+        assertThat(boardService.findBoard(board.id()).orElseThrow().lane(done).orElseThrow().cards())
+                .extracting(CardSnapshot::title).containsExactly("From the API");
+
+        JsonNode updated = json.readTree(send("PUT", "/api/cards/" + cardId, "{\"title\": \"Renamed\", \"priority\": \"LOW\"}").body());
+        assertThat(updated.get("title").asString()).isEqualTo("Renamed");
+        assertThat(updated.get("estimate").isNull()).isTrue();
+
+        assertThat(send("DELETE", "/api/cards/" + cardId, null).statusCode()).isEqualTo(204);
+        assertThat(boardService.findBoard(board.id()).orElseThrow().cardCount()).isZero();
+    }
+
+    @Test
+    void createsBoardsFromTheExportFormat() throws Exception {
+        String body = "{\"name\": \"Posted\", \"lanes\": [{\"name\": \"Todo\", \"cards\": [{\"title\": \"One\"}]}, {\"name\": \"Done\", \"done\": true}]}";
+
+        HttpResponse<String> created = send("POST", "/api/boards", body);
+
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        JsonNode snapshot = json.readTree(created.body());
+        assertThat(snapshot.get("name").asString()).isEqualTo("Posted");
+        assertThat(snapshot.get("lanes").size()).isEqualTo(2);
+        assertThat(snapshot.get("lanes").get(0).get("cards").get(0).get("title").asString()).isEqualTo("One");
+        assertThat(send("DELETE", "/api/boards/" + snapshot.get("id").asLong(), null).statusCode()).isEqualTo(204);
+    }
+
+    @Test
+    void reportsErrorsAsJson() throws Exception {
+        HttpResponse<String> missing = send("GET", "/api/boards/424242", null);
+        assertThat(missing.statusCode()).isEqualTo(404);
+        assertThat(json.readTree(missing.body()).get("error").asString()).contains("Board 424242");
+
+        long backlog = board.lanes().get(0).id();
+        HttpResponse<String> blank = send("POST", "/api/boards/" + board.id() + "/lanes/" + backlog + "/cards", "{\"title\": \"  \"}");
+        assertThat(blank.statusCode()).isEqualTo(400);
+        assertThat(json.readTree(blank.body()).get("error").asString()).contains("must not be blank");
+
+        HttpResponse<String> wrongLane = send("POST", "/api/boards/" + board.id() + "/lanes/999/cards", "{\"title\": \"x\"}");
+        assertThat(wrongLane.statusCode()).isEqualTo(404);
+
+        HttpResponse<String> garbage = send("POST", "/api/boards", "not json");
+        assertThat(garbage.statusCode()).isEqualTo(400);
+    }
+
+    private HttpResponse<String> send(String method, String path, String body, String... headers) throws IOException, InterruptedException {
+        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+                .header("Accept", "application/json")
+                .method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
+        if (body != null) {
+            request.header("Content-Type", "application/json");
+        }
+        for (int i = 0; i < headers.length; i += 2) {
+            request.header(headers[i], headers[i + 1]);
+        }
+        return http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+    }
+}

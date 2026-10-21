@@ -86,6 +86,32 @@ The suite covers the service layer (ordering logic, WIP limits, deletion, event 
 the views. UI tests use Vaadin's browserless testing library: they drive real view code,
 including dialogs and server push, without a browser or servlet container.
 
+## API
+
+A small JSON API under `/api` lets scripts and other tools work with boards. Changes made through
+it are pushed to open browsers like any other change. The optional `X-Flowboard-Actor` header names
+who did it in the activity feed.
+
+| Method and path | Purpose |
+|---|---|
+| `GET /api/boards` | List boards with headline numbers |
+| `GET /api/boards/{id}` | The whole board in the export format |
+| `POST /api/boards` | Create a board from the export format (`{"name": "…"}` is enough) |
+| `DELETE /api/boards/{id}` | Delete a board |
+| `POST /api/boards/{id}/lanes/{laneId}/cards` | Create a card from a draft (`title`, `description`, `priority`, `dueDate`, `assignee`, `tags`, `estimate`) |
+| `PUT /api/cards/{id}` | Replace a card's draft fields |
+| `POST /api/cards/{id}/move` | Move a card: `{"targetLaneId": 3, "targetIndex": 0}` |
+| `DELETE /api/cards/{id}` | Delete a card |
+
+```bash
+curl -s localhost:8080/api/boards | jq '.[0].id'
+curl -s -X POST localhost:8080/api/boards/1/lanes/1/cards \
+  -H 'Content-Type: application/json' -H 'X-Flowboard-Actor: deploy-bot' \
+  -d '{"title": "Rotate the signing key", "priority": "HIGH", "tags": ["ops"]}'
+```
+
+Errors come back as `{"error": "…"}` with 400 for invalid input and 404 for unknown ids.
+
 ## How it is built
 
 ```

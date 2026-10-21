@@ -117,5 +117,7 @@ class BoardExchangeServiceTest {
                 .isInstanceOf(InvalidBoardFileException.class).hasMessageContaining("version 99");
         assertThatThrownBy(() -> exchange.parse("{\"version\": 1}".getBytes(StandardCharsets.UTF_8)))
                 .isInstanceOf(InvalidBoardFileException.class).hasMessageContaining("does not describe a board");
+        assertThat(exchange.parse("{\"name\": \"Short form\"}".getBytes(StandardCharsets.UTF_8)).lanes())
+                .as("version and lanes may be left out").isEmpty();
     }
 }

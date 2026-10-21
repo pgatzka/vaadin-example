@@ -74,19 +74,25 @@ public class BoardExchangeService {
 
     /** @throws InvalidBoardFileException when the bytes are not a board file this version understands */
     public BoardExport parse(byte[] bytes) {
-        BoardExport export;
         try {
-            export = json.readValue(bytes, BoardExport.class);
+            return validate(json.readValue(bytes, BoardExport.class));
         } catch (JacksonException malformed) {
             throw new InvalidBoardFileException("The file is not valid JSON", malformed);
         }
-        if (export.version() != BoardExport.CURRENT_VERSION) {
-            throw new InvalidBoardFileException("Unsupported board file version " + export.version());
-        }
-        if (export.name() == null || export.name().isBlank() || export.lanes() == null) {
+    }
+
+    /**
+     * Checks that an export describes a board this version can import. A missing version or lane
+     * list is tolerated so that hand-written API payloads stay short.
+     */
+    public BoardExport validate(BoardExport export) {
+        if (export == null || export.name() == null || export.name().isBlank()) {
             throw new InvalidBoardFileException("The file does not describe a board");
         }
-        return export;
+        if (export.version() != 0 && export.version() != BoardExport.CURRENT_VERSION) {
+            throw new InvalidBoardFileException("Unsupported board file version " + export.version());
+        }
+        return new BoardExport(BoardExport.CURRENT_VERSION, export.name(), export.description(), export.exportedAt(), export.lanes());
     }
 
     /** Creates a new board from an export, preserving lane order, card order, checklists and comments. */
@@ -97,13 +103,13 @@ public class BoardExchangeService {
         for (LaneExport laneExport : export.lanes()) {
             Lane lane = lanes.save(new Lane(board, new LaneDraft(laneExport.name(), laneExport.wipLimit(), laneExport.done()), lanePosition++));
             int cardPosition = 0;
-            for (CardExport cardExport : Objects.requireNonNullElse(laneExport.cards(), List.<CardExport>of())) {
+            for (CardExport cardExport : laneExport.cards()) {
                 Card card = new Card(lane, draft(cardExport), cardPosition++, now);
-                for (ChecklistItemExport item : Objects.requireNonNullElse(cardExport.checklist(), List.<ChecklistItemExport>of())) {
+                for (ChecklistItemExport item : cardExport.checklist()) {
                     ChecklistItem added = card.addChecklistItem(item.text(), now);
                     added.setDone(item.done());
                 }
-                for (CommentExport comment : Objects.requireNonNullElse(cardExport.comments(), List.<CommentExport>of())) {
+                for (CommentExport comment : cardExport.comments()) {
                     card.addComment(comment.author(), comment.text(), Objects.requireNonNullElse(comment.createdAt(), now));
                 }
                 cards.save(card);
