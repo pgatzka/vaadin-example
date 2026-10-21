@@ -75,7 +75,8 @@ Java on top of Vaadin Flow's server push.
 - **What's new.** Boards in the sidebar show how much happened since you last opened them, and cards
   edited since your last visit carry a dot.
 - **Public links.** Share a board read-only with anyone, no account needed. Viewers see every
-  change live; turn the link off and it stops working.
+  change live; turn the link off and it stops working. The link also comes with a **calendar feed**
+  of the board's due dates to subscribe to from any calendar app.
 - **Members-only boards.** Boards are open to everyone who signs in, unless you restrict one to a
   list of members; then it disappears for everyone else, in the sidebar, search, My work and the API.
 - **Accounts.** Register with a username and password (BCrypt-hashed), sign in, sign out. The
@@ -147,6 +148,8 @@ a Flowboard account; the account's display name is what the activity feed shows.
 | `POST /api/cards/{id}/time` | Log time in your name: `{"minutes": 30, "note": "…"}` |
 | `GET /api/boards/{id}/activity` | Recent history of the board, newest first |
 | `GET /api/boards/{id}/digest` | The weekly digest as JSON; `?week=2026-10-21` picks the week ending that day |
+| `GET /api/boards/{id}/calendar.ics` | The board's due dates as iCalendar, for members |
+| `GET /api/calendar/{shareToken}.ics` | The same feed through a board's public link token, no account needed |
 | `GET /api/boards/{id}/digest.md` | The same digest as Markdown, e.g. for a chat bot |
 | `GET /api/boards/{id}/templates` | Card templates of the board |
 | `POST /api/boards/{id}/templates` | Create or replace a template (`name`, `title`, `description`, `priority`, `assignee`, `tags`, `estimate`, `checklist`) |

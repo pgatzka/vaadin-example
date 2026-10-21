@@ -48,6 +48,9 @@ class BoardsApiTest {
     @Autowired
     private dev.gatzka.flowboard.service.AccessService access;
 
+    @Autowired
+    private dev.gatzka.flowboard.service.SharingService sharing;
+
     private final HttpClient http = HttpClient.newHttpClient();
     private BoardSnapshot board;
 
@@ -194,6 +197,25 @@ class BoardsApiTest {
                 .header("Authorization", basic("outsider", "robots-only")).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString("{\"targetLaneId\": " + backlog + ", \"targetIndex\": 0}")).build();
         assertThat(http.send(move, HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(404);
+    }
+
+    @Test
+    void servesCalendarFeedsForMembersAndThroughTheShareToken() throws Exception {
+        boardService.createCard(board.lanes().get(0).id(), new dev.gatzka.flowboard.domain.CardDraft("Launch day", null, null,
+                java.time.LocalDate.of(2026, 12, 1), null, java.util.Set.of(), null), "Seeder");
+        HttpResponse<String> own = send("GET", "/api/boards/" + board.id() + "/calendar.ics", null, "Accept", "text/calendar");
+        assertThat(own.statusCode()).as(own.body()).isEqualTo(200);
+        assertThat(own.headers().firstValue("content-type").orElse("")).startsWith("text/calendar");
+        assertThat(own.body()).contains("SUMMARY:Launch day").contains("URL:http://localhost:" + port + "/board/" + board.id() + "/card/");
+
+        HttpRequest anonymous = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/calendar/nope.ics")).GET().build();
+        assertThat(http.send(anonymous, HttpResponse.BodyHandlers.ofString()).statusCode()).as("unknown token").isEqualTo(404);
+
+        String token = sharing.enable(board.id(), "Seeder");
+        HttpRequest shared = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/calendar/" + token + ".ics")).GET().build();
+        HttpResponse<String> feed = http.send(shared, HttpResponse.BodyHandlers.ofString());
+        assertThat(feed.statusCode()).as(feed.body()).isEqualTo(200);
+        assertThat(feed.body()).contains("BEGIN:VCALENDAR").contains("SUMMARY:Launch day");
     }
 
     @Test

@@ -10,6 +10,7 @@ import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.WeeklyDigest;
 import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.exchange.BoardExport;
+import dev.gatzka.flowboard.exchange.CalendarFeed;
 import dev.gatzka.flowboard.security.AccountService;
 import dev.gatzka.flowboard.service.AccessService;
 import dev.gatzka.flowboard.service.ActivityLog;
@@ -18,6 +19,8 @@ import dev.gatzka.flowboard.service.CardTemplateService;
 import dev.gatzka.flowboard.service.DigestService;
 import dev.gatzka.flowboard.service.TimeService;
 import dev.gatzka.flowboard.service.NotFoundException;
+import dev.gatzka.flowboard.service.SharingService;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.security.Principal;
 import java.time.Clock;
@@ -52,11 +55,14 @@ public class BoardsApi {
     private final CardTemplateService templates;
     private final ActivityLog activityLog;
     private final AccessService access;
+    private final SharingService sharing;
     private final Clock clock;
 
     BoardsApi(BoardService boardService, BoardExchangeService exchange, AccountService accounts, DigestService digests,
-            TimeService time, CardTemplateService templates, ActivityLog activityLog, AccessService access, Clock clock) {
+            TimeService time, CardTemplateService templates, ActivityLog activityLog, AccessService access, SharingService sharing,
+            Clock clock) {
         this.access = access;
+        this.sharing = sharing;
         this.boardService = boardService;
         this.exchange = exchange;
         this.accounts = accounts;
@@ -181,6 +187,27 @@ public class BoardsApi {
             Principal caller) {
         CardSnapshot created = templates.instantiate(templateId, request.laneId(), actor(caller));
         return ResponseEntity.created(URI.create("/api/cards/" + created.id())).body(created);
+    }
+
+    /** The board's due dates as an iCalendar file, for members. */
+    @GetMapping(path = "/boards/{boardId}/calendar.ics", produces = CalendarFeed.CONTENT_TYPE)
+    public String calendar(@PathVariable long boardId, Principal caller, HttpServletRequest request) {
+        requireAccess(boardId, caller);
+        BoardSnapshot board = boardService.findBoard(boardId).orElseThrow(() -> new NotFoundException("Board", boardId));
+        return CalendarFeed.render(board, clock.instant(), cardUrlPrefix(request, boardId));
+    }
+
+    /** The same feed through the public link's token, so calendar apps need no account. */
+    @GetMapping(path = "/calendar/{token}.ics", produces = CalendarFeed.CONTENT_TYPE)
+    public String sharedCalendar(@PathVariable String token, HttpServletRequest request) {
+        BoardSnapshot board = sharing.findShared(token).orElseThrow(() -> new NotFoundException("Calendar", 0));
+        return CalendarFeed.render(board, clock.instant(), cardUrlPrefix(request, board.id()));
+    }
+
+    private static String cardUrlPrefix(HttpServletRequest request, long boardId) {
+        String origin = request.getScheme() + "://" + request.getServerName()
+                + (request.getServerPort() == 80 || request.getServerPort() == 443 ? "" : ":" + request.getServerPort());
+        return origin + "/board/" + boardId + "/card/";
     }
 
     public record MoveRequest(long targetLaneId, int targetIndex) {

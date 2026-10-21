@@ -36,7 +36,9 @@ class SecurityConfiguration {
                 .sessionManagement(sessions -> sessions.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(basic -> basic.authenticationEntryPoint(entryPoint))
                 .exceptionHandling(handling -> handling.authenticationEntryPoint(entryPoint))
-                .authorizeHttpRequests(requests -> requests.anyRequest().authenticated());
+                .authorizeHttpRequests(requests -> requests
+                        .requestMatchers("/api/calendar/**").permitAll() // feeds are reachable through the board's share token
+                        .anyRequest().authenticated());
         return http.build();
     }
 

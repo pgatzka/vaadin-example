@@ -23,6 +23,7 @@ final class ShareDialog extends Dialog {
     private final Supplier<String> actor;
     private final Checkbox enabled = new Checkbox("Anyone with the link can view this board");
     private final TextField link = new TextField();
+    private final TextField calendar = new TextField("Calendar feed");
     private final Div linkRow = new Div();
 
     ShareDialog(BoardSnapshot board, SharingService sharing, Supplier<String> actor) {
@@ -50,6 +51,12 @@ final class ShareDialog extends Dialog {
         row.setAlignItems(HorizontalLayout.Alignment.END);
         linkRow.add(row);
 
+        calendar.setReadOnly(true);
+        calendar.setWidthFull();
+        calendar.setHelperText("Subscribe to this address in your calendar app to see the board's due dates.");
+        calendar.addClassName("share-dialog__calendar");
+        linkRow.add(calendar);
+
         enabled.addValueChangeListener(event -> {
             if (!event.isFromClient()) {
                 return;
@@ -73,10 +80,17 @@ final class ShareDialog extends Dialog {
         enabled.setValue(token != null);
         linkRow.setVisible(token != null);
         link.setValue(token == null ? "" : SharedBoardView.pathTo(token));
+        calendar.setValue(token == null ? "" : calendarPath(token));
         if (token != null) {
-            getUI().ifPresent(ui -> ui.getPage().executeJs("return location.origin").then(String.class,
-                    origin -> link.setValue(origin + "/" + SharedBoardView.pathTo(token))));
+            getUI().ifPresent(ui -> ui.getPage().executeJs("return location.origin").then(String.class, origin -> {
+                link.setValue(origin + "/" + SharedBoardView.pathTo(token));
+                calendar.setValue(origin + "/" + calendarPath(token));
+            }));
         }
+    }
+
+    static String calendarPath(String token) {
+        return "api/calendar/" + token + ".ics";
     }
 
     private void copy() {
