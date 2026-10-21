@@ -15,6 +15,10 @@ Java on top of Vaadin Flow's server push.
 | ![Insights](docs/insights.png) | ![Calendar](docs/calendar.png) | ![Palette](docs/palette.png) |
 | Home dashboard | Sign in | Create an account |
 | ![Home](docs/home.png) | ![Sign in](docs/login.png) | ![Register](docs/register.png) |
+| Weekly digest | Activity heatmap | Public read-only link |
+| ![Digest](docs/digest.png) | ![Heatmap](docs/heatmap.png) | ![Shared board](docs/shared.png) |
+| Undo after a keyboard move | Webhooks | Share dialog |
+| ![Undo](docs/undo.png) | ![Webhooks](docs/webhooks.png) | ![Share](docs/share.png) |
 
 ## Features
 

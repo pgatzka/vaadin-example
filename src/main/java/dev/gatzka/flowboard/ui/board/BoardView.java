@@ -122,8 +122,10 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     private BoardSnapshot board;
     private Instant lastVisit;
-    /** Card to focus after the next render, so keyboard moves keep the keyboard focus. */
+    /** Card to focus after the next renders, so keyboard moves keep the keyboard focus. */
     private Long focusCardId;
+    /** Own changes render twice (directly and again through the push), so the focus survives both. */
+    private int focusRendersLeft;
     private CardEditorDialog openEditor;
     private Long openComposerLaneId;
     private Registration changeSubscription;
@@ -402,8 +404,10 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         applyFilter();
         if (focusCardId != null) {
             long wanted = focusCardId;
-            focusCardId = null;
             laneComponents.stream().flatMap(lane -> lane.cardComponent(wanted).stream()).findFirst().ifPresent(CardComponent::focus);
+            if (--focusRendersLeft <= 0) {
+                focusCardId = null;
+            }
         }
         if (activityDialog.isOpened()) {
             activityDialog.show(activityLog.recent(board.id()));
@@ -518,6 +522,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             return;
         }
         focusCardId = card.id();
+        focusRendersLeft = 2;
         // moveCard() takes the insertion index in the lane as it is now, i.e. "drop before this slot".
         switch (arrowKey) {
             case "ArrowUp" -> {

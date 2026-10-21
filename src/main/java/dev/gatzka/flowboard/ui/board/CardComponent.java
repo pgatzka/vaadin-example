@@ -76,9 +76,9 @@ public final class CardComponent extends Div {
                 .preventDefault();
     }
 
-    /** Moves keyboard focus to this card in the browser. */
+    /** Moves keyboard focus to this card in the browser, unless the user is busy in some input. */
     void focus() {
-        getElement().callJsFunction("focus");
+        getElement().executeJs("const a = document.activeElement; if (!a || a === document.body || !document.contains(a)) this.focus()");
     }
 
     public CardSnapshot card() {
