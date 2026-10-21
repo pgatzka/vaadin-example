@@ -44,6 +44,12 @@ interface BoardActions {
     /** Adds or withdraws the current user's vote on the card. */
     void toggleVote(CardSnapshot card);
 
+    /** Keyboard move of a focused card: {@code ArrowUp}/{@code ArrowDown} reorder, {@code ArrowLeft}/{@code ArrowRight} change lane. */
+    void moveCardByKeyboard(CardSnapshot card, String arrowKey);
+
+    /** Opens the quick-add composer of the lane holding the card, e.g. after pressing {@code n} on it. */
+    void addCardNear(CardSnapshot card);
+
     /** The current user's display name, to show their own vote as such. */
     String currentUser();
 

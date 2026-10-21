@@ -59,8 +59,26 @@ public final class CardComponent extends Div {
             getElement().setAttribute("tabindex", "0");
             addClickListener(event -> onOpen.run());
             getElement().addEventListener("keydown", event -> onOpen.run())
-                    .setFilter("event.key === 'Enter' || event.key === ' '");
+                    .setFilter("event.key === 'Enter' || event.key === ' '")
+                    .preventDefault();
         }
+    }
+
+    /** Wires Shift+arrows to move the card and {@code n} to add a card next to it. */
+    void enableKeyboardActions(java.util.function.Consumer<String> onArrow, Runnable onAddNear) {
+        getElement().addEventListener("keydown", event -> onArrow.accept(event.getEventData().path("event.key").asString()))
+                .setFilter("event.shiftKey && event.key.startsWith('Arrow')")
+                .addEventData("event.key")
+                .preventDefault()
+                .stopPropagation();
+        getElement().addEventListener("keydown", event -> onAddNear.run())
+                .setFilter("event.key === 'n' && !event.ctrlKey && !event.metaKey && !event.altKey")
+                .preventDefault();
+    }
+
+    /** Moves keyboard focus to this card in the browser. */
+    void focus() {
+        getElement().callJsFunction("focus");
     }
 
     public CardSnapshot card() {

@@ -72,6 +72,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
@@ -120,6 +121,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     private BoardSnapshot board;
     private Instant lastVisit;
+    /** Card to focus after the next render, so keyboard moves keep the keyboard focus. */
+    private Long focusCardId;
     private CardEditorDialog openEditor;
     private Long openComposerLaneId;
     private Registration changeSubscription;
@@ -280,6 +283,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         UI ui = attachEvent.getUI();
+        enableArrowKeyNavigation();
         changeSubscription = broadcaster.subscribe(event -> {
             if (event.boardId() == board.id()) {
                 UiAccess.run(ui, () -> onRemoteChange(event));
@@ -305,6 +309,34 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Override
     public Instant lastVisit() {
         return lastVisit;
+    }
+
+    /**
+     * Arrow keys move the keyboard focus between cards without a server round trip: up and down
+     * within a lane, left and right to the card at the same height in the neighbouring lane.
+     */
+    private void enableArrowKeyNavigation() {
+        lanes.getElement().executeJs("""
+                const root = this;
+                root.addEventListener('keydown', (e) => {
+                  if (e.shiftKey || e.altKey || e.ctrlKey || e.metaKey || !e.key.startsWith('Arrow')) return;
+                  const card = e.target.closest && e.target.closest('.task-card');
+                  if (!card) return;
+                  const visible = (lane) => [...lane.querySelectorAll('.task-card')].filter((c) => c.offsetParent !== null);
+                  const lane = card.closest('.lane');
+                  const cards = visible(lane);
+                  const i = cards.indexOf(card);
+                  let next = null;
+                  if (e.key === 'ArrowDown') next = cards[i + 1];
+                  else if (e.key === 'ArrowUp') next = cards[i - 1];
+                  else {
+                    const all = [...root.querySelectorAll('.lane')];
+                    const target = all[all.indexOf(lane) + (e.key === 'ArrowRight' ? 1 : -1)];
+                    if (target) { const t = visible(target); next = t[Math.min(i, t.length - 1)]; }
+                  }
+                  if (next) { e.preventDefault(); next.focus(); }
+                });
+                """);
     }
 
     private void joinPresence(UI ui) {
@@ -359,6 +391,11 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             }
         }
         applyFilter();
+        if (focusCardId != null) {
+            long wanted = focusCardId;
+            focusCardId = null;
+            laneComponents.stream().flatMap(lane -> lane.cardComponent(wanted).stream()).findFirst().ifPresent(CardComponent::focus);
+        }
         if (activityDialog.isOpened()) {
             activityDialog.show(activityLog.recent(board.id()));
         }
@@ -453,6 +490,47 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     public void quickAddCards(LaneSnapshot lane, List<String> titles) {
         perform(() -> titles.forEach(title -> boardService.createCard(lane.id(), CardDraft.titled(title), actor())));
         Toasts.success(titles.size() + " cards added to " + lane.name());
+    }
+
+    @Override
+    public void moveCardByKeyboard(CardSnapshot card, String arrowKey) {
+        Optional<LaneSnapshot> current = board.lane(card.laneId());
+        if (current.isEmpty()) {
+            return;
+        }
+        int laneIndex = board.lanes().indexOf(current.get());
+        List<CardSnapshot> cards = current.get().cards();
+        int index = IntStream.range(0, cards.size()).filter(i -> cards.get(i).id() == card.id()).findFirst().orElse(-1);
+        if (index < 0) {
+            return;
+        }
+        focusCardId = card.id();
+        // moveCard() takes the insertion index in the lane as it is now, i.e. "drop before this slot".
+        switch (arrowKey) {
+            case "ArrowUp" -> {
+                if (index > 0) {
+                    moveCard(card.id(), card.laneId(), index - 1);
+                }
+            }
+            case "ArrowDown" -> {
+                if (index < cards.size() - 1) {
+                    moveCard(card.id(), card.laneId(), index + 2);
+                }
+            }
+            case "ArrowLeft", "ArrowRight" -> {
+                int targetLane = laneIndex + (arrowKey.equals("ArrowRight") ? 1 : -1);
+                if (targetLane >= 0 && targetLane < board.lanes().size()) {
+                    LaneSnapshot target = board.lanes().get(targetLane);
+                    moveCard(card.id(), target.id(), Math.min(index, target.cards().size()));
+                }
+            }
+            default -> focusCardId = null;
+        }
+    }
+
+    @Override
+    public void addCardNear(CardSnapshot card) {
+        laneComponents.stream().filter(lane -> lane.lane().id() == card.laneId()).findFirst().ifPresent(LaneComponent::openComposer);
     }
 
     @Override

@@ -388,6 +388,34 @@ class BoardViewTest extends FlowboardUiTest {
     }
 
     @Test
+    void keyboardMovesCardsAndOpensTheComposer() {
+        CardSnapshot first = createCard("First");
+        CardSnapshot second = createCard("Second");
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+
+        view.moveCardByKeyboard(second, "ArrowUp");
+        assertThat(titlesIn(0)).containsExactly("Second", "First");
+        view.moveCardByKeyboard(cardOnBoard(second.id()), "ArrowUp");
+        assertThat(titlesIn(0)).as("already at the top").containsExactly("Second", "First");
+        view.moveCardByKeyboard(cardOnBoard(second.id()), "ArrowDown");
+        assertThat(titlesIn(0)).containsExactly("First", "Second");
+        view.moveCardByKeyboard(cardOnBoard(first.id()), "ArrowRight");
+        assertThat(titlesIn(0)).containsExactly("Second");
+        assertThat(titlesIn(1)).containsExactly("First");
+        view.moveCardByKeyboard(cardOnBoard(first.id()), "ArrowLeft");
+        assertThat(titlesIn(0)).containsExactly("First", "Second");
+        view.moveCardByKeyboard(cardOnBoard(first.id()), "ArrowLeft");
+        assertThat(titlesIn(0)).as("no lane to the left").containsExactly("First", "Second");
+
+        view.addCardNear(cardOnBoard(first.id()));
+        assertThat($(QuickAddComposer.class).all()).anySatisfy(composer -> assertThat(composer.isOpen()).isTrue());
+    }
+
+    private List<String> titlesIn(int lane) {
+        return service.findBoard(board.id()).orElseThrow().lanes().get(lane).cards().stream().map(CardSnapshot::title).toList();
+    }
+
+    @Test
     void webhooksAreManagedFromTheBoard() {
         navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
         test($(Button.class).withId("board-webhooks").single()).click();

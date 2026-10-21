@@ -17,6 +17,10 @@ final class ShortcutsDialog extends Dialog {
             {"Ctrl + Enter", "Save the open dialog"},
             {"Esc", "Close a dialog or the composer"},
             {"Drag", "Move cards between lanes, drag a lane header to reorder lanes"},
+            {"Tab, ↑ ↓ ← →", "Move the keyboard focus between cards"},
+            {"Enter / Space", "Open the focused card"},
+            {"Shift + ↑ ↓ ← →", "Move the focused card within its lane or to the next lane"},
+            {"N", "Add a card to the focused card's lane"},
     };
 
     ShortcutsDialog() {

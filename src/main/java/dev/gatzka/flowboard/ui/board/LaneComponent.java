@@ -72,6 +72,11 @@ final class LaneComponent extends Div {
         });
     }
 
+    /** The component showing the given card, if it is on this lane. */
+    java.util.Optional<CardComponent> cardComponent(long cardId) {
+        return cardComponents.stream().filter(component -> component.card().id() == cardId).findFirst();
+    }
+
     /** Expands the quick-add composer, e.g. to restore it after the lane was re-rendered. */
     void openComposer() {
         composer.open();
@@ -160,6 +165,7 @@ final class LaneComponent extends Div {
             }
             makeDraggable(component, card);
             makeInsertTarget(component, card, actions);
+            component.enableKeyboardActions(key -> actions.moveCardByKeyboard(card, key), () -> actions.addCardNear(card));
             cardComponents.add(component);
             body.add(component);
         }
