@@ -76,10 +76,16 @@ final class InsightsDialog extends Dialog {
 
     private static Component lanes(BoardInsights insights) {
         Div section = section("Cards per lane");
+        Span hint = new Span("Hover a lane for the average time cards have spent there.");
+        hint.addClassName("insights__hint");
+        section.add(hint);
         int busiest = Math.max(1, insights.busiestLaneCount());
         for (LaneLoad lane : insights.lanes()) {
             String count = lane.wipLimit() == null ? Integer.toString(lane.cards()) : lane.cards() + " / " + lane.wipLimit();
-            section.add(bar(lane.name(), lane.cards() * 100.0 / busiest, count, lane.isOverWipLimit() ? "over" : lane.done() ? "done" : null));
+            Div row = bar(lane.name(), lane.cards() * 100.0 / busiest, count, lane.isOverWipLimit() ? "over" : lane.done() ? "done" : null);
+            lane.averageTimeInLane().ifPresent(average -> row.getElement().setAttribute("title",
+                    "Cards have been in " + lane.name() + " for " + Durations.humanize(average) + " on average"));
+            section.add(row);
         }
         return section;
     }

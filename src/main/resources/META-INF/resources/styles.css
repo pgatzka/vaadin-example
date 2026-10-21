@@ -610,13 +610,23 @@ html {
   box-shadow: 0 -3px 0 0 var(--lumo-primary-color), var(--lumo-box-shadow-xs);
 }
 
+.task-card--stale {
+  background: color-mix(in srgb, var(--fb-card-background) 92%, var(--lumo-warning-color));
+  border-style: dashed;
+}
+
 .task-card__title {
   font-weight: 500;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
-.lane--done .task-card__title {
+.lane--done .task-card--stale {
+  background: color-mix(in srgb, var(--fb-card-background) 92%, var(--lumo-warning-color));
+  border-style: dashed;
+}
+
+.task-card__title {
   color: var(--lumo-secondary-text-color);
 }
 

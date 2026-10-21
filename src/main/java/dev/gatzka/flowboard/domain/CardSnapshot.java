@@ -23,7 +23,8 @@ public record CardSnapshot(
         List<CommentSnapshot> comments,
         int position,
         Instant updatedAt,
-        Instant archivedAt) {
+        Instant archivedAt,
+        Instant laneEnteredAt) {
 
     public CardSnapshot {
         checklist = List.copyOf(checklist);
@@ -50,7 +51,8 @@ public record CardSnapshot(
                 card.getComments().stream().map(CommentSnapshot::of).toList(),
                 card.getPosition(),
                 card.getUpdatedAt(),
-                card.getArchivedAt());
+                card.getArchivedAt(),
+                card.getLaneEnteredAt());
     }
 
     public boolean hasChecklist() {
@@ -63,6 +65,10 @@ public record CardSnapshot(
 
     public boolean isChecklistComplete() {
         return hasChecklist() && checklistDone() == checklist.size();
+    }
+
+    public CardAge age(Instant now) {
+        return CardAge.of(laneEnteredAt, now);
     }
 
     public boolean isArchived() {

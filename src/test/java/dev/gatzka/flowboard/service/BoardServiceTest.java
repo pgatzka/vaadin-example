@@ -149,6 +149,22 @@ class BoardServiceTest {
     }
 
     @Test
+    void laneEntryTimeResetsOnlyWhenTheLaneChanges() {
+        CardSnapshot card = createCard(backlog, "mover");
+        createCard(backlog, "other");
+        java.time.Instant entered = card.laneEnteredAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS); // database precision
+        assertThat(entered).isNotNull();
+
+        service.moveCard(card.id(), backlog, 2, ACTOR);
+        assertThat(lane(backlog).cards().getLast().laneEnteredAt()).isEqualTo(entered);
+
+        service.moveCard(card.id(), inProgress, 0, ACTOR);
+        assertThat(lane(inProgress).cards().getFirst().laneEnteredAt()).isAfterOrEqualTo(entered);
+        assertThat(service.findBoard(board.id()).orElseThrow().lanes().get(1).cards().getFirst().age(java.time.Instant.now()).level())
+                .isEqualTo(dev.gatzka.flowboard.domain.CardAge.Level.FRESH);
+    }
+
+    @Test
     void movingCardOntoItsOwnPositionChangesNothing() {
         CardSnapshot x = createCard(backlog, "x");
         createCard(backlog, "y");

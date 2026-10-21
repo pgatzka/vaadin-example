@@ -89,6 +89,10 @@ public class Card {
     /** When the card was archived; {@code null} while it is on the board. */
     private Instant archivedAt;
 
+    /** When the card entered its current lane. */
+    @Column(nullable = false)
+    private Instant laneEnteredAt;
+
     protected Card() {
         // JPA
     }
@@ -98,6 +102,7 @@ public class Card {
         this.position = position;
         this.createdAt = requireNonNull(now);
         this.completedAt = lane.isDone() ? now : null;
+        this.laneEnteredAt = now;
         update(draft, now);
     }
 
@@ -113,8 +118,13 @@ public class Card {
         this.updatedAt = requireNonNull(now);
     }
 
+    /** Moves the card to another lane; a move within the same lane keeps the lane entry time. */
     public void moveTo(Lane lane, Instant now) {
-        this.lane = requireNonNull(lane);
+        requireNonNull(lane);
+        if (!lane.getId().equals(this.lane.getId())) {
+            this.laneEnteredAt = requireNonNull(now);
+        }
+        this.lane = lane;
         this.updatedAt = requireNonNull(now);
         markCompletion(lane.isDone(), now);
     }
@@ -164,7 +174,8 @@ public class Card {
     public void restore(int position, Instant now) {
         archivedAt = null;
         this.position = position;
-        updatedAt = requireNonNull(now);
+        this.laneEnteredAt = requireNonNull(now);
+        updatedAt = now;
     }
 
     public boolean isArchived() {
@@ -241,5 +252,9 @@ public class Card {
 
     public Instant getArchivedAt() {
         return archivedAt;
+    }
+
+    public Instant getLaneEnteredAt() {
+        return laneEnteredAt;
     }
 }

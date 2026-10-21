@@ -84,6 +84,8 @@ class InsightsServiceTest {
                 .containsEntry(Priority.URGENT, 1).containsEntry(Priority.MEDIUM, 1);
         assertThat(insights.openByAssignee()).containsExactly(new AssigneeLoad("Mara", 2), new AssigneeLoad("Jonas", 1));
         assertThat(insights.lanes()).extracting(LaneLoad::cards).containsExactly(2, 2, 0, 1);
+        assertThat(insights.lanes().get(0).averageTimeInLane()).isPresent();
+        assertThat(insights.lanes().get(2).averageTimeInLane()).isEmpty();
         assertThat(insights.busiestLaneCount()).isEqualTo(2);
     }
 

@@ -8,9 +8,11 @@ import com.vaadin.flow.component.badge.BadgeVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import dev.gatzka.flowboard.domain.CardAge;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.service.Participant;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -23,9 +25,13 @@ final class CardComponent extends Div {
 
     private final CardSnapshot card;
 
-    CardComponent(CardSnapshot card, LocalDate today, boolean completed, Runnable onOpen) {
+    CardComponent(CardSnapshot card, LocalDate today, Instant now, boolean completed, Runnable onOpen) {
         this.card = card;
         addClassName("task-card");
+        CardAge age = card.age(now);
+        if (!completed && age.level() == CardAge.Level.STALE) {
+            addClassName("task-card--stale");
+        }
         getElement().setAttribute("data-priority", card.priority().name().toLowerCase(Locale.ROOT));
         getElement().setAttribute("role", "button");
         getElement().setAttribute("tabindex", "0");
@@ -33,7 +39,7 @@ final class CardComponent extends Div {
 
         Div title = new Div(card.title());
         title.addClassName("task-card__title");
-        add(title, meta(today, completed));
+        add(title, meta(today, completed, age));
 
         addClickListener(event -> onOpen.run());
         getElement().addEventListener("keydown", event -> onOpen.run())
@@ -44,9 +50,17 @@ final class CardComponent extends Div {
         return card;
     }
 
-    private Div meta(LocalDate today, boolean completed) {
+    private Div meta(LocalDate today, boolean completed, CardAge age) {
         Div meta = new Div();
         meta.addClassName("task-card__meta");
+
+        if (!completed && age.isNoteworthy()) {
+            Badge aging = new Badge(age.days() + " d here", VaadinIcon.HOURGLASS.create());
+            aging.addThemeVariants(BadgeVariant.SMALL, age.level() == CardAge.Level.STALE ? BadgeVariant.WARNING : BadgeVariant.CONTRAST);
+            aging.addClassName("task-card__age");
+            aging.getElement().setAttribute("title", "In this lane for " + age.days() + " days");
+            meta.add(aging);
+        }
 
         if (card.priority() == Priority.URGENT || card.priority() == Priority.HIGH) {
             Badge priority = new Badge(card.priority().label());

@@ -55,6 +55,7 @@ import dev.gatzka.flowboard.ui.calendar.CalendarView;
 import dev.gatzka.flowboard.ui.support.Toasts;
 import dev.gatzka.flowboard.ui.support.UiAccess;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -292,10 +293,11 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         description.setVisible(snapshot.description() != null);
 
         LocalDate today = LocalDate.now(clock);
+        Instant now = clock.instant();
         lanes.removeAll();
         laneComponents.clear();
         for (LaneSnapshot lane : snapshot.lanes()) {
-            LaneComponent component = new LaneComponent(lane, snapshot.lanes().size(), today, this);
+            LaneComponent component = new LaneComponent(lane, snapshot.lanes().size(), today, now, this);
             laneComponents.add(component);
             lanes.add(component);
             if (openComposerLaneId != null && openComposerLaneId == lane.id()) {

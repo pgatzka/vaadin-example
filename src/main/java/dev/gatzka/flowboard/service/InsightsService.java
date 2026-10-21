@@ -53,6 +53,8 @@ public class InsightsService {
         List<Card> boardCards = cards.findAllByLaneBoardIdAndArchivedAtIsNullOrderByPositionAsc(boardId);
 
         Map<Long, Integer> cardsPerLane = new TreeMap<>();
+        Map<Long, Duration> timeInLanePerLane = new TreeMap<>();
+        Instant now = clock.instant();
         Map<Priority, Integer> openByPriority = new EnumMap<>(Priority.class);
         Map<String, Integer> openByAssignee = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         Map<LocalDate, Integer> completedPerDay = new TreeMap<>();
@@ -66,6 +68,7 @@ public class InsightsService {
 
         for (Card card : boardCards) {
             cardsPerLane.merge(card.getLane().getId(), 1, Integer::sum);
+            timeInLanePerLane.merge(card.getLane().getId(), Duration.between(card.getLaneEnteredAt(), now), Duration::plus);
             if (card.getLane().isDone()) {
                 completed++;
                 Instant completedAt = card.getCompletedAt() == null ? card.getUpdatedAt() : card.getCompletedAt();
@@ -95,7 +98,12 @@ public class InsightsService {
         }
 
         List<LaneLoad> laneLoads = boardLanes.stream()
-                .map(lane -> new LaneLoad(lane.getName(), cardsPerLane.getOrDefault(lane.getId(), 0), lane.getWipLimit(), lane.isDone()))
+                .map(lane -> {
+                    int count = cardsPerLane.getOrDefault(lane.getId(), 0);
+                    Optional<Duration> average = count == 0 ? Optional.empty()
+                            : Optional.of(timeInLanePerLane.get(lane.getId()).dividedBy(count));
+                    return new LaneLoad(lane.getName(), count, lane.getWipLimit(), lane.isDone(), average);
+                })
                 .toList();
         List<AssigneeLoad> assigneeLoads = openByAssignee.entrySet().stream()
                 .map(entry -> new AssigneeLoad(entry.getKey(), entry.getValue()))

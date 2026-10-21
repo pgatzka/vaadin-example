@@ -29,7 +29,8 @@ public record BoardInsights(
         List<AssigneeLoad> openByAssignee,
         List<DailyCount> completedPerDay) {
 
-    public record LaneLoad(String name, int cards, Integer wipLimit, boolean done) {
+    /** @param averageTimeInLane mean time the lane's current cards have spent there; empty when the lane is empty */
+    public record LaneLoad(String name, int cards, Integer wipLimit, boolean done, Optional<Duration> averageTimeInLane) {
 
         public boolean isOverWipLimit() {
             return wipLimit != null && cards > wipLimit;

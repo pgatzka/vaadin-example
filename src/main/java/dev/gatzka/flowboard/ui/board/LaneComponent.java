@@ -17,6 +17,7 @@ import com.vaadin.flow.component.menubar.MenuBarVariant;
 import dev.gatzka.flowboard.domain.CardFilter;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,10 +30,12 @@ final class LaneComponent extends Div {
 
     private final LaneSnapshot lane;
     private final List<CardComponent> cardComponents = new ArrayList<>();
+    private final Instant now;
 
     private final QuickAddComposer composer;
 
-    LaneComponent(LaneSnapshot lane, int laneCount, LocalDate today, BoardActions actions) {
+    LaneComponent(LaneSnapshot lane, int laneCount, LocalDate today, Instant now, BoardActions actions) {
+        this.now = now;
         this.lane = lane;
         addClassName("lane");
         if (lane.isOverWipLimit()) {
@@ -147,7 +150,7 @@ final class LaneComponent extends Div {
                 .ifPresent(cardId -> actions.moveCard(cardId, lane.id(), lane.cards().size())));
 
         for (CardSnapshot card : lane.cards()) {
-            CardComponent component = new CardComponent(card, today, lane.done(), () -> actions.openCard(card));
+            CardComponent component = new CardComponent(card, today, now, lane.done(), () -> actions.openCard(card));
             makeDraggable(component, card);
             makeInsertTarget(component, card, actions);
             cardComponents.add(component);
