@@ -61,6 +61,7 @@ import dev.gatzka.flowboard.ui.assistant.StandupDialog;
 import dev.gatzka.flowboard.ui.assistant.SuggestChecklistDialog;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
 import dev.gatzka.flowboard.ui.calendar.CalendarView;
+import dev.gatzka.flowboard.ui.digest.DigestView;
 import dev.gatzka.flowboard.ui.support.Celebration;
 import dev.gatzka.flowboard.ui.support.Toasts;
 import dev.gatzka.flowboard.ui.support.UiAccess;
@@ -204,6 +205,13 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         calendar.setAriaLabel("Show calendar");
         calendar.setTooltipText("Calendar");
 
+        Button digest = new Button(VaadinIcon.NEWSPAPER.create(), event -> getUI().ifPresent(ui -> ui.navigate(
+                DigestView.class, new RouteParameters(BOARD_ID, Long.toString(board.id())))));
+        digest.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        digest.setAriaLabel("Weekly digest");
+        digest.setTooltipText("Weekly digest");
+        digest.setId("board-digest");
+
         Button archive = new Button(VaadinIcon.ARCHIVE.create(), event -> openArchive());
         archive.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
         archive.setAriaLabel("Show archive");
@@ -224,7 +232,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         Button addLane = new Button("Add lane", VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        Div toolbar = new Div(titles, search, filters, participants, activity, insights, calendar, archive, share, hooks);
+        Div toolbar = new Div(titles, search, filters, participants, activity, insights, calendar, digest, archive, share, hooks);
         if (assistant.isAvailable()) {
             toolbar.add(assistantMenu());
         }

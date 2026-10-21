@@ -47,6 +47,8 @@ Java on top of Vaadin Flow's server push.
   and **file attachments** on cards (up to 5 MB each, stored in the database).
 - **Votes** on cards with "sort by votes" for backlogs, multi-line paste into a lane to create several
   cards, and a little confetti when a card lands in a done lane.
+- **Weekly digest.** A printable one-page report per board and week: done, new, overdue, blocked,
+  due next week and who did the most, with a copy-as-Markdown button for the team chat.
 - **Keyboard first.** Arrow keys walk the cards, Shift+arrows move them, Enter opens, N adds.
 - **Webhooks.** Register endpoints per board; every change is posted as JSON, optionally signed
   with HMAC-SHA256. A delivery log shows what the other side answered.
