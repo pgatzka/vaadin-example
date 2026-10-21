@@ -17,11 +17,13 @@ import com.vaadin.flow.component.markdown.Markdown;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.data.validator.IntegerRangeValidator;
 import com.vaadin.flow.data.validator.StringLengthValidator;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
@@ -46,6 +48,7 @@ final class CardEditorDialog extends Dialog {
     private final Markdown preview = new Markdown();
     private final Select<Priority> priority = new Select<>();
     private final DatePicker dueDate = new DatePicker("Due date");
+    private final IntegerField estimate = new IntegerField("Estimate");
     private final ComboBox<String> assignee = new ComboBox<>("Assignee");
     private final MultiSelectComboBox<String> tags = new MultiSelectComboBox<>("Tags");
     private final List<String> assigneeOptions;
@@ -168,6 +171,12 @@ final class CardEditorDialog extends Dialog {
 
         dueDate.setClearButtonVisible(true);
 
+        estimate.setMin(0);
+        estimate.setMax(CardDraft.MAX_ESTIMATE);
+        estimate.setStepButtonsVisible(true);
+        estimate.setClearButtonVisible(true);
+        estimate.setPlaceholder("points");
+
         assignee.setItems(assigneeOptions);
         assignee.setAllowCustomValue(true);
         assignee.setClearButtonVisible(true);
@@ -209,6 +218,9 @@ final class CardEditorDialog extends Dialog {
                 .bind("description");
         binder.forField(priority).asRequired("Pick a priority").bind("priority");
         binder.forField(dueDate).bind("dueDate");
+        binder.forField(estimate)
+                .withValidator(new IntegerRangeValidator("Between 0 and " + CardDraft.MAX_ESTIMATE + " points", 0, CardDraft.MAX_ESTIMATE))
+                .bind("estimate");
         binder.forField(assignee).bind("assignee");
         binder.forField(tags).bind("tags");
     }
@@ -229,7 +241,7 @@ final class CardEditorDialog extends Dialog {
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("480px", 2));
         form.add(title, 2);
         form.add(descriptionSection, 2);
-        form.add(priority, dueDate, assignee);
+        form.add(priority, dueDate, assignee, estimate);
         form.add(tags, 2);
         return form;
     }

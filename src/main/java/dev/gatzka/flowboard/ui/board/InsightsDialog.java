@@ -59,9 +59,15 @@ final class InsightsDialog extends Dialog {
                         .withState(insights.overdueCards() > 0 ? "warn" : "ok"),
                 tile("Due in 7 days", Integer.toString(insights.dueThisWeek()), null),
                 tile("Done in 7 days", Integer.toString(insights.completedLast7Days()), null),
-                tile("Avg. cycle time", insights.averageCycleTime().map(Durations::humanize).orElse("–"), "creation to done"));
+                tile("Avg. cycle time", insights.averageCycleTime().map(Durations::humanize).orElse("–"), "creation to done"),
+                tile("Open points", Integer.toString(insights.openPoints()), "estimated work left"),
+                tile("Velocity", formatVelocity(insights.velocityPerWeek()), "points per week, 4-week average"));
         tiles.addClassName("insights__tiles");
         return tiles;
+    }
+
+    private static String formatVelocity(double pointsPerWeek) {
+        return pointsPerWeek == Math.floor(pointsPerWeek) ? "%.0f".formatted(pointsPerWeek) : "%.1f".formatted(pointsPerWeek);
     }
 
     private static Tile tile(String label, String value, String hint) {

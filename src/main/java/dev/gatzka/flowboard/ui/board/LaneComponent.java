@@ -88,7 +88,15 @@ final class LaneComponent extends Div {
         Span name = new Span(lane.name());
         name.addClassName("lane__name");
 
-        Div header = new Div(name, countBadge(), menu(laneCount, actions));
+        Div header = new Div(name);
+        if (lane.hasEstimates()) {
+            Badge points = new Badge(lane.totalEstimate() + " pt");
+            points.addThemeVariants(BadgeVariant.SMALL);
+            points.addClassName("lane__points");
+            points.getElement().setAttribute("title", "Story points in this lane");
+            header.add(points);
+        }
+        header.add(countBadge(), menu(laneCount, actions));
         header.addClassName("lane__header");
         DragSource<Div> handle = DragSource.create(header);
         handle.setEffectAllowed(EffectAllowed.MOVE);

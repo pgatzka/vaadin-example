@@ -14,11 +14,14 @@ public record CardDraft(
         Priority priority,
         LocalDate dueDate,
         String assignee,
-        Set<String> tags) {
+        Set<String> tags,
+        Integer estimate) {
+
+    public static final int MAX_ESTIMATE = 999;
 
     /** A draft with only a title; everything else takes its default. */
     public static CardDraft titled(String title) {
-        return new CardDraft(title, null, null, null, null, null);
+        return new CardDraft(title, null, null, null, null, null, null);
     }
 
     public CardDraft {
@@ -27,6 +30,9 @@ public record CardDraft(
         priority = Objects.requireNonNullElse(priority, Priority.MEDIUM);
         assignee = Text.clean(assignee);
         tags = normaliseTags(tags);
+        if (estimate != null && (estimate < 0 || estimate > MAX_ESTIMATE)) {
+            throw new IllegalArgumentException("Estimate must be between 0 and " + MAX_ESTIMATE);
+        }
     }
 
     private static Set<String> normaliseTags(Set<String> tags) {

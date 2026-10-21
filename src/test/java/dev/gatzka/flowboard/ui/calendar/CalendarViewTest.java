@@ -37,9 +37,9 @@ class CalendarViewTest extends SpringBrowserlessTest {
         service.listBoards().forEach(existing -> service.deleteBoard(existing.id(), "Seeder"));
         board = service.createBoard(new BoardDraft("Dates", null), "Seeder");
         long backlog = board.lanes().get(0).id();
-        service.createCard(backlog, new CardDraft("Due today", null, Priority.HIGH, LocalDate.now(), null, Set.of()), "Seeder");
-        service.createCard(backlog, new CardDraft("Was due", null, Priority.LOW, LocalDate.now().minusDays(1), null, Set.of()), "Seeder");
-        service.createCard(backlog, new CardDraft("Next month", null, Priority.LOW, LocalDate.now().plusMonths(1).withDayOfMonth(10), null, Set.of()), "Seeder");
+        service.createCard(backlog, new CardDraft("Due today", null, Priority.HIGH, LocalDate.now(), null, Set.of(), null), "Seeder");
+        service.createCard(backlog, new CardDraft("Was due", null, Priority.LOW, LocalDate.now().minusDays(1), null, Set.of(), null), "Seeder");
+        service.createCard(backlog, new CardDraft("Next month", null, Priority.LOW, LocalDate.now().plusMonths(1).withDayOfMonth(10), null, Set.of(), null), "Seeder");
         service.createCard(backlog, CardDraft.titled("Undated"), "Seeder");
     }
 

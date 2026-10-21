@@ -53,7 +53,7 @@ class BoardExchangeServiceTest {
         boardService.addLane(board.id(), new LaneDraft("Blocked", 1, false), ACTOR);
         long backlog = board.lanes().get(0).id();
         CardSnapshot first = boardService.createCard(backlog, new CardDraft("First", "With **markdown**", Priority.HIGH,
-                LocalDate.of(2030, 5, 6), "Mara", Set.of("ui", "feature")), ACTOR);
+                LocalDate.of(2030, 5, 6), "Mara", Set.of("ui", "feature"), null), ACTOR);
         boardService.createCard(backlog, CardDraft.titled("Second"), ACTOR);
         boardService.createCard(board.lanes().get(3).id(), CardDraft.titled("Finished"), ACTOR);
         CardSnapshot withItems = checklistService.addItem(first.id(), "step one", ACTOR);

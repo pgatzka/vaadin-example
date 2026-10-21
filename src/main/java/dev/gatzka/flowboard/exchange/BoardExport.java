@@ -29,6 +29,7 @@ public record BoardExport(
             LocalDate dueDate,
             String assignee,
             Set<String> tags,
+            Integer estimate,
             List<ChecklistItemExport> checklist,
             List<CommentExport> comments) {
     }

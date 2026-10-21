@@ -122,11 +122,12 @@ public class BoardExchangeService {
                 card.getDueDate(),
                 card.getAssignee(),
                 card.getTags().stream().collect(Collectors.toCollection(java.util.TreeSet::new)),
+                card.getEstimate(),
                 card.getChecklist().stream().map(item -> new ChecklistItemExport(item.getText(), item.isDone())).toList(),
                 card.getComments().stream().map(comment -> new CommentExport(comment.getAuthor(), comment.getText(), comment.getCreatedAt())).toList());
     }
 
     private static CardDraft draft(CardExport card) {
-        return new CardDraft(card.title(), card.description(), card.priority(), card.dueDate(), card.assignee(), card.tags());
+        return new CardDraft(card.title(), card.description(), card.priority(), card.dueDate(), card.assignee(), card.tags(), card.estimate());
     }
 }

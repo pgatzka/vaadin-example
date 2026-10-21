@@ -12,6 +12,15 @@ public record LaneSnapshot(long id, String name, int position, Integer wipLimit,
         return new LaneSnapshot(lane.getId(), lane.getName(), lane.getPosition(), lane.getWipLimit(), lane.isDone(), cards);
     }
 
+    /** Sum of the estimates of the lane's cards; zero when nothing is estimated. */
+    public int totalEstimate() {
+        return cards.stream().filter(CardSnapshot::isEstimated).mapToInt(CardSnapshot::estimate).sum();
+    }
+
+    public boolean hasEstimates() {
+        return cards.stream().anyMatch(CardSnapshot::isEstimated);
+    }
+
     public boolean hasWipLimit() {
         return wipLimit != null;
     }

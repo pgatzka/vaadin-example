@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class InsightsService {
 
     static final int HISTORY_DAYS = 14;
+    static final int VELOCITY_WEEKS = 4;
 
     private final LaneRepository lanes;
     private final CardRepository cards;
@@ -45,6 +46,7 @@ public class InsightsService {
         ZoneId zone = clock.getZone();
         LocalDate today = LocalDate.now(clock);
         Instant weekAgo = today.minusDays(7).atStartOfDay(zone).toInstant();
+        Instant velocityWindow = today.minusDays(7L * VELOCITY_WEEKS).atStartOfDay(zone).toInstant();
         LocalDate weekAhead = today.plusDays(7);
 
         List<Lane> boardLanes = lanes.findAllByBoardIdOrderByPositionAsc(boardId);
@@ -58,6 +60,8 @@ public class InsightsService {
         int overdue = 0;
         int dueThisWeek = 0;
         int completedLast7Days = 0;
+        int openPoints = 0;
+        int pointsInVelocityWindow = 0;
         Duration cycleTimeSum = Duration.ZERO;
 
         for (Card card : boardCards) {
@@ -69,10 +73,16 @@ public class InsightsService {
                 if (!completedAt.isBefore(weekAgo)) {
                     completedLast7Days++;
                 }
+                if (!completedAt.isBefore(velocityWindow) && card.getEstimate() != null) {
+                    pointsInVelocityWindow += card.getEstimate();
+                }
                 completedPerDay.merge(LocalDate.ofInstant(completedAt, zone), 1, Integer::sum);
                 continue;
             }
             openByPriority.merge(card.getPriority(), 1, Integer::sum);
+            if (card.getEstimate() != null) {
+                openPoints += card.getEstimate();
+            }
             if (card.getAssignee() != null) {
                 openByAssignee.merge(card.getAssignee(), 1, Integer::sum);
             }
@@ -99,6 +109,6 @@ public class InsightsService {
         Optional<Duration> averageCycleTime = completed == 0 ? Optional.empty() : Optional.of(cycleTimeSum.dividedBy(completed));
 
         return new BoardInsights(boardCards.size(), completed, overdue, dueThisWeek, completedLast7Days, averageCycleTime,
-                laneLoads, openByPriority, assigneeLoads, dailyCounts);
+                openPoints, (double) pointsInVelocityWindow / VELOCITY_WEEKS, laneLoads, openByPriority, assigneeLoads, dailyCounts);
     }
 }

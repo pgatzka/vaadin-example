@@ -55,6 +55,9 @@ public class Card {
     @Column(length = 60)
     private String assignee;
 
+    /** Story points, or {@code null} when not estimated. */
+    private Integer estimate;
+
     @ElementCollection
     @CollectionTable(name = "card_tags", joinColumns = @JoinColumn(name = "card_id"))
     @Column(name = "tag", nullable = false, length = 30)
@@ -104,6 +107,7 @@ public class Card {
         this.priority = draft.priority();
         this.dueDate = draft.dueDate();
         this.assignee = draft.assignee();
+        this.estimate = draft.estimate();
         this.tags.clear();
         this.tags.addAll(draft.tags());
         this.updatedAt = requireNonNull(now);
@@ -197,6 +201,10 @@ public class Card {
 
     public String getAssignee() {
         return assignee;
+    }
+
+    public Integer getEstimate() {
+        return estimate;
     }
 
     public Set<String> getTags() {

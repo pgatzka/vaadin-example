@@ -62,6 +62,13 @@ final class CardComponent extends Div {
             badge.addClassName("task-card__tag");
             meta.add(badge);
         }
+        if (card.isEstimated()) {
+            Badge points = new Badge(card.estimate() + " pt");
+            points.addThemeVariants(BadgeVariant.SMALL);
+            points.addClassName("task-card__estimate");
+            points.getElement().setAttribute("title", "Estimate");
+            meta.add(points);
+        }
         if (card.hasChecklist()) {
             Badge checklist = new Badge(card.checklistDone() + "/" + card.checklist().size(), VaadinIcon.CHECK_SQUARE_O.create());
             checklist.addThemeVariants(BadgeVariant.SMALL, card.isChecklistComplete() ? BadgeVariant.SUCCESS : BadgeVariant.CONTRAST);

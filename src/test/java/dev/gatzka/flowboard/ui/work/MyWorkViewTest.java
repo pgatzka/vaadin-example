@@ -46,10 +46,10 @@ class MyWorkViewTest extends SpringBrowserlessTest {
         UserSession session = context.getBean(UserSession.class);
         session.setDisplayName("Priya");
         long backlog = board.lanes().get(0).id();
-        service.createCard(backlog, new CardDraft("Late", null, Priority.HIGH, LocalDate.now().minusDays(1), "Priya", Set.of()), "Seeder");
-        service.createCard(backlog, new CardDraft("Today", null, Priority.LOW, LocalDate.now(), "priya", Set.of()), "Seeder");
-        service.createCard(backlog, new CardDraft("Someday", null, Priority.LOW, null, "Priya", Set.of()), "Seeder");
-        service.createCard(backlog, new CardDraft("Not mine", null, Priority.LOW, null, "Mara", Set.of()), "Seeder");
+        service.createCard(backlog, new CardDraft("Late", null, Priority.HIGH, LocalDate.now().minusDays(1), "Priya", Set.of(), null), "Seeder");
+        service.createCard(backlog, new CardDraft("Today", null, Priority.LOW, LocalDate.now(), "priya", Set.of(), null), "Seeder");
+        service.createCard(backlog, new CardDraft("Someday", null, Priority.LOW, null, "Priya", Set.of(), null), "Seeder");
+        service.createCard(backlog, new CardDraft("Not mine", null, Priority.LOW, null, "Mara", Set.of(), null), "Seeder");
 
         navigate(MyWorkView.class);
 

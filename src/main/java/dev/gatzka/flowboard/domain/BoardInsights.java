@@ -12,6 +12,8 @@ import java.util.Optional;
  * @param completedLast7Days cards that entered a done lane during the last seven days
  * @param averageCycleTime mean time from creation to completion over all completed cards
  * @param completedPerDay one entry per day for the last {@code n} days, oldest first
+ * @param openPoints story points of all open cards
+ * @param velocityPerWeek story points completed per week, averaged over the last four weeks
  */
 public record BoardInsights(
         int totalCards,
@@ -20,6 +22,8 @@ public record BoardInsights(
         int dueThisWeek,
         int completedLast7Days,
         Optional<Duration> averageCycleTime,
+        int openPoints,
+        double velocityPerWeek,
         List<LaneLoad> lanes,
         Map<Priority, Integer> openByPriority,
         List<AssigneeLoad> openByAssignee,

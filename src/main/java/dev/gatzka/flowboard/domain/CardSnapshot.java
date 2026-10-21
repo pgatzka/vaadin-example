@@ -18,6 +18,7 @@ public record CardSnapshot(
         LocalDate dueDate,
         String assignee,
         Set<String> tags,
+        Integer estimate,
         List<ChecklistItemSnapshot> checklist,
         List<CommentSnapshot> comments,
         int position,
@@ -44,6 +45,7 @@ public record CardSnapshot(
                 card.getDueDate(),
                 card.getAssignee(),
                 Collections.unmodifiableSet(sortedTags),
+                card.getEstimate(),
                 card.getChecklist().stream().map(ChecklistItemSnapshot::of).toList(),
                 card.getComments().stream().map(CommentSnapshot::of).toList(),
                 card.getPosition(),
@@ -94,7 +96,11 @@ public record CardSnapshot(
                 .anyMatch(text -> text.toLowerCase(Locale.ROOT).contains(needle));
     }
 
+    public boolean isEstimated() {
+        return estimate != null;
+    }
+
     public CardDraft toDraft() {
-        return new CardDraft(title, description, priority, dueDate, assignee, tags);
+        return new CardDraft(title, description, priority, dueDate, assignee, tags, estimate);
     }
 }

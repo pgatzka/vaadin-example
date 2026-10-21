@@ -15,6 +15,7 @@ import com.vaadin.flow.component.messages.MessageListItem;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
@@ -162,8 +163,8 @@ class BoardViewTest extends SpringBrowserlessTest {
     @Test
     void structuredFiltersNarrowTheBoard() {
         long backlog = board.lanes().get(0).id();
-        service.createCard(backlog, new CardDraft("Late and mine", null, Priority.HIGH, LocalDate.now().minusDays(2), null, Set.of()), SEEDER);
-        service.createCard(backlog, new CardDraft("On time", null, Priority.LOW, LocalDate.now().plusDays(2), null, Set.of()), SEEDER);
+        service.createCard(backlog, new CardDraft("Late and mine", null, Priority.HIGH, LocalDate.now().minusDays(2), null, Set.of(), null), SEEDER);
+        service.createCard(backlog, new CardDraft("On time", null, Priority.LOW, LocalDate.now().plusDays(2), null, Set.of(), null), SEEDER);
         openBoard();
 
         test($(Checkbox.class).withLabel("Overdue only").single()).click();
@@ -226,7 +227,7 @@ class BoardViewTest extends SpringBrowserlessTest {
     @Test
     void historyTabListsWhatHappenedToTheCard() {
         CardSnapshot created = createCard("Tracked");
-        service.updateCard(created.id(), new CardDraft("Tracked closely", null, Priority.HIGH, null, null, Set.of()), SEEDER);
+        service.updateCard(created.id(), new CardDraft("Tracked closely", null, Priority.HIGH, null, null, Set.of(), null), SEEDER);
         openBoard();
         test($(CardComponent.class).single()).click();
         CardEditorDialog dialog = $(CardEditorDialog.class).single();
@@ -306,6 +307,20 @@ class BoardViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void estimateIsEditedInTheDialogAndShownOnCardAndLane() {
+        createCard("Sized");
+        openBoard();
+        test($(CardComponent.class).single()).click();
+        CardEditorDialog dialog = $(CardEditorDialog.class).single();
+
+        test($(IntegerField.class, dialog).withLabel("Estimate").single()).setValue(5);
+        test($(Button.class, dialog).withText("Save").single()).click();
+
+        assertThat($(Badge.class, $(CardComponent.class).single()).withClassName("task-card__estimate").single().getText()).isEqualTo("5 pt");
+        assertThat($(Badge.class, $(LaneComponent.class).first()).withClassName("lane__points").single().getText()).isEqualTo("5 pt");
+    }
+
+    @Test
     void changesMadeElsewhereArePushedIntoTheView() {
         openBoard();
         assertThat(visibleCardTitles()).isEmpty();
@@ -357,7 +372,7 @@ class BoardViewTest extends SpringBrowserlessTest {
 
     private CardSnapshot createCard(String title) {
         long backlog = board.lanes().get(0).id();
-        return service.createCard(backlog, new CardDraft(title, null, Priority.MEDIUM, null, null, Set.of()), SEEDER);
+        return service.createCard(backlog, new CardDraft(title, null, Priority.MEDIUM, null, null, Set.of(), null), SEEDER);
     }
 
     private List<String> visibleCardTitles() {

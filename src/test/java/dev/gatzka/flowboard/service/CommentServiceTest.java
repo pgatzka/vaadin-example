@@ -83,7 +83,7 @@ class CommentServiceTest {
 
     @Test
     void loadingTagsChecklistAndCommentsTogetherDoesNotMultiplyAnything() {
-        boardService.updateCard(card.id(), new CardDraft("Discuss", null, null, null, null, java.util.Set.of("ui", "feature")), "Tester");
+        boardService.updateCard(card.id(), new CardDraft("Discuss", null, null, null, null, java.util.Set.of("ui", "feature"), null), "Tester");
         checklistService.addItem(card.id(), "one", "Tester");
         checklistService.addItem(card.id(), "two", "Tester");
         checklistService.addItem(card.id(), "three", "Tester");

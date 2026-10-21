@@ -61,6 +61,6 @@ class WorkServiceTest {
 
     private CardSnapshot card(BoardSnapshot board, int lane, String title, String assignee, String... tags) {
         return boardService.createCard(board.lanes().get(lane).id(),
-                new CardDraft(title, null, Priority.MEDIUM, null, assignee, Set.of(tags)), "Seeder");
+                new CardDraft(title, null, Priority.MEDIUM, null, assignee, Set.of(tags), null), "Seeder");
     }
 }

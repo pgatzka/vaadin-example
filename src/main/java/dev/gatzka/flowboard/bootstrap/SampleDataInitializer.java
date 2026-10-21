@@ -27,6 +27,13 @@ class SampleDataInitializer implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(SampleDataInitializer.class);
     private static final String ACTOR = "Flowboard";
+    private static final java.util.Map<String, Integer> ESTIMATES = java.util.Map.of(
+            "Write the onboarding guide", 3,
+            "Real-time sync via server push", 8,
+            "Drag & drop between lanes", 5,
+            "Card editor with Markdown preview", 3,
+            "Project skeleton on Spring Boot 4 and Vaadin 25", 2,
+            "H2 persistence with Spring Data JPA", 3);
 
     private final BoardRepository boards;
     private final BoardService boardService;
@@ -109,7 +116,8 @@ class SampleDataInitializer implements ApplicationRunner {
 
     private CardSnapshot card(long laneId, String title, String description, Priority priority, LocalDate due,
             String assignee, String... tags) {
-        return boardService.createCard(laneId, new CardDraft(title, description, priority, due, assignee, Set.of(tags)), ACTOR);
+        Integer estimate = ESTIMATES.get(title);
+        return boardService.createCard(laneId, new CardDraft(title, description, priority, due, assignee, Set.of(tags), estimate), ACTOR);
     }
 
     private void checklist(CardSnapshot card, String text, boolean done) {

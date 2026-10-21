@@ -186,7 +186,7 @@ class BoardServiceTest {
         CardSnapshot card = createCard(backlog, "Draft");
 
         CardSnapshot updated = service.updateCard(card.id(),
-                new CardDraft("  Final  ", "  ", Priority.URGENT, LocalDate.of(2030, 1, 1), " Mara ", Set.of("zeta", " Alpha ", "")),
+                new CardDraft("  Final  ", "  ", Priority.URGENT, LocalDate.of(2030, 1, 1), " Mara ", Set.of("zeta", " Alpha ", ""), null),
                 ACTOR);
 
         assertThat(updated.title()).isEqualTo("Final");
@@ -339,11 +339,11 @@ class BoardServiceTest {
     }
 
     private CardSnapshot createCard(long laneId, String title, LocalDate dueDate) {
-        return service.createCard(laneId, new CardDraft(title, null, Priority.MEDIUM, dueDate, null, Set.of()), ACTOR);
+        return service.createCard(laneId, new CardDraft(title, null, Priority.MEDIUM, dueDate, null, Set.of(), null), ACTOR);
     }
 
     private static CardDraft draft(String title) {
-        return new CardDraft(title, null, null, null, null, null);
+        return new CardDraft(title, null, null, null, null, null, null);
     }
 
     private BoardSnapshot reload() {

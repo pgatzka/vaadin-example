@@ -88,6 +88,29 @@ class InsightsServiceTest {
     }
 
     @Test
+    void pointsAndVelocityComeFromEstimates() {
+        boardService.createCard(backlog, new CardDraft("five", null, null, null, null, null, 5), ACTOR);
+        boardService.createCard(inProgress, new CardDraft("three", null, null, null, null, null, 3), ACTOR);
+        boardService.createCard(inProgress, CardDraft.titled("unestimated"), ACTOR);
+        boardService.createCard(done, new CardDraft("done eight", null, null, null, null, null, 8), ACTOR);
+
+        BoardInsights insights = insightsService.forBoard(board.id());
+
+        assertThat(insights.openPoints()).isEqualTo(8);
+        assertThat(insights.velocityPerWeek()).isEqualTo(2.0);
+        assertThat(boardService.findBoard(board.id()).orElseThrow().lane(inProgress).orElseThrow().totalEstimate()).isEqualTo(3);
+        assertThat(boardService.findBoard(board.id()).orElseThrow().lane(board.lanes().get(2).id()).orElseThrow().hasEstimates()).isFalse();
+    }
+
+    @Test
+    void estimatesMustBeWithinRange() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new CardDraft("x", null, null, null, null, null, -1))
+                .isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new CardDraft("x", null, null, null, null, null, 1000))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void completionTimestampFollowsTheCardIntoAndOutOfDoneLanes() {
         CardSnapshot card = card(backlog, "travels", Priority.MEDIUM, null, null);
         assertThat(cards.findById(card.id()).orElseThrow().getCompletedAt()).isNull();
@@ -112,6 +135,6 @@ class InsightsServiceTest {
     }
 
     private CardSnapshot card(long laneId, String title, Priority priority, LocalDate due, String assignee) {
-        return boardService.createCard(laneId, new CardDraft(title, null, priority, due, assignee, Set.of()), ACTOR);
+        return boardService.createCard(laneId, new CardDraft(title, null, priority, due, assignee, Set.of(), null), ACTOR);
     }
 }
