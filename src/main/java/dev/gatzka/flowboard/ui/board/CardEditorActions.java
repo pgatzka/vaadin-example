@@ -20,6 +20,9 @@ interface CardEditorActions {
 
     CardSnapshot setRecurrence(long cardId, Recurrence recurrence);
 
+    /** Turns the card into a template of its board under the given name. */
+    void saveAsTemplate(long cardId, String name);
+
     CardSnapshot logTime(long cardId, int minutes, String note);
 
     CardSnapshot removeWorkEntry(long entryId);

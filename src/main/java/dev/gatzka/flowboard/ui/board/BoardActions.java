@@ -1,6 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
 import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 
 /** What lane and card components can ask the board to do. Implemented by {@link BoardView}. */
@@ -46,6 +47,12 @@ interface BoardActions {
 
     /** Keyboard move of a focused card: {@code ArrowUp}/{@code ArrowDown} reorder, {@code ArrowLeft}/{@code ArrowRight} change lane. */
     void moveCardByKeyboard(CardSnapshot card, String arrowKey);
+
+    /** The board's card templates, for the lane menu. */
+    java.util.List<CardTemplateSnapshot> templates();
+
+    /** Creates a card from a template at the end of the lane. */
+    void newCardFromTemplate(LaneSnapshot lane, CardTemplateSnapshot template);
 
     /** Opens the quick-add composer of the lane holding the card, e.g. after pressing {@code n} on it. */
     void addCardNear(CardSnapshot card);

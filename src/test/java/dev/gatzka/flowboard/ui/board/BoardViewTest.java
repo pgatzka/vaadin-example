@@ -14,6 +14,8 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
 import dev.gatzka.flowboard.domain.Recurrence;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.textfield.TextArea;
+import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
@@ -194,6 +196,39 @@ class BoardViewTest extends FlowboardUiTest {
     }
 
     @Test
+    void templatesMakeCardsWithChecklistsAndCardsBecomeTemplates() {
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        assertThat($(MenuItem.class).withClassName("lane__from-template").all()).as("no templates yet").isEmpty();
+
+        test($(MenuItem.class).withId("board-templates").single()).click();
+        TemplatesDialog dialog = $(TemplatesDialog.class).single();
+        $(TextField.class, dialog).withId("template-name").single().setValue("Bug report");
+        $(TextArea.class, dialog).withLabel("Description").single().setValue("Steps to reproduce");
+        $(Select.class, dialog).withLabel("Priority").single().setValue(Priority.HIGH);
+        $(TextArea.class, dialog).withLabel("Checklist, one item per line").single().setValue("Reproduce\n\nFix\nAdd a test");
+        test($(Button.class, dialog).withId("save-template").single()).click();
+        assertThat($(Div.class, dialog).withClassName("templates__row").all()).hasSize(1);
+        dialog.close();
+
+        assertThat(view.templates()).extracting(CardTemplateSnapshot::name).containsExactly("Bug report");
+        view.newCardFromTemplate(service.findBoard(board.id()).orElseThrow().lanes().get(1), view.templates().getFirst());
+        CardSnapshot created = service.findBoard(board.id()).orElseThrow().lanes().get(1).cards().getFirst();
+        assertThat(created.title()).isEqualTo("Bug report");
+        assertThat(created.description()).isEqualTo("Steps to reproduce");
+        assertThat(created.priority()).isEqualTo(Priority.HIGH);
+        assertThat(created.checklist()).extracting(item -> item.text()).containsExactly("Reproduce", "Fix", "Add a test");
+        assertThat($(Badge.class).withClassName("task-card__checklist").single().getText()).isEqualTo("0/3");
+
+        view.openCard(created);
+        CardEditorDialog editor = $(CardEditorDialog.class).single();
+        test($(Button.class, editor).withText("Save as template").single()).click();
+        $(TextField.class).withId("template-from-card-name").single().setValue("Bug report v2");
+        test($(Button.class, $(Dialog.class).withCondition(d -> "Save as template".equals(d.getHeaderTitle())).single()).withText("Save").single()).click();
+        assertThat(view.templates()).extracting(CardTemplateSnapshot::name).containsExactly("Bug report", "Bug report v2");
+        assertThat(view.templates().get(1).draft().checklist()).containsExactly("Reproduce", "Fix", "Add a test");
+    }
+
+    @Test
     void timeIsLoggedAndTimedFromTheEditor() {
         CardSnapshot card = createCard("Timed");
         BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
@@ -362,7 +397,7 @@ class BoardViewTest extends FlowboardUiTest {
 
         assertThat(visibleCardTitles()).isEmpty();
 
-        test($(Button.class).withCondition(b -> "Show archive".equals(b.getAriaLabel().orElse(null))).single()).click();
+        test($(MenuItem.class).withId("board-archive").single()).click();
         ArchiveDialog archive = $(ArchiveDialog.class).single();
         test($(Button.class, archive).withText("Restore").single()).click();
 
@@ -485,7 +520,7 @@ class BoardViewTest extends FlowboardUiTest {
     @Test
     void webhooksAreManagedFromTheBoard() {
         navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
-        test($(Button.class).withId("board-webhooks").single()).click();
+        test($(MenuItem.class).withId("board-webhooks").single()).click();
         WebhooksDialog dialog = $(WebhooksDialog.class).single();
 
         $(TextField.class, dialog).withLabel("Endpoint URL").single().setValue("nope");

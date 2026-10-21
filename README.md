@@ -54,6 +54,8 @@ Java on top of Vaadin Flow's server push.
   and **file attachments** on cards (up to 5 MB each, stored in the database).
 - **Votes** on cards with "sort by votes" for backlogs, multi-line paste into a lane to create several
   cards, and a little confetti when a card lands in a done lane.
+- **Card templates.** Define ready-made cards per board, checklist included, create them from a
+  lane's menu, or turn any existing card into a template from its editor.
 - **Time tracking.** Start a timer on a card (one per person, shown pulsing in the header while it
   runs), or log minutes by hand with a note. Cards show the time spent; the editor keeps the log.
 - **Weekly digest.** A printable one-page report per board and week: done, new, overdue, blocked,

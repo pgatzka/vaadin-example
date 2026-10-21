@@ -93,6 +93,7 @@ final class CardEditorDialog extends Dialog {
         dialog.addCardSections(card, actions);
         dialog.addDeleteButton(card, onDelete);
         dialog.addArchiveButton(onArchive);
+        dialog.addTemplateButton(card, actions);
         return dialog;
     }
 
@@ -306,6 +307,38 @@ final class CardEditorDialog extends Dialog {
         delete.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
         delete.addClassName("dialog-footer__start");
         getFooter().addComponentAsFirst(delete);
+    }
+
+    private void addTemplateButton(CardSnapshot card, CardEditorActions actions) {
+        Button asTemplate = new Button("Save as template", VaadinIcon.COPY_O.create(), event -> {
+            Dialog ask = new Dialog();
+            ask.setHeaderTitle("Save as template");
+            TextField name = new TextField("Template name");
+            name.setValue(card.title());
+            name.setMaxLength(60);
+            name.setWidthFull();
+            name.setAutofocus(true);
+            name.setId("template-from-card-name");
+            ask.add(name);
+            Button confirm = new Button("Save", confirmed -> {
+                try {
+                    actions.saveAsTemplate(card.id(), name.getValue());
+                } catch (IllegalArgumentException e) {
+                    name.setErrorMessage(e.getMessage());
+                    name.setInvalid(true);
+                    return;
+                }
+                Toasts.success("Template \"" + name.getValue().strip() + "\" saved");
+                ask.close();
+            });
+            confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            confirm.addClickShortcut(Key.ENTER);
+            ask.getFooter().add(new Button("Cancel", cancelled -> ask.close()), confirm);
+            ask.open();
+        });
+        asTemplate.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        asTemplate.setTooltipText("Reuse this card's fields and checklist for new cards");
+        getFooter().addComponentAtIndex(1, asTemplate);
     }
 
     private void addArchiveButton(Runnable onArchive) {

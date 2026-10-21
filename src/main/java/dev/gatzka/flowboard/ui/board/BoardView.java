@@ -16,6 +16,7 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
@@ -38,6 +39,7 @@ import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardFilter;
 import dev.gatzka.flowboard.domain.CardFilterCodec;
 import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.domain.SavedViewSnapshot;
@@ -48,6 +50,7 @@ import dev.gatzka.flowboard.service.AttachmentService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardChangedEvent;
 import dev.gatzka.flowboard.service.BoardService;
+import dev.gatzka.flowboard.service.CardTemplateService;
 import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.CommentService;
 import dev.gatzka.flowboard.service.DependencyService;
@@ -118,6 +121,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final WebhookDispatcher webhookDispatcher;
     private final SavedViewService savedViews;
     private final TimeService timeService;
+    private final CardTemplateService templateService;
     private final UserSession session;
     private final Clock clock;
 
@@ -157,6 +161,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final List<LaneComponent> laneComponents = new ArrayList<>();
 
     private BoardSnapshot board;
+    private List<CardTemplateSnapshot> boardTemplates = List.of();
     private Instant lastVisit;
     /** Card to focus after the next renders, so keyboard moves keep the keyboard focus. */
     private Long focusCardId;
@@ -174,9 +179,10 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             ExecutorService executor, ActivityLog activityLog,
             BoardChangeBroadcaster broadcaster, PresenceTracker presence, SharingService sharing, VisitService visits,
             WebhookService webhookService, WebhookDispatcher webhookDispatcher, SavedViewService savedViews,
-            TimeService timeService, UserSession session, Clock clock) {
+            TimeService timeService, CardTemplateService templateService, UserSession session, Clock clock) {
         this.savedViews = savedViews;
         this.timeService = timeService;
+        this.templateService = templateService;
         this.sharing = sharing;
         this.visits = visits;
         this.webhookService = webhookService;
@@ -240,46 +246,44 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         insights.setAriaLabel("Show insights");
         insights.setTooltipText("Insights");
 
-        Button calendar = new Button(VaadinIcon.CALENDAR.create(), event -> getUI().ifPresent(ui -> ui.navigate(
-                CalendarView.class, new RouteParameters(BOARD_ID, Long.toString(board.id())))));
-        calendar.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        calendar.setAriaLabel("Show calendar");
-        calendar.setTooltipText("Calendar");
-
-        Button digest = new Button(VaadinIcon.NEWSPAPER.create(), event -> getUI().ifPresent(ui -> ui.navigate(
-                DigestView.class, new RouteParameters(BOARD_ID, Long.toString(board.id())))));
-        digest.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        digest.setAriaLabel("Weekly digest");
-        digest.setTooltipText("Weekly digest");
-        digest.setId("board-digest");
-
-        Button archive = new Button(VaadinIcon.ARCHIVE.create(), event -> openArchive());
-        archive.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        archive.setAriaLabel("Show archive");
-        archive.setTooltipText("Archive");
-
-        Button share = new Button(VaadinIcon.SHARE.create(), event -> new ShareDialog(board, sharing, this::actor).open());
-        share.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        share.setAriaLabel("Share");
-        share.setTooltipText("Public link");
-        share.setId("share-board");
-
-        Button hooks = new Button(VaadinIcon.PLUG.create(), event -> new WebhooksDialog(board, webhookService, webhookDispatcher, this::actor, clock).open());
-        hooks.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        hooks.setAriaLabel("Webhooks");
-        hooks.setTooltipText("Webhooks");
-        hooks.setId("board-webhooks");
-
         Button addLane = new Button("Add lane", VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        Div toolbar = new Div(titles, search, filters, participants, activity, insights, calendar, digest, archive, share, hooks);
+        Div toolbar = new Div(titles, search, filters, participants, activity, insights, moreMenu());
         if (assistant.isAvailable()) {
             toolbar.add(assistantMenu());
         }
         toolbar.add(addLane);
         toolbar.addClassName("board-toolbar");
         return toolbar;
+    }
+
+    /** The less frequent board actions, kept out of the way behind one button. */
+    private MenuBar moreMenu() {
+        MenuBar menu = new MenuBar();
+        menu.addThemeVariants(MenuBarVariant.LUMO_TERTIARY, MenuBarVariant.LUMO_ICON);
+        MenuItem root = menu.addItem(VaadinIcon.ELLIPSIS_DOTS_H.create());
+        root.setAriaLabel("More board actions");
+        root.setId("board-more");
+        SubMenu items = root.getSubMenu();
+        items.addItem(entry(VaadinIcon.CALENDAR, "Calendar"), event -> getUI().ifPresent(ui -> ui.navigate(
+                CalendarView.class, new RouteParameters(BOARD_ID, Long.toString(board.id())))));
+        items.addItem(entry(VaadinIcon.NEWSPAPER, "Weekly digest"), event -> getUI().ifPresent(ui -> ui.navigate(
+                DigestView.class, new RouteParameters(BOARD_ID, Long.toString(board.id()))))).setId("board-digest");
+        items.addItem(entry(VaadinIcon.ARCHIVE, "Archive"), event -> openArchive()).setId("board-archive");
+        items.addItem(entry(VaadinIcon.COPY_O, "Card templates…"), event ->
+                new TemplatesDialog(board, templateService, this::actor, this::reload).open()).setId("board-templates");
+        items.addItem(entry(VaadinIcon.SHARE, "Public link…"), event -> new ShareDialog(board, sharing, this::actor).open()).setId("share-board");
+        items.addItem(entry(VaadinIcon.PLUG, "Webhooks…"), event ->
+                new WebhooksDialog(board, webhookService, webhookDispatcher, this::actor, clock).open()).setId("board-webhooks");
+        return menu;
+    }
+
+    private static Component entry(VaadinIcon icon, String text) {
+        Span label = new Span(text);
+        Div entry = new Div(icon.create(), label);
+        entry.addClassName("menu-entry");
+        return entry;
     }
 
     private MenuBar assistantMenu() {
@@ -426,6 +430,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     private void render(BoardSnapshot snapshot) {
         board = snapshot;
+        boardTemplates = templateService.forBoard(snapshot.id());
         heading.setText(snapshot.name());
         description.setText(snapshot.description() == null ? "" : snapshot.description());
         description.setVisible(snapshot.description() != null);
@@ -619,6 +624,25 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             }
             default -> focusCardId = null;
         }
+    }
+
+    @Override
+    public List<CardTemplateSnapshot> templates() {
+        return boardTemplates;
+    }
+
+    @Override
+    public void newCardFromTemplate(LaneSnapshot lane, CardTemplateSnapshot template) {
+        perform(() -> {
+            CardSnapshot created = templateService.instantiate(template.id(), lane.id(), actor());
+            Toasts.success("\"" + created.title() + "\" created from " + template.name());
+        });
+    }
+
+    @Override
+    public void saveAsTemplate(long cardId, String name) {
+        templateService.saveFromCard(cardId, name, actor());
+        reload();
     }
 
     @Override

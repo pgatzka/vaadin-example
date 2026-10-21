@@ -310,6 +310,46 @@ html {
   margin-bottom: var(--lumo-space-s);
 }
 
+.menu-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+}
+
+.menu-entry vaadin-icon {
+  width: var(--lumo-icon-size-s);
+  height: var(--lumo-icon-size-s);
+  color: var(--lumo-secondary-text-color);
+}
+
+.templates__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-xs);
+  margin-bottom: var(--lumo-space-m);
+}
+
+.templates__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  padding: var(--lumo-space-xs) var(--lumo-space-s);
+  border: 1px solid var(--lumo-contrast-10pct);
+  border-radius: var(--lumo-border-radius-m);
+}
+
+.templates__name {
+  font-weight: 600;
+}
+
+.templates__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lumo-space-xs);
+  flex: 1;
+}
+
 .timer-chip {
   border-radius: 999px;
   max-width: 16rem;

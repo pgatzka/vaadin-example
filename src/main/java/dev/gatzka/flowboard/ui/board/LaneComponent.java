@@ -16,6 +16,7 @@ import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
 import dev.gatzka.flowboard.domain.CardFilter;
 import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -134,6 +135,13 @@ final class LaneComponent extends Div {
         MenuItem root = menu.addItem(VaadinIcon.ELLIPSIS_DOTS_V.create());
         root.setAriaLabel("Lane actions");
         SubMenu items = root.getSubMenu();
+        java.util.List<CardTemplateSnapshot> templates = actions.templates();
+        if (!templates.isEmpty()) {
+            MenuItem fromTemplate = items.addItem("New from template");
+            fromTemplate.addClassName("lane__from-template");
+            SubMenu choices = fromTemplate.getSubMenu();
+            templates.forEach(template -> choices.addItem(template.name(), event -> actions.newCardFromTemplate(lane, template)));
+        }
         items.addItem("Edit lane", event -> actions.editLane(lane));
         MenuItem left = items.addItem("Move left", event -> actions.moveLane(lane, -1));
         left.setEnabled(lane.position() > 0);
