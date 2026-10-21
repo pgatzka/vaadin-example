@@ -54,6 +54,7 @@ import dev.gatzka.flowboard.ui.assistant.StandupDialog;
 import dev.gatzka.flowboard.ui.assistant.SuggestChecklistDialog;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
 import dev.gatzka.flowboard.ui.calendar.CalendarView;
+import dev.gatzka.flowboard.ui.support.Celebration;
 import dev.gatzka.flowboard.ui.support.Toasts;
 import dev.gatzka.flowboard.ui.support.UiAccess;
 import java.time.Clock;
@@ -399,6 +400,12 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     @Override
+    public void quickAddCards(LaneSnapshot lane, List<String> titles) {
+        perform(() -> titles.forEach(title -> boardService.createCard(lane.id(), CardDraft.titled(title), actor())));
+        Toasts.success(titles.size() + " cards added to " + lane.name());
+    }
+
+    @Override
     public void composerOpened(LaneSnapshot lane) {
         openComposerLaneId = lane.id();
     }
@@ -412,7 +419,23 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     @Override
     public void moveCard(long cardId, long targetLaneId, int targetIndex) {
+        boolean completing = isCompletingMove(cardId, targetLaneId);
         perform(() -> boardService.moveCard(cardId, targetLaneId, targetIndex, actor()));
+        if (completing) {
+            findCard(cardId).ifPresent(card -> celebrate(card.title()));
+        }
+    }
+
+    /** True when the move takes the card from a lane that is not done into one that is. */
+    private boolean isCompletingMove(long cardId, long targetLaneId) {
+        boolean targetDone = board.lane(targetLaneId).map(LaneSnapshot::done).orElse(false);
+        boolean sourceDone = findCard(cardId).flatMap(card -> board.lane(card.laneId())).map(LaneSnapshot::done).orElse(false);
+        return targetDone && !sourceDone;
+    }
+
+    private void celebrate(String title) {
+        Toasts.success("🎉 Done: " + title);
+        getUI().ifPresent(Celebration::confetti);
     }
 
     @Override

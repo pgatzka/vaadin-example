@@ -347,6 +347,28 @@ class BoardViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void pastingSeveralLinesCreatesSeveralCards() {
+        openBoard();
+        LaneComponent backlog = $(LaneComponent.class).first();
+        test($(Button.class, backlog).withText("Add card").single()).click();
+
+        $(QuickAddComposer.class, backlog).single().pasteLines("- First\n- Second\n\nThird");
+
+        assertThat(visibleCardTitles()).containsExactly("First", "Second", "Third");
+    }
+
+    @Test
+    void finishingACardIsCelebrated() {
+        CardSnapshot card = createCard("Almost there");
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+
+        view.moveCard(card.id(), board.lanes().get(3).id(), 0);
+
+        assertThat($(Notification.class).all()).anySatisfy(notification ->
+                assertThat(test(notification).getText()).contains("Done: Almost there"));
+    }
+
+    @Test
     void changesMadeElsewhereArePushedIntoTheView() {
         openBoard();
         assertThat(visibleCardTitles()).isEmpty();

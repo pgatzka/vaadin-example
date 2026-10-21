@@ -14,6 +14,9 @@ interface BoardActions {
     /** Creates a card with just a title and default values, without opening the editor. */
     void quickAddCard(LaneSnapshot lane, String title);
 
+    /** Creates several title-only cards at once, in the given order. */
+    void quickAddCards(LaneSnapshot lane, java.util.List<String> titles);
+
     /** Remembers which lane has its quick-add composer open so it survives a re-render. */
     void composerOpened(LaneSnapshot lane);
 

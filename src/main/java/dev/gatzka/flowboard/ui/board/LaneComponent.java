@@ -48,6 +48,7 @@ final class LaneComponent extends Div {
 
         composer = new QuickAddComposer(
                 title -> actions.quickAddCard(lane, title),
+                titles -> actions.quickAddCards(lane, titles),
                 typed -> actions.newCard(lane, typed),
                 () -> actions.composerOpened(lane),
                 () -> actions.composerClosed(lane));

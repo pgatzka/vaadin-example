@@ -62,12 +62,26 @@ class MyWorkViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void commandPaletteOffersActionsAndBoards() {
+        navigate(MyWorkView.class);
+        test($(Button.class).withCondition(b -> "Search all boards".equals(b.getAriaLabel().orElse(null))).single()).click();
+
+        assertThat($(Button.class).withClassName("palette__command").all()).extracting(Button::getText)
+                .contains("New board", "My work", "Switch to dark theme", "Open board: Work");
+
+        test($(TextField.class).withPlaceholder("Search boards and cards, or type a command").single()).setValue("dark");
+        test($(Button.class).withClassName("palette__command").withText("Switch to dark theme").single()).click();
+
+        assertThat(context.getBean(UserSession.class).isDarkMode()).isTrue();
+    }
+
+    @Test
     void searchDialogFindsCardsOnAnyBoard() {
         service.createCard(board.lanes().get(1).id(), CardDraft.titled("Needle in haystack"), "Seeder");
         navigate(MyWorkView.class);
 
         test($(Button.class).withCondition(b -> "Search all boards".equals(b.getAriaLabel().orElse(null))).single()).click();
-        test($(TextField.class).withPlaceholder("Search all boards").single()).setValue("needle");
+        test($(TextField.class).withPlaceholder("Search boards and cards, or type a command").single()).setValue("needle");
 
         assertThat($(CardLocationRow.class).all()).hasSize(1);
         test($(CardLocationRow.class).single()).click();

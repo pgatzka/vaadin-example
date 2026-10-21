@@ -9,10 +9,11 @@ import com.vaadin.flow.component.html.Span;
 final class ShortcutsDialog extends Dialog {
 
     private static final String[][] SHORTCUTS = {
-            {"Ctrl + K", "Search all boards"},
+            {"Ctrl + K", "Command palette: search all boards, open a board, run an action"},
             {"Ctrl + /", "Show this list"},
             {"/", "Focus the card filter on a board"},
             {"Enter", "Add the card typed into a lane's composer"},
+            {"Paste", "Several lines pasted into a composer become several cards"},
             {"Ctrl + Enter", "Save the open dialog"},
             {"Esc", "Close a dialog or the composer"},
             {"Drag", "Move cards between lanes, drag a lane header to reorder lanes"},

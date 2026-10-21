@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui;
 
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
@@ -12,23 +14,32 @@ import dev.gatzka.flowboard.ui.work.CardLocationRow;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Supplier;
 
-/** Search across every board. Results open the card on its board. */
+/**
+ * Command palette and search in one: actions and boards match first, then cards from every board.
+ * Results open the card on its board or run the action.
+ */
 final class SearchDialog extends Dialog {
 
+    static final int MAX_COMMANDS = 8;
+
     private final WorkService workService;
+    private final Supplier<List<Command>> commands;
     private final Clock clock;
     private final TextField query = new TextField();
+    private final Div actions = new Div();
     private final Div results = new Div();
     private final Span hint = new Span("Type to search titles, descriptions, assignees and tags on all boards.");
 
-    SearchDialog(WorkService workService, Clock clock) {
+    SearchDialog(WorkService workService, Supplier<List<Command>> commands, Clock clock) {
         this.workService = workService;
+        this.commands = commands;
         this.clock = clock;
         addClassName("search-dialog");
         setWidth("min(640px, 95vw)");
 
-        query.setPlaceholder("Search all boards");
+        query.setPlaceholder("Search boards and cards, or type a command");
         query.setPrefixComponent(VaadinIcon.SEARCH.create());
         query.setClearButtonVisible(true);
         query.setAutofocus(true);
@@ -36,10 +47,11 @@ final class SearchDialog extends Dialog {
         query.setValueChangeMode(ValueChangeMode.LAZY);
         query.addValueChangeListener(event -> search(event.getValue()));
 
+        actions.addClassName("palette");
         results.addClassName("work-list");
         results.addClickListener(event -> close());
         hint.addClassName("search-dialog__hint");
-        add(query, hint, results);
+        add(query, actions, hint, results);
     }
 
     @Override
@@ -50,6 +62,9 @@ final class SearchDialog extends Dialog {
     }
 
     private void search(String text) {
+        actions.removeAll();
+        commands.get().stream().filter(command -> command.matches(text)).limit(MAX_COMMANDS).forEach(command -> actions.add(button(command)));
+
         List<CardLocation> hits = workService.search(text);
         results.removeAll();
         LocalDate today = LocalDate.now(clock);
@@ -61,5 +76,15 @@ final class SearchDialog extends Dialog {
         } else {
             hint.setText(hits.size() == WorkService.SEARCH_LIMIT ? "Showing the first " + hits.size() + " matches." : hits.size() + (hits.size() == 1 ? " match" : " matches"));
         }
+    }
+
+    private Button button(Command command) {
+        Button button = new Button(command.label(), command.icon().create(), event -> {
+            close();
+            command.action().run();
+        });
+        button.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        button.addClassName("palette__command");
+        return button;
     }
 }

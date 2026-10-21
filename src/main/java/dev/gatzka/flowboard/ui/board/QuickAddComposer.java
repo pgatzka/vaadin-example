@@ -7,6 +7,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -16,11 +17,26 @@ import java.util.function.Consumer;
  */
 final class QuickAddComposer extends Div {
 
+    /** Upper bound on cards created from one paste. */
+    static final int MAX_PASTED_LINES = 50;
+
+    private static final String MULTILINE_PASTE_JS = """
+            const field = $0;
+            field.addEventListener('paste', event => {
+              const text = (event.clipboardData || window.clipboardData).getData('text');
+              if (text && text.includes('\\n') && text.trim().split('\\n').filter(l => l.trim()).length > 1) {
+                event.preventDefault();
+                field.dispatchEvent(new CustomEvent('multiline-paste', { detail: { text } }));
+              }
+            });
+            """;
+
     private final Button openButton = new Button("Add card", VaadinIcon.PLUS.create());
     private final Div editor = new Div();
     private final TextField title = new TextField();
     private final Runnable onOpen;
     private final Runnable onClose;
+    private final Consumer<List<String>> onQuickAddMany;
 
     /**
      * @param onQuickAdd called with the entered title
@@ -28,9 +44,14 @@ final class QuickAddComposer extends Div {
      * @param onOpen called when the composer expands, so the board can keep it open across reloads
      * @param onClose called when the composer collapses
      */
-    QuickAddComposer(Consumer<String> onQuickAdd, Consumer<String> onMoreOptions, Runnable onOpen, Runnable onClose) {
+    /**
+     * @param onQuickAddMany called with every non-blank line of a multi-line paste
+     */
+    QuickAddComposer(Consumer<String> onQuickAdd, Consumer<List<String>> onQuickAddMany, Consumer<String> onMoreOptions,
+            Runnable onOpen, Runnable onClose) {
         this.onOpen = onOpen;
         this.onClose = onClose;
+        this.onQuickAddMany = onQuickAddMany;
         addClassName("quick-add");
 
         openButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
@@ -44,6 +65,10 @@ final class QuickAddComposer extends Div {
         title.setValueChangeMode(ValueChangeMode.EAGER);
         title.addKeyPressListener(Key.ENTER, event -> submit(onQuickAdd));
         title.addKeyDownListener(Key.ESCAPE, event -> close());
+        title.setHelperText("Paste several lines to add several cards.");
+        title.getElement().addEventListener("multiline-paste", event -> pasteLines(event.getEventData().path("event.detail.text").asString()))
+                .addEventData("event.detail.text");
+        title.addAttachListener(event -> title.getElement().executeJs(MULTILINE_PASTE_JS, title.getElement()));
 
         Button add = new Button("Add", event -> submit(onQuickAdd));
         add.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
@@ -86,6 +111,28 @@ final class QuickAddComposer extends Div {
         editor.setVisible(false);
         openButton.setVisible(true);
         onClose.run();
+    }
+
+    /** Creates one card per non-blank line, up to {@link #MAX_PASTED_LINES}. */
+    void pasteLines(String text) {
+        List<String> lines = splitLines(text);
+        if (lines.isEmpty()) {
+            return;
+        }
+        title.clear();
+        onQuickAddMany.accept(lines);
+        title.focus();
+    }
+
+    static List<String> splitLines(String text) {
+        if (text == null) {
+            return List.of();
+        }
+        return text.lines()
+                .map(line -> line.strip().replaceFirst("^[-*•\\d.)\\s]+", "").strip())
+                .filter(line -> !line.isEmpty())
+                .limit(MAX_PASTED_LINES)
+                .toList();
     }
 
     private void submit(Consumer<String> onQuickAdd) {

@@ -547,6 +547,17 @@ html {
   white-space: nowrap;
 }
 
+.palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lumo-space-xs);
+  margin-top: var(--lumo-space-s);
+}
+
+.palette__command {
+  background: var(--lumo-contrast-5pct);
+}
+
 .search-dialog__hint {
   display: block;
   margin: var(--lumo-space-s) 0;

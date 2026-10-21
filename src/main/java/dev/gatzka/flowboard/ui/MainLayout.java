@@ -34,6 +34,8 @@ import dev.gatzka.flowboard.ui.boards.BoardsView;
 import dev.gatzka.flowboard.ui.support.UiAccess;
 import dev.gatzka.flowboard.ui.work.MyWorkView;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Application frame: navigation drawer with all boards, theme toggle and the current user. */
 @Layout
@@ -54,7 +56,7 @@ public class MainLayout extends AppLayout {
         this.boardService = boardService;
         this.broadcaster = broadcaster;
         this.session = session;
-        this.searchDialog = new SearchDialog(workService, clock);
+        this.searchDialog = new SearchDialog(workService, this::commands, clock);
         Shortcuts.addShortcutListener(this, event -> searchDialog.open(), Key.KEY_K, KeyModifier.CONTROL);
         Shortcuts.addShortcutListener(this, event -> new ShortcutsDialog().open(), Key.SLASH, KeyModifier.CONTROL);
 
@@ -80,6 +82,28 @@ public class MainLayout extends AppLayout {
                         applyTheme(prefersDark);
                     }
                 });
+    }
+
+    /** What the command palette offers: navigation, board shortcuts and a few toggles. */
+    private List<Command> commands() {
+        List<Command> list = new ArrayList<>();
+        list.add(new Command("New board", VaadinIcon.PLUS, () -> getUI().ifPresent(ui -> {
+            ui.navigate(BoardsView.class);
+            ComponentUtil.fireEvent(ui, new NewBoardRequestedEvent(ui));
+        })));
+        list.add(new Command("All boards", VaadinIcon.GRID_BIG_O, () -> getUI().ifPresent(ui -> ui.navigate(BoardsView.class))));
+        list.add(new Command("My work", VaadinIcon.USER_CHECK, () -> getUI().ifPresent(ui -> ui.navigate(MyWorkView.class))));
+        list.add(new Command(session.isDarkMode() ? "Switch to light theme" : "Switch to dark theme", VaadinIcon.ADJUST, () -> {
+            session.setDarkMode(!session.isDarkMode());
+            applyTheme(session.isDarkMode());
+        }));
+        list.add(new Command("Keyboard shortcuts", VaadinIcon.QUESTION_CIRCLE_O, () -> new ShortcutsDialog().open()));
+        list.add(new Command("Change display name", VaadinIcon.USER, () -> new ProfileDialog(session, this::onProfileSaved).open()));
+        for (BoardSummary board : boardService.listBoards()) {
+            RouteParameters parameters = new RouteParameters(BoardView.BOARD_ID, Long.toString(board.id()));
+            list.add(new Command("Open board: " + board.name(), VaadinIcon.TASKS, () -> getUI().ifPresent(ui -> ui.navigate(BoardView.class, parameters))));
+        }
+        return list;
     }
 
     private Div header() {

@@ -1,6 +1,7 @@
 package dev.gatzka.flowboard.ui.boards;
 
 import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -21,6 +22,7 @@ import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.NotFoundException;
+import dev.gatzka.flowboard.ui.NewBoardRequestedEvent;
 import dev.gatzka.flowboard.ui.UserSession;
 import dev.gatzka.flowboard.ui.board.BoardView;
 import dev.gatzka.flowboard.ui.support.Toasts;
@@ -39,6 +41,7 @@ public class BoardsView extends VerticalLayout {
 
     private final Div grid = new Div();
     private Registration changeSubscription;
+    private Registration newBoardSubscription;
 
     public BoardsView(BoardService boardService, BoardExchangeService exchange, BoardChangeBroadcaster broadcaster,
             UserSession session) {
@@ -74,6 +77,7 @@ public class BoardsView extends VerticalLayout {
     protected void onAttach(AttachEvent attachEvent) {
         UI ui = attachEvent.getUI();
         changeSubscription = broadcaster.subscribe(event -> UiAccess.run(ui, this::refresh));
+        newBoardSubscription = ComponentUtil.addListener(ui, NewBoardRequestedEvent.class, event -> openCreateDialog());
     }
 
     @Override
@@ -81,6 +85,10 @@ public class BoardsView extends VerticalLayout {
         if (changeSubscription != null) {
             changeSubscription.remove();
             changeSubscription = null;
+        }
+        if (newBoardSubscription != null) {
+            newBoardSubscription.remove();
+            newBoardSubscription = null;
         }
     }
 
