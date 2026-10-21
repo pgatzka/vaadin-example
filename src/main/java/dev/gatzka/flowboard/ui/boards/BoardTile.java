@@ -40,6 +40,11 @@ final class BoardTile extends Card {
         add(description);
 
         addToFooter(count(board.laneCount(), "lane"), count(board.cardCount(), "card"));
+        if (board.archivedCount() > 0) {
+            Badge archived = new Badge(board.archivedCount() + " archived");
+            archived.addThemeVariants(BadgeVariant.CONTRAST);
+            addToFooter(archived);
+        }
         if (board.overdueCount() > 0) {
             Badge overdue = new Badge(board.overdueCount() + " overdue");
             overdue.addThemeVariants(BadgeVariant.ERROR);

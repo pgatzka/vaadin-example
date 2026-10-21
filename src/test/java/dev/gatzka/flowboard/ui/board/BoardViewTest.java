@@ -269,6 +269,23 @@ class BoardViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void cardsCanBeArchivedFromTheEditorAndRestoredFromTheArchive() {
+        createCard("Old news");
+        openBoard();
+        test($(CardComponent.class).single()).click();
+        test($(Button.class, $(CardEditorDialog.class).single()).withText("Archive").single()).click();
+
+        assertThat(visibleCardTitles()).isEmpty();
+
+        test($(Button.class).withCondition(b -> "Show archive".equals(b.getAriaLabel().orElse(null))).single()).click();
+        ArchiveDialog archive = $(ArchiveDialog.class).single();
+        test($(Button.class, archive).withText("Restore").single()).click();
+
+        assertThat(visibleCardTitles()).containsExactly("Old news");
+        assertThat($(Button.class, archive).withText("Restore").all()).isEmpty();
+    }
+
+    @Test
     void changesMadeElsewhereArePushedIntoTheView() {
         openBoard();
         assertThat(visibleCardTitles()).isEmpty();

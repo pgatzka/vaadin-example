@@ -80,6 +80,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final Div lanes = new Div();
     private final ActivityDialog activityDialog = new ActivityDialog();
     private final InsightsDialog insightsDialog = new InsightsDialog();
+    private final ArchiveDialog archiveDialog;
     private final List<LaneComponent> laneComponents = new ArrayList<>();
 
     private BoardSnapshot board;
@@ -101,6 +102,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         this.presence = presence;
         this.session = session;
         this.clock = clock;
+        this.archiveDialog = new ArchiveDialog(
+                card -> perform(() -> boardService.restoreCard(card.id(), actor())),
+                card -> perform(() -> boardService.deleteCard(card.id(), actor())));
 
         addClassName("board-view");
         setSizeFull();
@@ -141,10 +145,15 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         insights.setAriaLabel("Show insights");
         insights.setTooltipText("Insights");
 
+        Button archive = new Button(VaadinIcon.ARCHIVE.create(), event -> openArchive());
+        archive.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        archive.setAriaLabel("Show archive");
+        archive.setTooltipText("Archive");
+
         Button addLane = new Button("Add lane", VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        Div toolbar = new Div(titles, search, filters, participants, activity, insights, addLane);
+        Div toolbar = new Div(titles, search, filters, participants, activity, insights, archive, addLane);
         toolbar.addClassName("board-toolbar");
         return toolbar;
     }
@@ -255,6 +264,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         if (insightsDialog.isOpened()) {
             insightsDialog.show(insightsService.forBoard(board.id()));
         }
+        if (archiveDialog.isOpened()) {
+            archiveDialog.show(boardService.archivedCards(board.id()));
+        }
         if (openEditor != null) {
             openEditor.cardId().flatMap(this::findCard).ifPresent(openEditor::refresh);
         }
@@ -282,6 +294,11 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
                 .toList());
     }
 
+    private void openArchive() {
+        archiveDialog.show(boardService.archivedCards(board.id()));
+        archiveDialog.open();
+    }
+
     private void openInsights() {
         insightsDialog.show(insightsService.forBoard(board.id()));
         insightsDialog.open();
@@ -298,6 +315,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     public void openCard(CardSnapshot card) {
         CardEditorDialog editor = CardEditorDialog.forCard(card, board, this,
                 draft -> perform(() -> boardService.updateCard(card.id(), draft, actor())),
+                () -> perform(() -> boardService.archiveCard(card.id(), actor())),
                 () -> perform(() -> boardService.deleteCard(card.id(), actor())));
         editor.addOpenedChangeListener(event -> {
             if (!event.isOpened() && openEditor == editor) {
@@ -395,6 +413,14 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         CardSnapshot refreshed = change.get();
         reload();
         return refreshed;
+    }
+
+    @Override
+    public void archiveLane(LaneSnapshot lane) {
+        perform(() -> {
+            int archived = boardService.archiveLane(lane.id(), actor());
+            Toasts.info(archived == 1 ? "1 card archived" : archived + " cards archived");
+        });
     }
 
     private void addLane() {

@@ -70,11 +70,12 @@ final class CardEditorDialog extends Dialog {
     }
 
     static CardEditorDialog forCard(CardSnapshot card, BoardSnapshot board, CardEditorActions actions,
-            Consumer<CardDraft> onSave, Runnable onDelete) {
+            Consumer<CardDraft> onSave, Runnable onArchive, Runnable onDelete) {
         CardEditorDialog dialog = new CardEditorDialog("Edit card", "Save", board, onSave);
         dialog.binder.readRecord(card.toDraft());
         dialog.addCardSections(card, actions);
         dialog.addDeleteButton(card, onDelete);
+        dialog.addArchiveButton(onArchive);
         return dialog;
     }
 
@@ -250,6 +251,16 @@ final class CardEditorDialog extends Dialog {
         delete.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
         delete.addClassName("dialog-footer__start");
         getFooter().addComponentAsFirst(delete);
+    }
+
+    private void addArchiveButton(Runnable onArchive) {
+        Button archive = new Button("Archive", VaadinIcon.ARCHIVE.create(), event -> {
+            onArchive.run();
+            close();
+        });
+        archive.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        archive.setTooltipText("Take the card off the board; it can be restored from the archive");
+        getFooter().addComponentAtIndex(1, archive);
     }
 
     private void save() {

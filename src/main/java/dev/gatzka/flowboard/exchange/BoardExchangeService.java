@@ -59,7 +59,7 @@ public class BoardExchangeService {
     @Transactional(readOnly = true)
     public BoardExport export(long boardId) {
         Board board = boards.findById(boardId).orElseThrow(() -> new NotFoundException("Board", boardId));
-        Map<Long, List<Card>> cardsByLane = cards.findAllByLaneBoardIdOrderByPositionAsc(boardId).stream()
+        Map<Long, List<Card>> cardsByLane = cards.findAllByLaneBoardIdAndArchivedAtIsNullOrderByPositionAsc(boardId).stream()
                 .collect(Collectors.groupingBy(card -> card.getLane().getId()));
         List<LaneExport> laneExports = lanes.findAllByBoardIdOrderByPositionAsc(boardId).stream()
                 .map(lane -> new LaneExport(lane.getName(), lane.getWipLimit(), lane.isDone(),

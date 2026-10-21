@@ -102,6 +102,8 @@ final class LaneComponent extends Div {
         left.setEnabled(lane.position() > 0);
         MenuItem right = items.addItem("Move right", event -> actions.moveLane(lane, 1));
         right.setEnabled(lane.position() < laneCount - 1);
+        MenuItem archive = items.addItem("Archive all cards", event -> actions.archiveLane(lane));
+        archive.setEnabled(!lane.cards().isEmpty());
         MenuItem delete = items.addItem("Delete lane", event -> actions.deleteLane(lane));
         delete.addClassName("danger");
         return menu;

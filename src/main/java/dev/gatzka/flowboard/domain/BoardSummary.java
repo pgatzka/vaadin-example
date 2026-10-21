@@ -10,6 +10,7 @@ public record BoardSummary(
         long laneCount,
         long cardCount,
         long overdueCount,
+        long archivedCount,
         Instant createdAt) {
 
     public BoardDraft toDraft() {

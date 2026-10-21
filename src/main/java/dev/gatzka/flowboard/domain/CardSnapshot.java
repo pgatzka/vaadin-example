@@ -21,7 +21,8 @@ public record CardSnapshot(
         List<ChecklistItemSnapshot> checklist,
         List<CommentSnapshot> comments,
         int position,
-        Instant updatedAt) {
+        Instant updatedAt,
+        Instant archivedAt) {
 
     public CardSnapshot {
         checklist = List.copyOf(checklist);
@@ -46,7 +47,8 @@ public record CardSnapshot(
                 card.getChecklist().stream().map(ChecklistItemSnapshot::of).toList(),
                 card.getComments().stream().map(CommentSnapshot::of).toList(),
                 card.getPosition(),
-                card.getUpdatedAt());
+                card.getUpdatedAt(),
+                card.getArchivedAt());
     }
 
     public boolean hasChecklist() {
@@ -59,6 +61,10 @@ public record CardSnapshot(
 
     public boolean isChecklistComplete() {
         return hasChecklist() && checklistDone() == checklist.size();
+    }
+
+    public boolean isArchived() {
+        return archivedAt != null;
     }
 
     public boolean hasComments() {

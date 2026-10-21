@@ -48,7 +48,7 @@ public class InsightsService {
         LocalDate weekAhead = today.plusDays(7);
 
         List<Lane> boardLanes = lanes.findAllByBoardIdOrderByPositionAsc(boardId);
-        List<Card> boardCards = cards.findAllByLaneBoardIdOrderByPositionAsc(boardId);
+        List<Card> boardCards = cards.findAllByLaneBoardIdAndArchivedAtIsNullOrderByPositionAsc(boardId);
 
         Map<Long, Integer> cardsPerLane = new TreeMap<>();
         Map<Priority, Integer> openByPriority = new EnumMap<>(Priority.class);

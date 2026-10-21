@@ -700,6 +700,36 @@ html {
   color: var(--lumo-secondary-text-color);
 }
 
+.archive__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.archive__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--lumo-space-s);
+  padding: var(--lumo-space-s) 0;
+  border-bottom: 1px solid var(--lumo-contrast-10pct);
+}
+
+.archive__title {
+  display: block;
+  font-weight: 500;
+}
+
+.archive__when {
+  font-size: var(--lumo-font-size-xs);
+  color: var(--lumo-tertiary-text-color);
+}
+
+.archive__actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .dialog-footer__start {
   margin-inline-end: auto;
 }

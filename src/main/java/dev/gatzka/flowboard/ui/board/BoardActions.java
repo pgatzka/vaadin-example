@@ -28,4 +28,7 @@ interface BoardActions {
     void moveLane(LaneSnapshot lane, int delta);
 
     void deleteLane(LaneSnapshot lane);
+
+    /** Archives every card in the lane. */
+    void archiveLane(LaneSnapshot lane);
 }

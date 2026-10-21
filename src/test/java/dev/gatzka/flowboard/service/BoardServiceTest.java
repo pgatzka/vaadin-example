@@ -234,6 +234,42 @@ class BoardServiceTest {
     }
 
     @Test
+    void archivedCardsLeaveTheBoardButCanBeRestored() {
+        createCard(backlog, "keep");
+        CardSnapshot gone = createCard(backlog, "archive me");
+        createCard(backlog, "also keep");
+
+        service.archiveCard(gone.id(), ACTOR);
+
+        assertThat(titles(backlog)).containsExactly("keep", "also keep");
+        assertThat(lane(backlog).cards()).extracting(CardSnapshot::position).containsExactly(0, 1);
+        assertThat(service.archivedCards(board.id())).extracting(CardSnapshot::title).containsExactly("archive me");
+        assertThat(service.archivedCards(board.id()).getFirst().isArchived()).isTrue();
+        assertThat(service.listBoards().getFirst().cardCount()).isEqualTo(2);
+        assertThat(service.listBoards().getFirst().archivedCount()).isEqualTo(1);
+        assertThatThrownBy(() -> service.moveCard(gone.id(), inProgress, 0, ACTOR)).isInstanceOf(IllegalArgumentException.class);
+
+        service.restoreCard(gone.id(), ACTOR);
+
+        assertThat(titles(backlog)).containsExactly("keep", "also keep", "archive me");
+        assertThat(service.archivedCards(board.id())).isEmpty();
+        assertThat(activityLog.recent(board.id()).getFirst().message()).isEqualTo("restored \"archive me\" to Backlog");
+    }
+
+    @Test
+    void wholeLaneCanBeArchived() {
+        createCard(backlog, "a");
+        createCard(backlog, "b");
+
+        assertThat(service.archiveLane(backlog, ACTOR)).isEqualTo(2);
+        assertThat(service.archiveLane(backlog, ACTOR)).isZero();
+
+        assertThat(titles(backlog)).isEmpty();
+        assertThat(service.archivedCards(board.id())).hasSize(2);
+        assertThat(activityLog.recent(board.id()).getFirst().message()).isEqualTo("archived 2 cards from Backlog");
+    }
+
+    @Test
     void laneReportsWipLimitBreaches() {
         createCard(inProgress, "1");
         createCard(inProgress, "2");

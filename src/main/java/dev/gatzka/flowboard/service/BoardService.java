@@ -113,7 +113,7 @@ public class BoardService {
         lane.update(draft);
         if (wasDone != lane.isDone()) {
             Instant now = clock.instant();
-            cards.findAllByLaneIdOrderByPositionAsc(laneId).forEach(card -> card.markCompletion(lane.isDone(), now));
+            cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(laneId).forEach(card -> card.markCompletion(lane.isDone(), now));
         }
         activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor, "updated lane \"%s\"".formatted(lane.getName())));
     }
@@ -137,8 +137,8 @@ public class BoardService {
         if (boardIdOf(lane) != boardIdOf(target)) {
             throw new IllegalArgumentException("Cards can only be moved within their own board");
         }
-        List<Card> targetCards = cards.findAllByLaneIdOrderByPositionAsc(target.getId());
-        List<Card> moving = cards.findAllByLaneIdOrderByPositionAsc(laneId);
+        List<Card> targetCards = cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(target.getId());
+        List<Card> moving = cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(laneId);
         Instant now = clock.instant();
         for (Card card : moving) {
             card.moveTo(target, now);
@@ -169,7 +169,7 @@ public class BoardService {
 
     public CardSnapshot createCard(long laneId, CardDraft draft, String actor) {
         Lane lane = requireLane(laneId);
-        int position = (int) cards.countByLaneId(laneId);
+        int position = (int) cards.countByLaneIdAndArchivedAtIsNull(laneId);
         Card card = cards.save(new Card(lane, draft, position, clock.instant()));
         activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
                 "added \"%s\" to %s".formatted(card.getTitle(), lane.getName())).forCard(card.getId()));
@@ -188,9 +188,53 @@ public class BoardService {
         Card card = requireCard(cardId);
         Lane lane = card.getLane();
         cards.delete(card);
-        renumberCards(cards.findAllByLaneIdOrderByPositionAsc(lane.getId()));
+        renumberCards(cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(lane.getId()));
         activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
                 "deleted \"%s\"".formatted(card.getTitle())).forCard(cardId));
+    }
+
+    /** Takes a card off the board without deleting it. */
+    public void archiveCard(long cardId, String actor) {
+        Card card = requireCard(cardId);
+        if (card.isArchived()) {
+            return;
+        }
+        Lane lane = card.getLane();
+        card.archive(clock.instant());
+        renumberCards(cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(lane.getId()));
+        activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
+                "archived \"%s\"".formatted(card.getTitle())).forCard(cardId));
+    }
+
+    /** Archives every live card in the lane; returns how many were archived. */
+    public int archiveLane(long laneId, String actor) {
+        Lane lane = requireLane(laneId);
+        List<Card> live = cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(laneId);
+        if (live.isEmpty()) {
+            return 0;
+        }
+        Instant now = clock.instant();
+        live.forEach(card -> card.archive(now));
+        activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
+                "archived %s from %s".formatted(count(live.size(), "card"), lane.getName())));
+        return live.size();
+    }
+
+    /** Puts an archived card back at the end of its lane. */
+    public void restoreCard(long cardId, String actor) {
+        Card card = requireCard(cardId);
+        if (!card.isArchived()) {
+            return;
+        }
+        Lane lane = card.getLane();
+        card.restore((int) cards.countByLaneIdAndArchivedAtIsNull(lane.getId()), clock.instant());
+        activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
+                "restored \"%s\" to %s".formatted(card.getTitle(), lane.getName())).forCard(cardId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<CardSnapshot> archivedCards(long boardId) {
+        return cards.findAllByLaneBoardIdAndArchivedAtIsNotNullOrderByArchivedAtDesc(boardId).stream().map(CardSnapshot::of).toList();
     }
 
     /**
@@ -200,15 +244,18 @@ public class BoardService {
      */
     public void moveCard(long cardId, long targetLaneId, int targetIndex, String actor) {
         Card card = requireCard(cardId);
+        if (card.isArchived()) {
+            throw new IllegalArgumentException("Archived cards cannot be moved; restore the card first");
+        }
         Lane source = card.getLane();
         Lane target = requireLane(targetLaneId);
         if (boardIdOf(source) != boardIdOf(target)) {
             throw new IllegalArgumentException("Cards can only be moved within their own board");
         }
 
-        List<Card> sourceCards = cards.findAllByLaneIdOrderByPositionAsc(source.getId());
+        List<Card> sourceCards = cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(source.getId());
         boolean sameLane = source.getId().equals(target.getId());
-        List<Card> targetCards = sameLane ? sourceCards : cards.findAllByLaneIdOrderByPositionAsc(target.getId());
+        List<Card> targetCards = sameLane ? sourceCards : cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(target.getId());
 
         int currentIndex = sourceCards.indexOf(card);
         sourceCards.remove(currentIndex);
@@ -240,14 +287,15 @@ public class BoardService {
                 board.getName(),
                 board.getDescription(),
                 lanes.countByBoardId(id),
-                cards.countByLaneBoardId(id),
-                cards.countByLaneBoardIdAndLaneDoneFalseAndDueDateBefore(id, today),
+                cards.countByLaneBoardIdAndArchivedAtIsNull(id),
+                cards.countByLaneBoardIdAndLaneDoneFalseAndArchivedAtIsNullAndDueDateBefore(id, today),
+                cards.countByLaneBoardIdAndArchivedAtIsNotNull(id),
                 board.getCreatedAt());
     }
 
     private BoardSnapshot snapshot(Board board) {
         long id = board.getId();
-        Map<Long, List<CardSnapshot>> cardsByLane = cards.findAllByLaneBoardIdOrderByPositionAsc(id).stream()
+        Map<Long, List<CardSnapshot>> cardsByLane = cards.findAllByLaneBoardIdAndArchivedAtIsNullOrderByPositionAsc(id).stream()
                 .map(CardSnapshot::of)
                 .collect(groupingBy(CardSnapshot::laneId));
         List<LaneSnapshot> laneSnapshots = lanes.findAllByBoardIdOrderByPositionAsc(id).stream()

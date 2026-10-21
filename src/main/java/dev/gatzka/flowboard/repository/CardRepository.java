@@ -6,19 +6,28 @@ import java.util.List;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+/**
+ * Cards on the board are "live"; archived cards keep their lane but have an archive timestamp.
+ * Queries about board content only consider live cards.
+ */
 public interface CardRepository extends JpaRepository<Card, Long> {
 
-    /** All cards of a board with tags, checklists and comments loaded in the same query. */
+    /** All live cards of a board with tags, checklists and comments loaded in the same query. */
     @EntityGraph(attributePaths = {"tags", "checklist", "comments"})
-    List<Card> findAllByLaneBoardIdOrderByPositionAsc(long boardId);
+    List<Card> findAllByLaneBoardIdAndArchivedAtIsNullOrderByPositionAsc(long boardId);
 
-    List<Card> findAllByLaneIdOrderByPositionAsc(long laneId);
+    @EntityGraph(attributePaths = {"tags", "checklist", "comments"})
+    List<Card> findAllByLaneBoardIdAndArchivedAtIsNotNullOrderByArchivedAtDesc(long boardId);
 
-    long countByLaneId(long laneId);
+    List<Card> findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(long laneId);
 
-    long countByLaneBoardId(long boardId);
+    long countByLaneIdAndArchivedAtIsNull(long laneId);
 
-    long countByLaneBoardIdAndLaneDoneFalseAndDueDateBefore(long boardId, LocalDate date);
+    long countByLaneBoardIdAndArchivedAtIsNull(long boardId);
+
+    long countByLaneBoardIdAndArchivedAtIsNotNull(long boardId);
+
+    long countByLaneBoardIdAndLaneDoneFalseAndArchivedAtIsNullAndDueDateBefore(long boardId, LocalDate date);
 
     void deleteAllByLaneId(long laneId);
 

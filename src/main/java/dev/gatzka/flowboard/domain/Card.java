@@ -80,6 +80,9 @@ public class Card {
     /** When the card last entered a done lane; {@code null} while it is open. */
     private Instant completedAt;
 
+    /** When the card was archived; {@code null} while it is on the board. */
+    private Instant archivedAt;
+
     protected Card() {
         // JPA
     }
@@ -146,6 +149,21 @@ public class Card {
         return comment;
     }
 
+    public void archive(Instant now) {
+        archivedAt = requireNonNull(now);
+        updatedAt = now;
+    }
+
+    public void restore(int position, Instant now) {
+        archivedAt = null;
+        this.position = position;
+        updatedAt = requireNonNull(now);
+    }
+
+    public boolean isArchived() {
+        return archivedAt != null;
+    }
+
     public void touch(Instant now) {
         updatedAt = requireNonNull(now);
     }
@@ -208,5 +226,9 @@ public class Card {
 
     public Instant getCompletedAt() {
         return completedAt;
+    }
+
+    public Instant getArchivedAt() {
+        return archivedAt;
     }
 }
