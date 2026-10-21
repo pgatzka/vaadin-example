@@ -21,6 +21,8 @@ Java on top of Vaadin Flow's server push.
 | ![Undo](docs/undo.png) | ![Webhooks](docs/webhooks.png) | ![Share](docs/share.png) |
 | Card templates | Saved views | Time tracking |
 | ![Templates](docs/templates.png) | ![Views](docs/views.png) | ![Time](docs/time.png) |
+| Members-only boards | Move or copy across boards | Public link with calendar feed |
+| ![Members](docs/members.png) | ![Move](docs/move.png) | ![Share](docs/share.png) |
 
 ## Features
 
