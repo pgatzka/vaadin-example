@@ -29,6 +29,12 @@ public interface CardRepository extends JpaRepository<Card, Long> {
 
     long countByLaneBoardIdAndLaneDoneFalseAndArchivedAtIsNullAndDueDateBefore(long boardId, LocalDate date);
 
+    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "lane", "lane.board"})
+    List<Card> findAllByAssigneeIgnoreCaseAndArchivedAtIsNull(String assignee);
+
+    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "lane", "lane.board"})
+    List<Card> findAllByArchivedAtIsNull();
+
     void deleteAllByLaneId(long laneId);
 
     void deleteAllByLaneBoardId(long boardId);

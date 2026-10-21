@@ -3,6 +3,9 @@ package dev.gatzka.flowboard.ui;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.KeyModifier;
+import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
@@ -25,9 +28,12 @@ import com.vaadin.flow.theme.lumo.Lumo;
 import dev.gatzka.flowboard.domain.BoardSummary;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardService;
+import dev.gatzka.flowboard.service.WorkService;
 import dev.gatzka.flowboard.ui.board.BoardView;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
 import dev.gatzka.flowboard.ui.support.UiAccess;
+import dev.gatzka.flowboard.ui.work.MyWorkView;
+import java.time.Clock;
 
 /** Application frame: navigation drawer with all boards, theme toggle and the current user. */
 @Layout
@@ -36,16 +42,20 @@ public class MainLayout extends AppLayout {
     private final BoardService boardService;
     private final BoardChangeBroadcaster broadcaster;
     private final UserSession session;
+    private final SearchDialog searchDialog;
 
     private final SideNav boardsNav = new SideNav("Boards");
     private final Button themeToggle = new Button();
     private final Button userButton = new Button();
     private Registration changeSubscription;
 
-    public MainLayout(BoardService boardService, BoardChangeBroadcaster broadcaster, UserSession session) {
+    public MainLayout(BoardService boardService, WorkService workService, BoardChangeBroadcaster broadcaster,
+            UserSession session, Clock clock) {
         this.boardService = boardService;
         this.broadcaster = broadcaster;
         this.session = session;
+        this.searchDialog = new SearchDialog(workService, clock);
+        Shortcuts.addShortcutListener(this, event -> searchDialog.open(), Key.KEY_K, KeyModifier.CONTROL);
 
         setPrimarySection(Section.DRAWER);
         addToNavbar(true, header());
@@ -85,7 +95,12 @@ public class MainLayout extends AppLayout {
         userButton.addClassName("user-button");
         userButton.addClickListener(event -> new ProfileDialog(session, this::onProfileSaved).open());
 
-        Div header = new Div(new DrawerToggle(), title, new Span(), themeToggle, userButton);
+        Button search = new Button(VaadinIcon.SEARCH.create(), event -> searchDialog.open());
+        search.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        search.setAriaLabel("Search all boards");
+        search.setTooltipText("Search (Ctrl+K)");
+
+        Div header = new Div(new DrawerToggle(), title, new Span(), search, themeToggle, userButton);
         header.addClassName("app-header");
         return header;
     }
@@ -93,6 +108,7 @@ public class MainLayout extends AppLayout {
     private Scroller drawer() {
         SideNav mainNav = new SideNav();
         mainNav.addItem(new SideNavItem("All boards", BoardsView.class, VaadinIcon.GRID_BIG_O.create()));
+        mainNav.addItem(new SideNavItem("My work", MyWorkView.class, VaadinIcon.USER_CHECK.create()));
 
         Div content = new Div(mainNav, boardsNav);
         content.addClassName("drawer-content");
