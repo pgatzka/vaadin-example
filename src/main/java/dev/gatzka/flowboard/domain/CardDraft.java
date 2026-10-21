@@ -16,6 +16,11 @@ public record CardDraft(
         String assignee,
         Set<String> tags) {
 
+    /** A draft with only a title; everything else takes its default. */
+    public static CardDraft titled(String title) {
+        return new CardDraft(title, null, null, null, null, null);
+    }
+
     public CardDraft {
         title = Text.require(title, "Card title");
         description = Text.clean(description);

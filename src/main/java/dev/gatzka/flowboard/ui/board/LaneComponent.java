@@ -3,8 +3,6 @@ package dev.gatzka.flowboard.ui.board;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.badge.Badge;
 import com.vaadin.flow.component.badge.BadgeVariant;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.dnd.DragSource;
@@ -31,6 +29,8 @@ final class LaneComponent extends Div {
     private final LaneSnapshot lane;
     private final List<CardComponent> cardComponents = new ArrayList<>();
 
+    private final QuickAddComposer composer;
+
     LaneComponent(LaneSnapshot lane, int laneCount, LocalDate today, BoardActions actions) {
         this.lane = lane;
         addClassName("lane");
@@ -42,11 +42,19 @@ final class LaneComponent extends Div {
         }
         getElement().setAttribute("data-lane-id", Long.toString(lane.id()));
 
-        Button addCard = new Button("Add card", VaadinIcon.PLUS.create(), event -> actions.newCard(lane));
-        addCard.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-        addCard.addClassName("lane__add");
+        composer = new QuickAddComposer(
+                title -> actions.quickAddCard(lane, title),
+                typed -> actions.newCard(lane, typed),
+                () -> actions.composerOpened(lane),
+                () -> actions.composerClosed(lane));
+        composer.addClassName("lane__add");
 
-        add(header(laneCount, actions), cards(today, actions), addCard);
+        add(header(laneCount, actions), cards(today, actions), composer);
+    }
+
+    /** Expands the quick-add composer, e.g. to restore it after the lane was re-rendered. */
+    void openComposer() {
+        composer.open();
     }
 
     LaneSnapshot lane() {

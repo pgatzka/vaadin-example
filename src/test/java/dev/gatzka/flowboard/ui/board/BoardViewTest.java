@@ -50,11 +50,45 @@ class BoardViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void quickAddCreatesCardsWithoutLeavingTheLane() {
+        openBoard();
+        LaneComponent backlog = $(LaneComponent.class).first();
+
+        test($(Button.class, backlog).withText("Add card").single()).click();
+        TextField title = $(TextField.class, backlog).withPlaceholder("Card title").single();
+        test(title).setValue("First");
+        test($(Button.class, backlog).withText("Add").single()).click();
+
+        assertThat(visibleCardTitles()).containsExactly("First");
+        QuickAddComposer composer = $(QuickAddComposer.class).first();
+        assertThat(composer.isOpen()).as("composer stays open after a re-render for rapid entry").isTrue();
+
+        TextField again = $(TextField.class, $(LaneComponent.class).first()).withPlaceholder("Card title").single();
+        test(again).setValue("Second");
+        test($(Button.class, $(LaneComponent.class).first()).withText("Add").single()).click();
+        assertThat(visibleCardTitles()).containsExactly("First", "Second");
+    }
+
+    @Test
+    void quickAddMoreOptionsOpensEditorWithTypedTitle() {
+        openBoard();
+        LaneComponent backlog = $(LaneComponent.class).first();
+        test($(Button.class, backlog).withText("Add card").single()).click();
+        test($(TextField.class, backlog).withPlaceholder("Card title").single()).setValue("Needs details");
+
+        test($(Button.class, backlog).withCondition(b -> "Open the full card editor".equals(b.getAriaLabel().orElse(null))).single()).click();
+
+        CardEditorDialog dialog = $(CardEditorDialog.class).single();
+        assertThat($(TextField.class, dialog).withLabel("Title").single().getValue()).isEqualTo("Needs details");
+    }
+
+    @Test
     void addingCardThroughTheDialogShowsItInTheLane() {
         openBoard();
         LaneComponent backlog = $(LaneComponent.class).first();
 
         test($(Button.class, backlog).withText("Add card").single()).click();
+        test($(Button.class, backlog).withCondition(b -> "Open the full card editor".equals(b.getAriaLabel().orElse(null))).single()).click();
         CardEditorDialog dialog = $(CardEditorDialog.class).single();
         test($(TextField.class, dialog).withLabel("Title").single()).setValue("Write view tests");
         test($(Button.class, dialog).withText("Add card").single()).click();
@@ -68,7 +102,9 @@ class BoardViewTest extends SpringBrowserlessTest {
     @Test
     void cardWithoutTitleIsRejected() {
         openBoard();
-        test($(Button.class, $(LaneComponent.class).first()).withText("Add card").single()).click();
+        LaneComponent backlog = $(LaneComponent.class).first();
+        test($(Button.class, backlog).withText("Add card").single()).click();
+        test($(Button.class, backlog).withCondition(b -> "Open the full card editor".equals(b.getAriaLabel().orElse(null))).single()).click();
         CardEditorDialog dialog = $(CardEditorDialog.class).single();
 
         test($(Button.class, dialog).withText("Add card").single()).click();

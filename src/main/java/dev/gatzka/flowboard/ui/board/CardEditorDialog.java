@@ -48,9 +48,13 @@ final class CardEditorDialog extends Dialog {
     private final List<String> tagOptions;
     private final Consumer<CardDraft> onSave;
 
-    static CardEditorDialog forNewCard(LaneSnapshot lane, BoardSnapshot board, Consumer<CardDraft> onSave) {
+    static CardEditorDialog forNewCard(LaneSnapshot lane, BoardSnapshot board, String initialTitle,
+            Consumer<CardDraft> onSave) {
         CardEditorDialog dialog = new CardEditorDialog("New card in " + lane.name(), "Add card", board, onSave);
         dialog.priority.setValue(Priority.MEDIUM);
+        if (initialTitle != null && !initialTitle.isBlank()) {
+            dialog.title.setValue(initialTitle);
+        }
         return dialog;
     }
 

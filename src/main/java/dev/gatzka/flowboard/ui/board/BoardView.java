@@ -25,6 +25,7 @@ import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.shared.Registration;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
+import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.service.ActivityLog;
@@ -70,6 +71,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final List<LaneComponent> laneComponents = new ArrayList<>();
 
     private BoardSnapshot board;
+    private Long openComposerLaneId;
     private Registration changeSubscription;
     private Registration presenceSubscription;
     private Registration profileSubscription;
@@ -212,6 +214,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             component.filter(search.getValue());
             laneComponents.add(component);
             lanes.add(component);
+            if (openComposerLaneId != null && openComposerLaneId == lane.id()) {
+                component.openComposer();
+            }
         }
         if (activityDialog.isOpened()) {
             activityDialog.show(activityLog.recent(board.id()));
@@ -243,9 +248,26 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     @Override
-    public void newCard(LaneSnapshot lane) {
-        CardEditorDialog.forNewCard(lane, board,
+    public void newCard(LaneSnapshot lane, String initialTitle) {
+        CardEditorDialog.forNewCard(lane, board, initialTitle,
                 draft -> perform(() -> boardService.createCard(lane.id(), draft, actor()))).open();
+    }
+
+    @Override
+    public void quickAddCard(LaneSnapshot lane, String title) {
+        perform(() -> boardService.createCard(lane.id(), CardDraft.titled(title), actor()));
+    }
+
+    @Override
+    public void composerOpened(LaneSnapshot lane) {
+        openComposerLaneId = lane.id();
+    }
+
+    @Override
+    public void composerClosed(LaneSnapshot lane) {
+        if (openComposerLaneId != null && openComposerLaneId == lane.id()) {
+            openComposerLaneId = null;
+        }
     }
 
     @Override

@@ -281,8 +281,26 @@ html {
 
 .lane__add {
   margin: var(--lumo-space-xs) var(--lumo-space-s) var(--lumo-space-s);
-  justify-content: flex-start;
+}
+
+.quick-add__open {
   color: var(--lumo-secondary-text-color);
+}
+
+.quick-add__editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-xs);
+}
+
+.quick-add__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-xs);
+}
+
+.quick-add__actions > :nth-child(3) {
+  margin-inline-start: auto;
 }
 
 /* ------------------------------------------------------------------ cards */
