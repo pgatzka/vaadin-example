@@ -181,8 +181,8 @@ final class TemplatesDialog extends Dialog {
             name.setInvalid(true);
             return;
         }
-        name.setInvalid(false);
         name.clear();
+        name.setInvalid(false);
         title.clear();
         description.clear();
         priority.setValue(Priority.MEDIUM);

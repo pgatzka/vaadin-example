@@ -19,6 +19,8 @@ Java on top of Vaadin Flow's server push.
 | ![Digest](docs/digest.png) | ![Heatmap](docs/heatmap.png) | ![Shared board](docs/shared.png) |
 | Undo after a keyboard move | Webhooks | Share dialog |
 | ![Undo](docs/undo.png) | ![Webhooks](docs/webhooks.png) | ![Share](docs/share.png) |
+| Card templates | Saved views | Time tracking |
+| ![Templates](docs/templates.png) | ![Views](docs/views.png) | ![Time](docs/time.png) |
 
 ## Features
 
