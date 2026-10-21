@@ -338,6 +338,117 @@ html {
   margin-inline-start: auto;
 }
 
+/* --------------------------------------------------------------- calendar */
+
+.calendar__navigation {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-xs);
+}
+
+.calendar__month {
+  min-width: 10rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: auto repeat(var(--calendar-weeks, 5), minmax(6rem, 1fr));
+  gap: 1px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--lumo-space-m) var(--lumo-space-l);
+  background: var(--fb-board-background);
+  overflow: auto;
+}
+
+.calendar__weekday {
+  padding: var(--lumo-space-xs);
+  font-size: var(--lumo-font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--lumo-secondary-text-color);
+}
+
+.calendar__day {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--lumo-space-xs);
+  background: var(--fb-lane-background);
+  border: 1px solid var(--fb-lane-border);
+  border-radius: var(--lumo-border-radius-s);
+  overflow: hidden;
+}
+
+.calendar__day--outside {
+  opacity: 0.45;
+}
+
+.calendar__day--today {
+  border-color: var(--lumo-primary-color);
+  box-shadow: inset 0 0 0 1px var(--lumo-primary-color);
+}
+
+.calendar__number {
+  font-size: var(--lumo-font-size-s);
+  font-weight: 600;
+  color: var(--lumo-secondary-text-color);
+}
+
+.calendar__day--today .calendar__number {
+  color: var(--lumo-primary-text-color);
+}
+
+.calendar__card {
+  display: block;
+  padding: 1px var(--lumo-space-xs) 1px calc(var(--lumo-space-xs) + 3px);
+  font-size: var(--lumo-font-size-xs);
+  color: var(--lumo-body-text-color);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: var(--lumo-border-radius-s);
+  background: var(--lumo-contrast-5pct);
+  border-inline-start: 3px solid var(--fb-priority-medium);
+}
+
+.calendar__card:hover {
+  background: var(--lumo-primary-color-10pct);
+}
+
+.calendar__card[data-priority="low"] {
+  border-inline-start-color: var(--fb-priority-low);
+}
+
+.calendar__card[data-priority="high"] {
+  border-inline-start-color: var(--fb-priority-high);
+}
+
+.calendar__card[data-priority="urgent"] {
+  border-inline-start-color: var(--fb-priority-urgent);
+}
+
+.calendar__card--overdue {
+  background: var(--lumo-error-color-10pct);
+  color: var(--lumo-error-text-color);
+}
+
+.calendar__card--done {
+  color: var(--lumo-secondary-text-color);
+  text-decoration: line-through;
+}
+
+.calendar__undated {
+  padding: var(--lumo-space-s) var(--lumo-space-l);
+  font-size: var(--lumo-font-size-s);
+  color: var(--lumo-secondary-text-color);
+}
+
 /* ------------------------------------------------------------------ cards */
 
 .task-card {

@@ -23,6 +23,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
+import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.shared.Registration;
 import dev.gatzka.flowboard.domain.ActivityEntry;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
@@ -42,6 +43,7 @@ import dev.gatzka.flowboard.service.PresenceTracker;
 import dev.gatzka.flowboard.ui.ProfileChangedEvent;
 import dev.gatzka.flowboard.ui.UserSession;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
+import dev.gatzka.flowboard.ui.calendar.CalendarView;
 import dev.gatzka.flowboard.ui.support.Toasts;
 import dev.gatzka.flowboard.ui.support.UiAccess;
 import java.time.Clock;
@@ -145,6 +147,12 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         insights.setAriaLabel("Show insights");
         insights.setTooltipText("Insights");
 
+        Button calendar = new Button(VaadinIcon.CALENDAR.create(), event -> getUI().ifPresent(ui -> ui.navigate(
+                CalendarView.class, new RouteParameters(BOARD_ID, Long.toString(board.id())))));
+        calendar.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        calendar.setAriaLabel("Show calendar");
+        calendar.setTooltipText("Calendar");
+
         Button archive = new Button(VaadinIcon.ARCHIVE.create(), event -> openArchive());
         archive.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
         archive.setAriaLabel("Show archive");
@@ -153,7 +161,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         Button addLane = new Button("Add lane", VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        Div toolbar = new Div(titles, search, filters, participants, activity, insights, archive, addLane);
+        Div toolbar = new Div(titles, search, filters, participants, activity, insights, calendar, archive, addLane);
         toolbar.addClassName("board-toolbar");
         return toolbar;
     }
