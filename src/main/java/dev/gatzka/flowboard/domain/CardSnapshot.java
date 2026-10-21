@@ -19,6 +19,7 @@ public record CardSnapshot(
         String assignee,
         Set<String> tags,
         Integer estimate,
+        Set<String> voters,
         List<ChecklistItemSnapshot> checklist,
         List<CommentSnapshot> comments,
         int position,
@@ -47,6 +48,7 @@ public record CardSnapshot(
                 card.getAssignee(),
                 Collections.unmodifiableSet(sortedTags),
                 card.getEstimate(),
+                Set.copyOf(card.getVoters()),
                 card.getChecklist().stream().map(ChecklistItemSnapshot::of).toList(),
                 card.getComments().stream().map(CommentSnapshot::of).toList(),
                 card.getPosition(),
@@ -65,6 +67,14 @@ public record CardSnapshot(
 
     public boolean isChecklistComplete() {
         return hasChecklist() && checklistDone() == checklist.size();
+    }
+
+    public int votes() {
+        return voters.size();
+    }
+
+    public boolean hasVoteFrom(String name) {
+        return voters.stream().anyMatch(voter -> voter.equalsIgnoreCase(name));
     }
 
     public CardAge age(Instant now) {

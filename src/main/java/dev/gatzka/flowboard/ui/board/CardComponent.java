@@ -5,6 +5,8 @@ import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.avatar.AvatarVariant;
 import com.vaadin.flow.component.badge.Badge;
 import com.vaadin.flow.component.badge.BadgeVariant;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -25,7 +27,11 @@ final class CardComponent extends Div {
 
     private final CardSnapshot card;
 
-    CardComponent(CardSnapshot card, LocalDate today, Instant now, boolean completed, Runnable onOpen) {
+    /** @param voted whether the current user has voted for the card */
+    record Voting(boolean voted, Runnable onToggle) {
+    }
+
+    CardComponent(CardSnapshot card, LocalDate today, Instant now, boolean completed, Runnable onOpen, Voting voting) {
         this.card = card;
         addClassName("task-card");
         CardAge age = card.age(now);
@@ -39,7 +45,7 @@ final class CardComponent extends Div {
 
         Div title = new Div(card.title());
         title.addClassName("task-card__title");
-        add(title, meta(today, completed, age));
+        add(title, meta(today, completed, age, voting));
 
         addClickListener(event -> onOpen.run());
         getElement().addEventListener("keydown", event -> onOpen.run())
@@ -50,9 +56,21 @@ final class CardComponent extends Div {
         return card;
     }
 
-    private Div meta(LocalDate today, boolean completed, CardAge age) {
+    private Div meta(LocalDate today, boolean completed, CardAge age, Voting voting) {
         Div meta = new Div();
         meta.addClassName("task-card__meta");
+
+        Button vote = new Button((voting.voted() ? VaadinIcon.THUMBS_UP : VaadinIcon.THUMBS_UP_O).create(), event -> voting.onToggle().run());
+        vote.setText(card.votes() == 0 ? "" : Integer.toString(card.votes()));
+        vote.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
+        vote.addClassName("task-card__vote");
+        if (voting.voted()) {
+            vote.addClassName("task-card__vote--mine");
+        }
+        vote.setAriaLabel(voting.voted() ? "Withdraw your vote" : "Vote for this card");
+        vote.setTooltipText(card.votes() == 0 ? "Vote" : card.votes() + (card.votes() == 1 ? " vote" : " votes"));
+        vote.getElement().addEventListener("click", event -> { }).stopPropagation();
+        meta.add(vote);
 
         if (!completed && age.isNoteworthy()) {
             Badge aging = new Badge(age.days() + " d here", VaadinIcon.HOURGLASS.create());

@@ -34,4 +34,13 @@ interface BoardActions {
 
     /** Archives every card in the lane. */
     void archiveLane(LaneSnapshot lane);
+
+    /** Reorders the lane by votes. */
+    void sortLaneByVotes(LaneSnapshot lane);
+
+    /** Adds or withdraws the current user's vote on the card. */
+    void toggleVote(CardSnapshot card);
+
+    /** The current user's display name, to show their own vote as such. */
+    String currentUser();
 }

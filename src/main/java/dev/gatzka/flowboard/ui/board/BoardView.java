@@ -46,6 +46,7 @@ import dev.gatzka.flowboard.service.InsightsService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.service.PresenceTracker;
+import dev.gatzka.flowboard.service.VoteService;
 import dev.gatzka.flowboard.ui.ProfileChangedEvent;
 import dev.gatzka.flowboard.ui.UserSession;
 import dev.gatzka.flowboard.ui.assistant.NotesToCardsDialog;
@@ -78,6 +79,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final BoardService boardService;
     private final ChecklistService checklistService;
     private final CommentService commentService;
+    private final VoteService voteService;
     private final InsightsService insightsService;
     private final FlowSnapshotService flowSnapshots;
     private final AssistantService assistant;
@@ -107,12 +109,13 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private Registration profileSubscription;
 
     public BoardView(BoardService boardService, ChecklistService checklistService, CommentService commentService,
-            InsightsService insightsService, FlowSnapshotService flowSnapshots, AssistantService assistant,
+            VoteService voteService, InsightsService insightsService, FlowSnapshotService flowSnapshots, AssistantService assistant,
             ExecutorService executor, ActivityLog activityLog,
             BoardChangeBroadcaster broadcaster, PresenceTracker presence, UserSession session, Clock clock) {
         this.boardService = boardService;
         this.checklistService = checklistService;
         this.commentService = commentService;
+        this.voteService = voteService;
         this.insightsService = insightsService;
         this.flowSnapshots = flowSnapshots;
         this.assistant = assistant;
@@ -480,6 +483,21 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         CardSnapshot refreshed = change.get();
         reload();
         return refreshed;
+    }
+
+    @Override
+    public void sortLaneByVotes(LaneSnapshot lane) {
+        perform(() -> boardService.sortLaneByVotes(lane.id(), actor()));
+    }
+
+    @Override
+    public void toggleVote(CardSnapshot card) {
+        perform(() -> voteService.toggle(card.id(), actor()));
+    }
+
+    @Override
+    public String currentUser() {
+        return session.getDisplayName();
     }
 
     @Override

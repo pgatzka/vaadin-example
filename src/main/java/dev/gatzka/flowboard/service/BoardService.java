@@ -193,6 +193,15 @@ public class BoardService {
                 "deleted \"%s\"".formatted(card.getTitle())).forCard(cardId));
     }
 
+    /** Reorders a lane's live cards by votes, most first; ties keep their current order. */
+    public void sortLaneByVotes(long laneId, String actor) {
+        Lane lane = requireLane(laneId);
+        List<Card> ordered = new java.util.ArrayList<>(cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(laneId));
+        ordered.sort(java.util.Comparator.comparingInt((Card card) -> card.getVoters().size()).reversed());
+        renumberCards(ordered);
+        activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor, "sorted %s by votes".formatted(lane.getName())));
+    }
+
     /** Takes a card off the board without deleting it. */
     public void archiveCard(long cardId, String actor) {
         Card card = requireCard(cardId);

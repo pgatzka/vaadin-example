@@ -648,6 +648,17 @@ html {
   color: var(--lumo-tertiary-text-color);
 }
 
+.task-card__vote {
+  margin: 0;
+  min-width: 0;
+  padding-inline: 2px;
+  color: var(--lumo-tertiary-text-color);
+}
+
+.task-card__vote--mine {
+  color: var(--lumo-primary-text-color);
+}
+
 .task-card__assignee {
   margin-inline-start: auto;
 }

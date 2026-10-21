@@ -21,6 +21,7 @@ import java.time.Instant;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -57,6 +58,11 @@ public class Card {
 
     /** Story points, or {@code null} when not estimated. */
     private Integer estimate;
+
+    @ElementCollection
+    @CollectionTable(name = "card_votes", joinColumns = @JoinColumn(name = "card_id"))
+    @Column(name = "voter", nullable = false, length = 60)
+    private Set<String> voters = new HashSet<>();
 
     @ElementCollection
     @CollectionTable(name = "card_tags", joinColumns = @JoinColumn(name = "card_id"))
@@ -166,6 +172,17 @@ public class Card {
         return comment;
     }
 
+    /** @return true when the vote was added, false when it was withdrawn */
+    public boolean toggleVote(String voter, Instant now) {
+        String name = Text.require(voter, "Voter");
+        boolean added = voters.add(name);
+        if (!added) {
+            voters.remove(name);
+        }
+        updatedAt = requireNonNull(now);
+        return added;
+    }
+
     public void archive(Instant now) {
         archivedAt = requireNonNull(now);
         updatedAt = now;
@@ -216,6 +233,10 @@ public class Card {
 
     public Integer getEstimate() {
         return estimate;
+    }
+
+    public Set<String> getVoters() {
+        return Collections.unmodifiableSet(voters);
     }
 
     public Set<String> getTags() {

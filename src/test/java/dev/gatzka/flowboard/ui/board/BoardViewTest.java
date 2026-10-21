@@ -330,6 +330,23 @@ class BoardViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void votingFromTheCardTogglesTheVote() {
+        createCard("Popular");
+        openBoard();
+
+        Button vote = $(Button.class, $(CardComponent.class).single()).withClassName("task-card__vote").single();
+        test(vote).click();
+
+        Button voted = $(Button.class, $(CardComponent.class).single()).withClassName("task-card__vote").single();
+        assertThat(voted.getText()).isEqualTo("1");
+        assertThat(voted.hasClassName("task-card__vote--mine")).isTrue();
+        assertThat($(CardEditorDialog.class).all()).as("voting must not open the editor").isEmpty();
+
+        test(voted).click();
+        assertThat($(Button.class, $(CardComponent.class).single()).withClassName("task-card__vote").single().getText()).isEmpty();
+    }
+
+    @Test
     void changesMadeElsewhereArePushedIntoTheView() {
         openBoard();
         assertThat(visibleCardTitles()).isEmpty();

@@ -133,6 +133,8 @@ final class LaneComponent extends Div {
         left.setEnabled(lane.position() > 0);
         MenuItem right = items.addItem("Move right", event -> actions.moveLane(lane, 1));
         right.setEnabled(lane.position() < laneCount - 1);
+        MenuItem sortByVotes = items.addItem("Sort by votes", event -> actions.sortLaneByVotes(lane));
+        sortByVotes.setEnabled(lane.cards().stream().anyMatch(card -> card.votes() > 0));
         MenuItem archive = items.addItem("Archive all cards", event -> actions.archiveLane(lane));
         archive.setEnabled(!lane.cards().isEmpty());
         MenuItem delete = items.addItem("Delete lane", event -> actions.deleteLane(lane));
@@ -150,7 +152,8 @@ final class LaneComponent extends Div {
                 .ifPresent(cardId -> actions.moveCard(cardId, lane.id(), lane.cards().size())));
 
         for (CardSnapshot card : lane.cards()) {
-            CardComponent component = new CardComponent(card, today, now, lane.done(), () -> actions.openCard(card));
+            CardComponent component = new CardComponent(card, today, now, lane.done(), () -> actions.openCard(card),
+                    new CardComponent.Voting(card.hasVoteFrom(actions.currentUser()), () -> actions.toggleVote(card)));
             makeDraggable(component, card);
             makeInsertTarget(component, card, actions);
             cardComponents.add(component);

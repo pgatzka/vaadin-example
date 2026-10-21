@@ -35,6 +35,11 @@ public class ActivityLog {
         events.publishEvent(event);
     }
 
+    /** Tells connected browsers about a change without writing an activity entry. */
+    public void announce(BoardChangedEvent event) {
+        events.publishEvent(event);
+    }
+
     @Transactional(readOnly = true)
     public List<ActivityEntry> recent(long boardId) {
         return activities.findTop50ByBoardIdOrderByOccurredAtDesc(boardId).stream().map(ActivityEntry::of).toList();
