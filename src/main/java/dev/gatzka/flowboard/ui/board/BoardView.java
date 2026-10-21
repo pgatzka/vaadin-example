@@ -115,7 +115,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final AvatarGroup participants = new AvatarGroup();
     private final Div lanes = new Div();
     private final ActivityDialog activityDialog = new ActivityDialog();
-    private final InsightsDialog insightsDialog = new InsightsDialog();
+    private final InsightsDialog insightsDialog;
     private final ArchiveDialog archiveDialog;
     private final List<LaneComponent> laneComponents = new ArrayList<>();
 
@@ -139,6 +139,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         this.visits = visits;
         this.webhookService = webhookService;
         this.webhookDispatcher = webhookDispatcher;
+        this.insightsDialog = new InsightsDialog(clock::instant);
         this.boardService = boardService;
         this.checklistService = checklistService;
         this.commentService = commentService;
@@ -400,7 +401,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             activityDialog.show(activityLog.recent(board.id()));
         }
         if (insightsDialog.isOpened()) {
-            insightsDialog.show(insightsService.forBoard(board.id()), flowSnapshots.cumulativeFlow(board.id()));
+            showInsights();
         }
         if (archiveDialog.isOpened()) {
             archiveDialog.show(boardService.archivedCards(board.id()));
@@ -432,13 +433,17 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
                 .toList());
     }
 
+    private void showInsights() {
+        insightsDialog.show(insightsService.forBoard(board.id()), flowSnapshots.cumulativeFlow(board.id()), insightsService.pulse(board.id()));
+    }
+
     private void openArchive() {
         archiveDialog.show(boardService.archivedCards(board.id()));
         archiveDialog.open();
     }
 
     private void openInsights() {
-        insightsDialog.show(insightsService.forBoard(board.id()), flowSnapshots.cumulativeFlow(board.id()));
+        showInsights();
         insightsDialog.open();
     }
 

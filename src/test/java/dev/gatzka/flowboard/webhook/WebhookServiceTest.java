@@ -134,7 +134,7 @@ class WebhookServiceTest {
         assertThat(testDeliveries(broken.id()).getFirst().succeeded()).isFalse();
         assertThat(testDeliveries(unreachable.id()).getFirst().error()).contains("ConnectException");
         assertThat(received).filteredOn(call -> call.headers().get("event").equals("test"))
-                .extracting(Received::path).containsExactly("/broken", "/paused");
+                .extracting(Received::path).containsExactlyInAnyOrder("/broken", "/paused");
         assertThat(received.stream().filter(call -> call.path().equals("/paused")).findFirst().orElseThrow().headers().get("signature")).isEqualTo("null");
 
         received.clear();

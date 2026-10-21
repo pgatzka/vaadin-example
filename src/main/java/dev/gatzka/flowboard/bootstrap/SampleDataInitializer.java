@@ -8,6 +8,7 @@ import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.security.AccountService;
+import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.CommentService;
@@ -27,7 +28,7 @@ import org.springframework.stereotype.Component;
 class SampleDataInitializer implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(SampleDataInitializer.class);
-    private static final String ACTOR = "Flowboard";
+    private static final String ACTOR = ActivityLog.SYSTEM_ACTOR;
     static final String DEMO_USER = "demo";
     static final String DEMO_PASSWORD = "demo1234";
     private static final java.util.Map<String, Integer> ESTIMATES = java.util.Map.of(

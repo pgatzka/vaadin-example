@@ -2,6 +2,7 @@ package dev.gatzka.flowboard.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.gatzka.flowboard.domain.ActivityPulse;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardInsights;
 import dev.gatzka.flowboard.domain.BoardInsights.AssigneeLoad;
@@ -138,5 +139,27 @@ class InsightsServiceTest {
 
     private CardSnapshot card(long laneId, String title, Priority priority, LocalDate due, String assignee) {
         return boardService.createCard(laneId, new CardDraft(title, null, priority, due, assignee, Set.of(), null), ACTOR);
+    }
+    @Test
+    void pulseCountsChangesPerDayAndPerPerson() {
+        BoardSnapshot pulsed = boardService.createBoard(new BoardDraft("Pulse", null), "Mara");
+        long lane = pulsed.lanes().get(0).id();
+        boardService.createCard(lane, CardDraft.titled("One"), "Mara");
+        boardService.createCard(lane, CardDraft.titled("Two"), "Jonas");
+        boardService.createCard(lane, CardDraft.titled("Three"), "Mara");
+        boardService.createCard(lane, CardDraft.titled("Robot"), ActivityLog.SYSTEM_ACTOR);
+
+        ActivityPulse pulse = insightsService.pulse(pulsed.id());
+
+        assertThat(pulse.days()).hasSize(7 * ActivityPulse.WEEKS);
+        assertThat(pulse.days().getLast().day()).isEqualTo(LocalDate.now());
+        assertThat(pulse.days().getLast().count()).as("board creation plus four cards").isEqualTo(5);
+        assertThat(pulse.totalChanges()).isEqualTo(5);
+        assertThat(pulse.activeDays()).isEqualTo(1);
+        assertThat(pulse.currentStreak()).isEqualTo(1);
+        assertThat(pulse.contributors()).extracting(ActivityPulse.Contributor::name).containsExactly("Mara", "Jonas");
+        assertThat(pulse.contributors().getFirst().changes()).isEqualTo(3);
+        assertThat(pulse.contributors().getFirst().lastActive()).isNotNull();
+        assertThat(insightsService.pulse(999_999L).isQuiet()).isTrue();
     }
 }

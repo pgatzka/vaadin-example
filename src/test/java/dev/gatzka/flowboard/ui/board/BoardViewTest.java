@@ -284,6 +284,8 @@ class BoardViewTest extends FlowboardUiTest {
         assertThat(dialog.isOpened()).isTrue();
         assertThat($(com.vaadin.flow.component.html.Span.class, dialog).withClassName("insights__tile-value").all())
                 .extracting(span -> span.getText()).startsWith("1", "0");
+        assertThat($(com.vaadin.flow.component.Svg.class, dialog).all()).as("the activity heatmap").isNotEmpty();
+        assertThat($(Div.class, dialog).withClassName("insights__bar--person").all()).isNotEmpty();
     }
 
     @Test

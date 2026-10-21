@@ -359,7 +359,7 @@ public class BoardService {
         finished.setRecurrence(Recurrence.NONE, now);
         cards.save(next);
         String when = nextDue == null ? "" : ", due " + nextDue;
-        activityLog.record(BoardChangedEvent.content(boardIdOf(lane), "Flowboard",
+        activityLog.record(BoardChangedEvent.content(boardIdOf(lane), ActivityLog.SYSTEM_ACTOR,
                 "scheduled the next \"%s\" in %s%s".formatted(next.getTitle(), lane.getName(), when)).forCard(next.getId()));
         return next;
     }

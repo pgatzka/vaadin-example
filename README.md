@@ -31,7 +31,8 @@ Java on top of Vaadin Flow's server push.
 - **Light and dark theme**, following the operating system on first visit, and an installable PWA manifest.
 - **Export and import** boards as JSON files.
 - **Checklists, comments and history** on every card; **deep links** to cards.
-- **Insights** per board: completion rate, cycle time, velocity, load per lane, completions per day, work per person.
+- **Insights** per board: completion rate, cycle time, velocity, load per lane, completions per day, work per person,
+  a 12-week activity heatmap with streaks and the busiest contributors.
 - **AI assistant** (optional, set `ANTHROPIC_API_KEY`): suggests checklist steps for a card, writes a
   standup summary of the board, and turns pasted meeting notes into cards for review.
 - **Story points**, lane point totals and velocity; **templates** for new boards; **archive** with

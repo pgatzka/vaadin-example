@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class ActivityLog {
 
+    /** The actor recorded for things the application does by itself, e.g. scheduling a recurring card. */
+    public static final String SYSTEM_ACTOR = "Flowboard";
+
     private final ActivityRepository activities;
     private final ApplicationEventPublisher events;
     private final Clock clock;

@@ -15,5 +15,7 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     long countByBoardIdAndOccurredAtAfterAndActorNot(long boardId, Instant since, String actor);
 
+    List<Activity> findAllByBoardIdAndOccurredAtAfterOrderByOccurredAtAsc(long boardId, Instant since);
+
     void deleteAllByBoardId(long boardId);
 }

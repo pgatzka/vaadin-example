@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.service;
 
+import dev.gatzka.flowboard.domain.Activity;
+import dev.gatzka.flowboard.domain.ActivityPulse;
 import dev.gatzka.flowboard.domain.BoardInsights;
 import dev.gatzka.flowboard.domain.BoardInsights.AssigneeLoad;
 import dev.gatzka.flowboard.domain.BoardInsights.DailyCount;
@@ -7,6 +9,7 @@ import dev.gatzka.flowboard.domain.BoardInsights.LaneLoad;
 import dev.gatzka.flowboard.domain.Card;
 import dev.gatzka.flowboard.domain.Lane;
 import dev.gatzka.flowboard.domain.Priority;
+import dev.gatzka.flowboard.repository.ActivityRepository;
 import dev.gatzka.flowboard.repository.CardRepository;
 import dev.gatzka.flowboard.repository.LaneRepository;
 import java.time.Clock;
@@ -17,6 +20,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,12 +38,42 @@ public class InsightsService {
 
     private final LaneRepository lanes;
     private final CardRepository cards;
+    private final ActivityRepository activities;
     private final Clock clock;
 
-    InsightsService(LaneRepository lanes, CardRepository cards, Clock clock) {
+    InsightsService(LaneRepository lanes, CardRepository cards, Clock clock, ActivityRepository activities) {
+        this.activities = activities;
         this.lanes = lanes;
         this.cards = cards;
         this.clock = clock;
+    }
+
+    /** Activity per day over the last {@link ActivityPulse#WEEKS} whole weeks, and who caused it. */
+    public ActivityPulse pulse(long boardId) {
+        ZoneId zone = clock.getZone();
+        LocalDate today = LocalDate.now(clock);
+        LocalDate start = today.minusDays(7L * ActivityPulse.WEEKS - 1);
+        Map<LocalDate, Integer> perDay = new TreeMap<>();
+        Map<String, Integer> perPerson = new HashMap<>();
+        Map<String, Instant> lastActive = new HashMap<>();
+        for (Activity activity : activities.findAllByBoardIdAndOccurredAtAfterOrderByOccurredAtAsc(boardId, start.atStartOfDay(zone).toInstant())) {
+            perDay.merge(LocalDate.ofInstant(activity.getOccurredAt(), zone), 1, Integer::sum);
+            if (!ActivityLog.SYSTEM_ACTOR.equals(activity.getActor())) {
+                perPerson.merge(activity.getActor(), 1, Integer::sum);
+                lastActive.put(activity.getActor(), activity.getOccurredAt());
+            }
+        }
+        List<ActivityPulse.DayCount> days = new ArrayList<>();
+        for (LocalDate day = start; !day.isAfter(today); day = day.plusDays(1)) {
+            days.add(new ActivityPulse.DayCount(day, perDay.getOrDefault(day, 0)));
+        }
+        List<ActivityPulse.Contributor> contributors = perPerson.entrySet().stream()
+                .map(entry -> new ActivityPulse.Contributor(entry.getKey(), entry.getValue(), lastActive.get(entry.getKey())))
+                .sorted(Comparator.comparingInt(ActivityPulse.Contributor::changes).reversed()
+                        .thenComparing(ActivityPulse.Contributor::name, String.CASE_INSENSITIVE_ORDER))
+                .limit(8)
+                .toList();
+        return new ActivityPulse(days, contributors);
     }
 
     public BoardInsights forBoard(long boardId) {

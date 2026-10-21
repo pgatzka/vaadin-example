@@ -310,6 +310,30 @@ html {
   margin-bottom: var(--lumo-space-s);
 }
 
+.insights__tiles--compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.insights__heatmap {
+  overflow-x: auto;
+  padding-bottom: var(--lumo-space-xs);
+  margin-bottom: var(--lumo-space-s);
+}
+
+.heatmap__label {
+  font-size: 9px;
+  fill: var(--lumo-secondary-text-color);
+}
+
+.heatmap__day {
+  fill: var(--lumo-contrast-10pct);
+}
+
+.heatmap__day[data-level="1"] { fill: var(--lumo-primary-color); fill-opacity: 0.3; }
+.heatmap__day[data-level="2"] { fill: var(--lumo-primary-color); fill-opacity: 0.5; }
+.heatmap__day[data-level="3"] { fill: var(--lumo-primary-color); fill-opacity: 0.75; }
+.heatmap__day[data-level="4"] { fill: var(--lumo-primary-color); fill-opacity: 1; }
+
 .webhooks__list {
   display: flex;
   flex-direction: column;

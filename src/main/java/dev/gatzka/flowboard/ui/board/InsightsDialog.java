@@ -13,6 +13,7 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.Svg;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import dev.gatzka.flowboard.domain.ActivityPulse;
 import dev.gatzka.flowboard.domain.BoardInsights;
 import dev.gatzka.flowboard.domain.BoardInsights.AssigneeLoad;
 import dev.gatzka.flowboard.domain.BoardInsights.DailyCount;
@@ -22,6 +23,7 @@ import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.ui.support.Durations;
 import java.time.format.DateTimeFormatter;
+import java.time.Instant;
 import java.util.Locale;
 
 /** Numbers about the board: stat tiles, load per lane, completions per day, work per person. */
@@ -31,7 +33,10 @@ final class InsightsDialog extends Dialog {
 
     private final Div content = new Div();
 
-    InsightsDialog() {
+    private final java.util.function.Supplier<Instant> now;
+
+    InsightsDialog(java.util.function.Supplier<Instant> now) {
+        this.now = now;
         addClassName("insights");
         setHeaderTitle("Insights");
         setWidth("min(760px, 95vw)");
@@ -47,9 +52,44 @@ final class InsightsDialog extends Dialog {
         add(content);
     }
 
-    void show(BoardInsights insights, CumulativeFlow flow) {
+    void show(BoardInsights insights, CumulativeFlow flow, ActivityPulse pulse) {
         content.removeAll();
-        content.add(tiles(insights), lanes(insights), flowSection(flow), completions(insights), people(insights));
+        content.add(tiles(insights), lanes(insights), flowSection(flow), completions(insights), people(insights), pulseSection(pulse));
+    }
+
+    private Component pulseSection(ActivityPulse pulse) {
+        Div section = section("Activity, last " + ActivityPulse.WEEKS + " weeks");
+        Div tiles = new Div(
+                tile("Changes", Integer.toString(pulse.totalChanges()), null),
+                tile("Active days", Long.toString(pulse.activeDays()), "of " + pulse.days().size()),
+                tile("Streak", pulse.currentStreak() + (pulse.currentStreak() == 1 ? " day" : " days"), "in a row with activity"));
+        tiles.addClassName("insights__tiles");
+        tiles.addClassName("insights__tiles--compact");
+        section.add(tiles);
+        if (pulse.isQuiet()) {
+            Span hint = new Span("Nothing happened on this board in the last " + ActivityPulse.WEEKS + " weeks.");
+            hint.addClassName("insights__hint");
+            section.add(hint);
+            return section;
+        }
+        Svg heatmap = new Svg(HeatmapChart.svg(pulse));
+        Div scroller = new Div(heatmap);
+        scroller.addClassName("insights__heatmap");
+        section.add(scroller);
+        if (!pulse.contributors().isEmpty()) {
+            int busiest = pulse.contributors().getFirst().changes();
+            for (ActivityPulse.Contributor person : pulse.contributors()) {
+                Avatar avatar = new Avatar(person.name());
+                avatar.setColorIndex(Participant.named(person.name()).colorIndex());
+                avatar.addThemeVariants(AvatarVariant.LUMO_XSMALL);
+                Div row = bar(person.name(), person.changes() * 100.0 / busiest, Integer.toString(person.changes()), null);
+                row.addComponentAsFirst(avatar);
+                row.addClassName("insights__bar--person");
+                row.getElement().setAttribute("title", "Last active " + Durations.ago(person.lastActive(), now.get()));
+                section.add(row);
+            }
+        }
+        return section;
     }
 
     private static Component flowSection(CumulativeFlow flow) {
