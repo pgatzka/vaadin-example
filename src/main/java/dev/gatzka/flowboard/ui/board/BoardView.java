@@ -41,6 +41,8 @@ import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.domain.SavedViewSnapshot;
+import dev.gatzka.flowboard.domain.TimerSnapshot;
+import dev.gatzka.flowboard.domain.WorkEntrySnapshot;
 import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.AttachmentService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
@@ -56,9 +58,11 @@ import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.service.PresenceTracker;
 import dev.gatzka.flowboard.service.SavedViewService;
 import dev.gatzka.flowboard.service.SharingService;
+import dev.gatzka.flowboard.service.TimeService;
 import dev.gatzka.flowboard.service.VisitService;
 import dev.gatzka.flowboard.service.VoteService;
 import dev.gatzka.flowboard.ui.ProfileChangedEvent;
+import dev.gatzka.flowboard.ui.TimerChangedEvent;
 import dev.gatzka.flowboard.ui.UserSession;
 import dev.gatzka.flowboard.ui.assistant.NotesToCardsDialog;
 import dev.gatzka.flowboard.ui.assistant.StandupDialog;
@@ -113,6 +117,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final WebhookService webhookService;
     private final WebhookDispatcher webhookDispatcher;
     private final SavedViewService savedViews;
+    private final TimeService timeService;
     private final UserSession session;
     private final Clock clock;
 
@@ -169,8 +174,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             ExecutorService executor, ActivityLog activityLog,
             BoardChangeBroadcaster broadcaster, PresenceTracker presence, SharingService sharing, VisitService visits,
             WebhookService webhookService, WebhookDispatcher webhookDispatcher, SavedViewService savedViews,
-            UserSession session, Clock clock) {
+            TimeService timeService, UserSession session, Clock clock) {
         this.savedViews = savedViews;
+        this.timeService = timeService;
         this.sharing = sharing;
         this.visits = visits;
         this.webhookService = webhookService;
@@ -729,6 +735,42 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         CardSnapshot updated = boardService.setRecurrence(cardId, recurrence, actor());
         reload();
         return updated;
+    }
+
+    @Override
+    public CardSnapshot logTime(long cardId, int minutes, String note) {
+        return changeCard(() -> timeService.log(cardId, session.getDisplayName(), minutes, note, actor()));
+    }
+
+    @Override
+    public CardSnapshot removeWorkEntry(long entryId) {
+        return changeCard(() -> timeService.removeEntry(entryId, actor()));
+    }
+
+    @Override
+    public void startTimer(long cardId) {
+        timeService.start(cardId, session.getDisplayName());
+        getUI().ifPresent(ui -> ComponentUtil.fireEvent(ui, new TimerChangedEvent(ui)));
+    }
+
+    @Override
+    public Optional<CardSnapshot> stopTimer() {
+        Optional<CardSnapshot> stopped = timeService.stop(session.getDisplayName(), null);
+        if (stopped.isPresent()) {
+            reload();
+        }
+        getUI().ifPresent(ui -> ComponentUtil.fireEvent(ui, new TimerChangedEvent(ui)));
+        return stopped;
+    }
+
+    @Override
+    public Optional<TimerSnapshot> runningTimer() {
+        return timeService.running(session.getDisplayName());
+    }
+
+    @Override
+    public List<WorkEntrySnapshot> workEntries(long cardId) {
+        return timeService.entries(cardId);
     }
 
     @Override

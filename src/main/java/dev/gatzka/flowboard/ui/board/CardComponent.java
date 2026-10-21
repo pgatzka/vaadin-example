@@ -14,6 +14,7 @@ import dev.gatzka.flowboard.domain.CardAge;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.service.Participant;
+import dev.gatzka.flowboard.service.TimeService;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -133,6 +134,13 @@ public final class CardComponent extends Div {
             badge.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
             badge.addClassName("task-card__tag");
             meta.add(badge);
+        }
+        if (card.hasWork()) {
+            Badge time = new Badge(TimeService.humanize(card.workedMinutes()), VaadinIcon.CLOCK.create());
+            time.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
+            time.addClassName("task-card__time");
+            time.getElement().setAttribute("title", "Time logged");
+            meta.add(time);
         }
         if (card.isRecurring()) {
             Badge repeats = new Badge(VaadinIcon.REFRESH.create());

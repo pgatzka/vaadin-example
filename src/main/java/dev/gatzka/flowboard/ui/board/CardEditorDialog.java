@@ -65,6 +65,8 @@ final class CardEditorDialog extends Dialog {
     private Tab attachmentsTab;
     private CommentsSection commentsSection;
     private HistorySection historySection;
+    private TimeSection timeSection;
+    private Tab timeTab;
     private Tab commentsTab;
     private CardEditorActions actions;
 
@@ -113,6 +115,8 @@ final class CardEditorDialog extends Dialog {
         attachmentsTab.setLabel(attachmentsLabel(card));
         commentsSection.show(card);
         commentsTab.setLabel(commentsLabel(card));
+        timeSection.show(card);
+        timeTab.setLabel(timeLabel(card));
         historySection.show(actions.history(card.id()));
     }
 
@@ -128,6 +132,7 @@ final class CardEditorDialog extends Dialog {
         dependenciesSection = new DependenciesSection(card, board, actions, this::refresh);
         attachmentsSection = new AttachmentsSection(card, actions, this::refresh);
         commentsSection = new CommentsSection(card, actions, this::refresh);
+        timeSection = new TimeSection(card, actions, this::refresh, java.time.Instant::now);
         historySection = new HistorySection(actions.history(card.id()));
 
         TabSheet tabs = new TabSheet();
@@ -137,6 +142,8 @@ final class CardEditorDialog extends Dialog {
         attachmentsTab = new Tab(attachmentsLabel(card));
         tabs.add(attachmentsTab, attachmentsSection);
         tabs.add("Dependencies", dependenciesSection);
+        timeTab = new Tab(timeLabel(card));
+        tabs.add(timeTab, timeSection);
         tabs.add("History", historySection);
         tabs.setWidthFull();
         add(checklistSection, tabs);
@@ -146,6 +153,10 @@ final class CardEditorDialog extends Dialog {
         String path = BoardView.pathTo(board.id(), card.id());
         getUI().ifPresent(ui -> ui.getPage().executeJs("navigator.clipboard.writeText(location.origin + '/' + $0)", path));
         Toasts.success("Link copied");
+    }
+
+    private static String timeLabel(CardSnapshot card) {
+        return card.hasWork() ? "Time · " + dev.gatzka.flowboard.service.TimeService.humanize(card.workedMinutes()) : "Time";
     }
 
     private static String attachmentsLabel(CardSnapshot card) {

@@ -3,6 +3,8 @@ package dev.gatzka.flowboard.ui.board;
 import dev.gatzka.flowboard.domain.ActivityEntry;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.Recurrence;
+import dev.gatzka.flowboard.domain.TimerSnapshot;
+import dev.gatzka.flowboard.domain.WorkEntrySnapshot;
 import java.util.List;
 
 /** Operations the card editor performs on an existing card; mutations return the refreshed card. */
@@ -17,6 +19,20 @@ interface CardEditorActions {
     CardSnapshot addComment(long cardId, String text);
 
     CardSnapshot setRecurrence(long cardId, Recurrence recurrence);
+
+    CardSnapshot logTime(long cardId, int minutes, String note);
+
+    CardSnapshot removeWorkEntry(long entryId);
+
+    /** Starts the current user's timer on the card (stopping any other timer of theirs). */
+    void startTimer(long cardId);
+
+    /** Stops the current user's timer and logs the time; the refreshed card, if one was running. */
+    java.util.Optional<CardSnapshot> stopTimer();
+
+    java.util.Optional<TimerSnapshot> runningTimer();
+
+    List<WorkEntrySnapshot> workEntries(long cardId);
 
     /** The card's history, newest first. */
     List<ActivityEntry> history(long cardId);

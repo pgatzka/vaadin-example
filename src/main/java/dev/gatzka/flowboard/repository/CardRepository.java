@@ -15,10 +15,10 @@ import org.springframework.data.jpa.repository.Query;
 public interface CardRepository extends JpaRepository<Card, Long> {
 
     /** All live cards of a board with tags, checklists and comments loaded in the same query. */
-    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers", "attachments"})
+    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers", "attachments", "workEntries"})
     List<Card> findAllByLaneBoardIdAndArchivedAtIsNullOrderByPositionAsc(long boardId);
 
-    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers", "attachments"})
+    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers", "attachments", "workEntries"})
     List<Card> findAllByLaneBoardIdAndArchivedAtIsNotNullOrderByArchivedAtDesc(long boardId);
 
     List<Card> findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(long laneId);

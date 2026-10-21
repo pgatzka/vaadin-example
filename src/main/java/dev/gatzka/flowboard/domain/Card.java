@@ -64,6 +64,9 @@ public class Card {
     @OneToMany(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Attachment> attachments = new HashSet<>();
 
+    @OneToMany(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<WorkEntry> workEntries = new HashSet<>();
+
     /** Cards this one waits for. Same board only, acyclic; enforced by the service. */
     @ManyToMany
     @JoinTable(name = "card_blockers",
@@ -224,6 +227,24 @@ public class Card {
         return attachments.stream()
                 .sorted(Comparator.comparing(Attachment::getUploadedAt).thenComparing(Attachment::getId))
                 .toList();
+    }
+
+    public WorkEntry logWork(String person, int minutes, String note, Instant now) {
+        WorkEntry entry = new WorkEntry(this, person, minutes, note, now);
+        workEntries.add(entry);
+        updatedAt = requireNonNull(now);
+        return entry;
+    }
+
+    public void removeWork(WorkEntry entry, Instant now) {
+        if (workEntries.remove(entry)) {
+            updatedAt = requireNonNull(now);
+        }
+    }
+
+    /** Minutes logged on this card by everybody. */
+    public int getWorkedMinutes() {
+        return workEntries.stream().mapToInt(WorkEntry::getMinutes).sum();
     }
 
     public boolean addBlocker(Card blocker, Instant now) {

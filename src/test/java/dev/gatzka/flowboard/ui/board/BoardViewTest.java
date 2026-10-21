@@ -194,6 +194,34 @@ class BoardViewTest extends FlowboardUiTest {
     }
 
     @Test
+    void timeIsLoggedAndTimedFromTheEditor() {
+        CardSnapshot card = createCard("Timed");
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        view.openCard(card);
+        CardEditorDialog editor = $(CardEditorDialog.class).single();
+        test($(TabSheet.class, editor).withClassName("card-tabs").single()).select("Time");
+        TimeSection time = $(TimeSection.class, editor).single();
+
+        $(IntegerField.class, time).withClassName("time__minutes").single().setValue(75);
+        $(TextField.class, time).withClassName("time__note").single().setValue("design review");
+        test($(Button.class, time).withId("log-time").single()).click();
+        assertThat($(Span.class, time).withClassName("time__total").single().getText()).isEqualTo("1 h 15 min logged");
+        assertThat($(Div.class, time).withClassName("time__row").all()).hasSize(1);
+        assertThat($(Badge.class).withClassName("task-card__time").single().getText()).isEqualTo("1 h 15 min");
+
+        test($(Button.class, time).withClassName("time__timer").single()).click();
+        assertThat($(Button.class, time).withClassName("time__timer").single().getText()).startsWith("Stop timer");
+        assertThat(view.runningTimer()).map(t -> t.cardId()).contains(card.id());
+        test($(Button.class, time).withClassName("time__timer").single()).click();
+        assertThat(view.runningTimer()).isEmpty();
+        assertThat($(Div.class, time).withClassName("time__row").all()).hasSize(2);
+        assertThat($(Span.class, time).withClassName("time__total").single().getText()).isEqualTo("1 h 16 min logged");
+
+        test($(Button.class, time).withCondition(b -> "Remove entry".equals(b.getAriaLabel().orElse(null))).first()).click();
+        assertThat($(Div.class, time).withClassName("time__row").all()).hasSize(1);
+    }
+
+    @Test
     void filtersCanBeSavedAsViewsAndLinked() {
         long backlog = board.lanes().get(0).id();
         service.createCard(backlog, new CardDraft("Index tuning", null, Priority.HIGH, null, "Mara", Set.of("backend"), null), SEEDER);

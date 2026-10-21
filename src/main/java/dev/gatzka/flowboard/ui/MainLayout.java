@@ -34,6 +34,10 @@ import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.InboxBroadcaster;
 import dev.gatzka.flowboard.service.NotificationService;
+import dev.gatzka.flowboard.service.TimeService;
+import dev.gatzka.flowboard.domain.TimerSnapshot;
+import dev.gatzka.flowboard.ui.support.Durations;
+import java.util.Optional;
 import dev.gatzka.flowboard.service.VisitService;
 import dev.gatzka.flowboard.service.WorkService;
 import dev.gatzka.flowboard.ui.board.BoardView;
@@ -56,6 +60,7 @@ public class MainLayout extends AppLayout {
     private final SearchDialog searchDialog;
     private final NotificationService notificationService;
     private final VisitService visits;
+    private final TimeService timeService;
     private final InboxBroadcaster inboxBroadcaster;
     private final InboxDialog inboxDialog;
     private final Button inboxButton = new Button();
@@ -66,14 +71,17 @@ public class MainLayout extends AppLayout {
     private final SideNav boardsNav = new SideNav("Boards");
     private final Button themeToggle = new Button();
     private final Button userButton = new Button();
+    private final Button timerChip = new Button();
+    private Registration timerSubscription;
     private Registration changeSubscription;
     private Registration navigationSubscription;
 
     public MainLayout(BoardService boardService, WorkService workService, NotificationService notificationService,
-            BoardChangeBroadcaster broadcaster, InboxBroadcaster inboxBroadcaster, VisitService visits, UserSession session,
-            Clock clock) {
+            BoardChangeBroadcaster broadcaster, InboxBroadcaster inboxBroadcaster, VisitService visits, TimeService timeService,
+            UserSession session, Clock clock) {
         this.boardService = boardService;
         this.visits = visits;
+        this.timeService = timeService;
         this.broadcaster = broadcaster;
         this.session = session;
         this.notificationService = notificationService;
@@ -170,7 +178,13 @@ public class MainLayout extends AppLayout {
         help.setAriaLabel("Keyboard shortcuts");
         help.setTooltipText("Keyboard shortcuts (Ctrl+/)");
 
-        Div header = new Div(new DrawerToggle(), title, new Span(), search, inboxButton, help, themeToggle, userButton);
+        timerChip.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_CONTRAST);
+        timerChip.setIcon(VaadinIcon.TIMER.create());
+        timerChip.addClassName("timer-chip");
+        timerChip.setVisible(false);
+        timerChip.addClickListener(event -> openTimedCard());
+
+        Div header = new Div(new DrawerToggle(), title, new Span(), timerChip, search, inboxButton, help, themeToggle, userButton);
         header.addClassName("app-header");
         return header;
     }
@@ -189,7 +203,12 @@ public class MainLayout extends AppLayout {
     protected void onAttach(AttachEvent attachEvent) {
         UI ui = attachEvent.getUI();
         changeSubscription = broadcaster.subscribe(event -> UiAccess.run(ui, this::refreshBoards));
-        navigationSubscription = ui.addAfterNavigationListener(event -> refreshBoards());
+        navigationSubscription = ui.addAfterNavigationListener(event -> {
+            refreshBoards();
+            showTimer();
+        });
+        timerSubscription = ComponentUtil.addListener(ui, TimerChangedEvent.class, event -> showTimer());
+        showTimer();
         subscribeInbox(ui);
         profileSubscription = ComponentUtil.addListener(ui, ProfileChangedEvent.class, event -> {
             unsubscribeInbox();
@@ -203,6 +222,7 @@ public class MainLayout extends AppLayout {
         if (changeSubscription != null) {
             changeSubscription.remove();
         navigationSubscription.remove();
+        timerSubscription.remove();
             changeSubscription = null;
         }
         if (profileSubscription != null) {
@@ -260,6 +280,22 @@ public class MainLayout extends AppLayout {
         themeToggle.setIcon(icon);
         themeToggle.setAriaLabel(dark ? "Switch to light theme" : "Switch to dark theme");
         themeToggle.setTooltipText(dark ? "Light theme" : "Dark theme");
+    }
+
+    /** A chip in the header while the user has a timer running; clicking it opens the card. */
+    private void showTimer() {
+        Optional<TimerSnapshot> running = timeService.running(session.getDisplayName());
+        timerChip.setVisible(running.isPresent());
+        running.ifPresent(timer -> {
+            timerChip.setText(timer.cardTitle());
+            timerChip.setTooltipText("Timer running since " + Durations.ago(timer.startedAt(), java.time.Instant.now()).replace(" ago", ""));
+            timerChip.getElement().setAttribute("data-card-id", Long.toString(timer.cardId()));
+        });
+    }
+
+    private void openTimedCard() {
+        timeService.running(session.getDisplayName()).ifPresent(timer -> getUI().ifPresent(ui -> ui.navigate(BoardView.class,
+                new RouteParameters(java.util.Map.of(BoardView.BOARD_ID, Long.toString(timer.boardId()), BoardView.CARD_ID, Long.toString(timer.cardId()))))));
     }
 
     private void showUser() {
