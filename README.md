@@ -24,7 +24,10 @@ Java on top of Vaadin Flow's server push.
   assignee, tags, and a Markdown description with live preview.
 - **Activity feed.** A side sheet lists the recent history of the board as a chat-like log.
 - **Filtering.** Type in the filter box (or press `/`) to narrow the board down to matching cards.
-- **Light and dark theme**, persisted per session, and an installable PWA manifest.
+- **Light and dark theme**, following the operating system on first visit, and an installable PWA manifest.
+- **Export and import** boards as JSON files.
+- **Checklists, comments and history** on every card; **deep links** to cards.
+- **Insights** per board: completion rate, cycle time, load per lane, completions per day, work per person.
 - **Persistent.** Boards live in a file-based H2 database under `./data`, so they survive restarts.
   A demo board is seeded on the first start.
 
@@ -43,6 +46,14 @@ java -jar target/flowboard.jar
 ```
 
 Then open <http://localhost:8080>. Open a second tab or browser to see changes synchronise.
+
+With Docker:
+
+```bash
+docker compose up --build
+```
+
+The database lives in the `flowboard-data` volume, so boards survive container restarts.
 
 Useful switches (`src/main/resources/application.properties`):
 

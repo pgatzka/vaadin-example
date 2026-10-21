@@ -52,8 +52,23 @@ public class MainLayout extends AppLayout {
         addToDrawer(drawer());
 
         applyTheme(session.isDarkMode());
+        if (!session.hasThemePreference()) {
+            followBrowserPreference();
+        }
         showUser();
         refreshBoards();
+    }
+
+    /** On the first visit, adopt the operating system's light or dark preference. */
+    private void followBrowserPreference() {
+        UI.getCurrent().getPage()
+                .executeJs("return window.matchMedia('(prefers-color-scheme: dark)').matches")
+                .then(Boolean.class, prefersDark -> {
+                    if (!session.hasThemePreference()) {
+                        session.setDarkMode(prefersDark);
+                        applyTheme(prefersDark);
+                    }
+                });
     }
 
     private Div header() {

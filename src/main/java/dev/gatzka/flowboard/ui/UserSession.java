@@ -16,7 +16,8 @@ public class UserSession implements Serializable {
     static final int MAX_NAME_LENGTH = 40;
 
     private String displayName = UserNames.random();
-    private boolean darkMode;
+    /** {@code null} until the user or their browser preference decided. */
+    private Boolean darkMode;
 
     public String getDisplayName() {
         return displayName;
@@ -34,8 +35,14 @@ public class UserSession implements Serializable {
         return Participant.named(displayName);
     }
 
+    /** Whether dark mode is on; false until a preference has been established. */
     public boolean isDarkMode() {
-        return darkMode;
+        return Boolean.TRUE.equals(darkMode);
+    }
+
+    /** True once either the user toggled the theme or the browser preference was applied. */
+    public boolean hasThemePreference() {
+        return darkMode != null;
     }
 
     public void setDarkMode(boolean darkMode) {
