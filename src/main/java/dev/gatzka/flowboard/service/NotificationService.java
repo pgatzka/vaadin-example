@@ -50,6 +50,12 @@ public class NotificationService {
                 .toList();
     }
 
+    /** Whether the actor already notified the recipient about the card since the given moment. */
+    @Transactional(readOnly = true)
+    public boolean notifiedSince(String recipient, long cardId, String actor, Instant since) {
+        return notifications.existsByRecipientAndCardIdAndActorAndCreatedAtAfter(Notification.key(recipient), cardId, actor, since);
+    }
+
     public void markRead(long notificationId) {
         notifications.findById(notificationId).ifPresent(notification -> notification.markRead(clock.instant()));
     }

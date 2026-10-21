@@ -50,6 +50,8 @@ Java on top of Vaadin Flow's server push.
 - **Flow analytics.** Card aging ("3 d here"), average time per lane, and a cumulative flow diagram
   built from daily lane snapshots.
 - **Home dashboard** with totals across boards, what needs attention and recent activity.
+- **Morning reminders.** Every day at seven the inbox tells you which of your cards are due today
+  or overdue, once per card.
 - **Inbox.** Mention somebody with `@name` in a comment, assign them a card or comment on their card
   and they get a notification, live, with a link to the card.
 - **Dependencies** between cards ("blocked by", acyclic, with a nudge before finishing a blocked card)
