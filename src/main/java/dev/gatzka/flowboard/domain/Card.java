@@ -16,12 +16,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -59,12 +57,15 @@ public class Card {
     @Column(name = "tag", nullable = false, length = 30)
     private Set<String> tags = new HashSet<>();
 
+    /*
+     * Both child collections are sets, not lists: when several collections are fetch-joined in
+     * one query, Hibernate de-duplicates sets but would hand back a list with repeated elements.
+     * Ordering is applied in the accessors instead of relying on iteration order.
+     */
     @OneToMany(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("position ASC")
-    private List<ChecklistItem> checklist = new ArrayList<>();
+    private Set<ChecklistItem> checklist = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("createdAt ASC, id ASC")
     private Set<Comment> comments = new LinkedHashSet<>();
 
     @Column(name = "sort_order", nullable = false)
@@ -130,8 +131,9 @@ public class Card {
 
     public void removeChecklistItem(ChecklistItem item, Instant now) {
         if (checklist.remove(item)) {
-            for (int i = 0; i < checklist.size(); i++) {
-                checklist.get(i).setPosition(i);
+            List<ChecklistItem> remaining = getChecklist();
+            for (int i = 0; i < remaining.size(); i++) {
+                remaining.get(i).setPosition(i);
             }
             updatedAt = requireNonNull(now);
         }
@@ -182,12 +184,14 @@ public class Card {
 
     /** Comments oldest first; read-only, modify through the card. */
     public List<Comment> getComments() {
-        return List.copyOf(comments);
+        return comments.stream()
+                .sorted(Comparator.comparing(Comment::getCreatedAt).thenComparing(Comment::getId))
+                .toList();
     }
 
     /** The checklist in order; read-only, modify through the card. */
     public List<ChecklistItem> getChecklist() {
-        return Collections.unmodifiableList(checklist);
+        return checklist.stream().sorted(Comparator.comparingInt(ChecklistItem::getPosition)).toList();
     }
 
     public int getPosition() {

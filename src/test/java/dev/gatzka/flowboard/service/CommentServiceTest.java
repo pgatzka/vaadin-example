@@ -27,6 +27,9 @@ class CommentServiceTest {
     private CommentService commentService;
 
     @Autowired
+    private ChecklistService checklistService;
+
+    @Autowired
     private CommentRepository comments;
 
     @Autowired
@@ -76,6 +79,22 @@ class CommentServiceTest {
 
         boardService.deleteCard(card.id(), "Tester");
         assertThat(comments.count()).isZero();
+    }
+
+    @Test
+    void loadingTagsChecklistAndCommentsTogetherDoesNotMultiplyAnything() {
+        boardService.updateCard(card.id(), new CardDraft("Discuss", null, null, null, null, java.util.Set.of("ui", "feature")), "Tester");
+        checklistService.addItem(card.id(), "one", "Tester");
+        checklistService.addItem(card.id(), "two", "Tester");
+        checklistService.addItem(card.id(), "three", "Tester");
+        commentService.add(card.id(), "Mara", "first");
+        commentService.add(card.id(), "Jonas", "second");
+
+        CardSnapshot loaded = boardService.findBoard(board.id()).orElseThrow().lanes().get(0).cards().getFirst();
+
+        assertThat(loaded.tags()).containsExactly("feature", "ui");
+        assertThat(loaded.checklist()).extracting(c -> c.text()).containsExactly("one", "two", "three");
+        assertThat(loaded.comments()).extracting(CommentSnapshot::text).containsExactly("first", "second");
     }
 
     @Test
