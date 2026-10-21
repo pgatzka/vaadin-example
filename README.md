@@ -138,6 +138,14 @@ a Flowboard account; the account's display name is what the activity feed shows.
 | `PUT /api/cards/{id}` | Replace a card's draft fields |
 | `POST /api/cards/{id}/move` | Move a card: `{"targetLaneId": 3, "targetIndex": 0}` |
 | `DELETE /api/cards/{id}` | Delete a card |
+| `POST /api/cards/{id}/time` | Log time in your name: `{"minutes": 30, "note": "…"}` |
+| `GET /api/boards/{id}/activity` | Recent history of the board, newest first |
+| `GET /api/boards/{id}/digest` | The weekly digest as JSON; `?week=2026-10-21` picks the week ending that day |
+| `GET /api/boards/{id}/digest.md` | The same digest as Markdown, e.g. for a chat bot |
+| `GET /api/boards/{id}/templates` | Card templates of the board |
+| `POST /api/boards/{id}/templates` | Create or replace a template (`name`, `title`, `description`, `priority`, `assignee`, `tags`, `estimate`, `checklist`) |
+| `POST /api/templates/{id}/cards` | Create a card from a template: `{"laneId": 3}` |
+| `DELETE /api/templates/{id}` | Delete a template |
 
 ```bash
 curl -s -u demo:demo1234 localhost:8080/api/boards | jq '.[0].id'

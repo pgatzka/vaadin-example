@@ -125,6 +125,48 @@ class BoardsApiTest {
     }
 
     @Test
+    void servesDigestsTimeAndTemplates() throws Exception {
+        long backlog = board.lanes().get(0).id();
+        HttpResponse<String> template = send("POST", "/api/boards/" + board.id() + "/templates",
+                "{\"name\": \"Incident\", \"priority\": \"urgent\", \"tags\": [\"ops\"], \"checklist\": [\"Acknowledge\", \"Mitigate\", \"Write up\"]}");
+        assertThat(template.statusCode()).as(template.body()).isEqualTo(201);
+        long templateId = json.readTree(template.body()).get("id").asLong();
+        assertThat(json.readTree(send("GET", "/api/boards/" + board.id() + "/templates", null).body()).size()).isEqualTo(1);
+
+        HttpResponse<String> created = send("POST", "/api/templates/" + templateId + "/cards", "{\"laneId\": " + backlog + "}");
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        JsonNode card = json.readTree(created.body());
+        assertThat(card.get("title").asString()).isEqualTo("Incident");
+        assertThat(card.get("priority").asString()).isEqualTo("URGENT");
+        assertThat(card.get("checklist").size()).isEqualTo(3);
+        long cardId = card.get("id").asLong();
+
+        HttpResponse<String> logged = send("POST", "/api/cards/" + cardId + "/time", "{\"minutes\": 30, \"note\": \"triage\"}");
+        assertThat(logged.statusCode()).as(logged.body()).isEqualTo(201);
+        assertThat(json.readTree(logged.body()).get("workedMinutes").asInt()).isEqualTo(30);
+        assertThat(send("POST", "/api/cards/" + cardId + "/time", "{\"minutes\": 0}").statusCode()).isEqualTo(400);
+
+        JsonNode digest = json.readTree(send("GET", "/api/boards/" + board.id() + "/digest", null).body());
+        assertThat(digest.get("boardName").asString()).isEqualTo("Api board");
+        assertThat(digest.get("created").size()).isEqualTo(1);
+        assertThat(digest.get("contributors").get(0).get("name").asString()).isEqualTo("Deploy Bot");
+        HttpResponse<String> markdown = send("GET", "/api/boards/" + board.id() + "/digest.md?week=" + java.time.LocalDate.now(), null,
+                "Accept", "text/markdown");
+        assertThat(markdown.statusCode()).as(markdown.body()).isEqualTo(200);
+        assertThat(markdown.headers().firstValue("content-type").orElse("")).startsWith("text/markdown");
+        assertThat(markdown.body()).startsWith("# Api board · week of ").contains("- Incident");
+        assertThat(send("GET", "/api/boards/" + board.id() + "/digest?week=2026-01-07", null).statusCode()).isEqualTo(200);
+
+        JsonNode activity = json.readTree(send("GET", "/api/boards/" + board.id() + "/activity", null).body());
+        assertThat(activity.get(0).get("actor").asString()).isEqualTo("Deploy Bot");
+        assertThat(activity.get(0).get("message").asString()).isEqualTo("logged 30 min on \"Incident\"");
+
+        assertThat(send("DELETE", "/api/templates/" + templateId, null).statusCode()).isEqualTo(204);
+        assertThat(send("GET", "/api/boards/999999/templates", null).statusCode()).isEqualTo(404);
+        assertThat(send("GET", "/api/boards/999999/digest", null).statusCode()).isEqualTo(404);
+    }
+
+    @Test
     void reportsErrorsAsJson() throws Exception {
         HttpResponse<String> missing = send("GET", "/api/boards/424242", null);
         assertThat(missing.statusCode()).isEqualTo(404);

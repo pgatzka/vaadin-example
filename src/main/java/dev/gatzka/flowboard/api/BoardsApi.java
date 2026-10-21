@@ -3,14 +3,24 @@ package dev.gatzka.flowboard.api;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.BoardSummary;
 import dev.gatzka.flowboard.domain.CardDraft;
+import dev.gatzka.flowboard.domain.ActivityEntry;
 import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.domain.CardTemplateDraft;
+import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
+import dev.gatzka.flowboard.domain.WeeklyDigest;
 import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.exchange.BoardExport;
 import dev.gatzka.flowboard.security.AccountService;
+import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.BoardService;
+import dev.gatzka.flowboard.service.CardTemplateService;
+import dev.gatzka.flowboard.service.DigestService;
+import dev.gatzka.flowboard.service.TimeService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import java.net.URI;
 import java.security.Principal;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,7 +28,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,11 +46,22 @@ public class BoardsApi {
     private final BoardService boardService;
     private final BoardExchangeService exchange;
     private final AccountService accounts;
+    private final DigestService digests;
+    private final TimeService time;
+    private final CardTemplateService templates;
+    private final ActivityLog activityLog;
+    private final Clock clock;
 
-    BoardsApi(BoardService boardService, BoardExchangeService exchange, AccountService accounts) {
+    BoardsApi(BoardService boardService, BoardExchangeService exchange, AccountService accounts, DigestService digests,
+            TimeService time, CardTemplateService templates, ActivityLog activityLog, Clock clock) {
         this.boardService = boardService;
         this.exchange = exchange;
         this.accounts = accounts;
+        this.digests = digests;
+        this.time = time;
+        this.templates = templates;
+        this.activityLog = activityLog;
+        this.clock = clock;
     }
 
     /** The name recorded in the activity feed: the display name of the caller's account. */
@@ -95,7 +118,71 @@ public class BoardsApi {
         return ResponseEntity.noContent().build();
     }
 
+    /** The board's recent history, newest first. */
+    @GetMapping("/boards/{boardId}/activity")
+    public List<ActivityEntry> activity(@PathVariable long boardId) {
+        requireBoard(boardId);
+        return activityLog.recent(boardId);
+    }
+
+    /** The weekly digest as data; {@code week} is the last day of the week, default today. */
+    @GetMapping("/boards/{boardId}/digest")
+    public WeeklyDigest digest(@PathVariable long boardId, @RequestParam(required = false) LocalDate week) {
+        return digests.weekly(boardId, week == null ? LocalDate.now(clock) : week);
+    }
+
+    /** The same digest as Markdown, ready to paste into a chat. */
+    @GetMapping(path = "/boards/{boardId}/digest.md", produces = "text/markdown;charset=UTF-8")
+    public String digestMarkdown(@PathVariable long boardId, @RequestParam(required = false) LocalDate week) {
+        return digest(boardId, week).toMarkdown();
+    }
+
+    /** Logs time on a card in the caller's name. */
+    @PostMapping(path = "/cards/{cardId}/time", consumes = "application/json")
+    public ResponseEntity<CardSnapshot> logTime(@PathVariable long cardId, @RequestBody TimeRequest request, Principal caller) {
+        String actor = actor(caller);
+        return ResponseEntity.status(HttpStatus.CREATED).body(time.log(cardId, actor, request.minutes(), request.note(), actor));
+    }
+
+    @GetMapping("/boards/{boardId}/templates")
+    public List<CardTemplateSnapshot> templates(@PathVariable long boardId) {
+        requireBoard(boardId);
+        return templates.forBoard(boardId);
+    }
+
+    /** Creates a template or replaces the one with the same name. */
+    @PostMapping(path = "/boards/{boardId}/templates", consumes = "application/json")
+    public ResponseEntity<CardTemplateSnapshot> saveTemplate(@PathVariable long boardId, @RequestBody CardTemplateDraft draft, Principal caller) {
+        requireBoard(boardId);
+        CardTemplateSnapshot saved = templates.save(boardId, draft, actor(caller));
+        return ResponseEntity.created(URI.create("/api/templates/" + saved.id())).body(saved);
+    }
+
+    @DeleteMapping("/templates/{templateId}")
+    public ResponseEntity<Void> deleteTemplate(@PathVariable long templateId, Principal caller) {
+        templates.delete(templateId, actor(caller));
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Creates a card from a template at the end of the given lane. */
+    @PostMapping(path = "/templates/{templateId}/cards", consumes = "application/json")
+    public ResponseEntity<CardSnapshot> createFromTemplate(@PathVariable long templateId, @RequestBody FromTemplateRequest request,
+            Principal caller) {
+        CardSnapshot created = templates.instantiate(templateId, request.laneId(), actor(caller));
+        return ResponseEntity.created(URI.create("/api/cards/" + created.id())).body(created);
+    }
+
     public record MoveRequest(long targetLaneId, int targetIndex) {
+    }
+
+    public record TimeRequest(int minutes, String note) {
+    }
+
+    public record FromTemplateRequest(long laneId) {
+    }
+
+    private void requireBoard(long boardId) {
+        boardService.findBoard(boardId).orElseThrow(() -> new NotFoundException("Board", boardId));
     }
 
     private void requireLaneOnBoard(long boardId, long laneId) {
