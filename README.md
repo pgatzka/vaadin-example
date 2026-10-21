@@ -46,6 +46,8 @@ Java on top of Vaadin Flow's server push.
   and **file attachments** on cards (up to 5 MB each, stored in the database).
 - **Votes** on cards with "sort by votes" for backlogs, multi-line paste into a lane to create several
   cards, and a little confetti when a card lands in a done lane.
+- **Webhooks.** Register endpoints per board; every change is posted as JSON, optionally signed
+  with HMAC-SHA256. A delivery log shows what the other side answered.
 - **Recurring cards.** Set a card to repeat daily, weekly, every two weeks or monthly; finishing it
   puts a fresh copy back in its lane with the due date moved on.
 - **Undo.** Moving, finishing or archiving cards shows a toast with an Undo button.
@@ -129,6 +131,22 @@ curl -s -u demo:demo1234 -X POST localhost:8080/api/boards/1/lanes/1/cards \
 
 Errors come back as `{"error": "…"}` with 400 for invalid input, 401 without credentials and 404
 for unknown ids.
+
+## Webhooks
+
+The plug icon on a board registers webhooks. After every committed change Flowboard posts a JSON
+body to each enabled endpoint, from a background thread so the user never waits for it:
+
+```json
+{"event": "content", "boardId": 1, "boardName": "Launch", "actor": "Mara",
+ "message": "moved \"Dark mode\" to Done", "cardId": 42, "occurredAt": "2026-10-21T22:40:00Z"}
+```
+
+`event` is `created`, `updated`, `deleted`, `content` or `test`, and is repeated in the
+`X-Flowboard-Event` header. With a secret set, `X-Flowboard-Signature` carries
+`sha256=<hex HMAC-SHA256 of the raw body>`; verify it with the same secret before trusting the
+payload. The last 20 deliveries per webhook are kept with status codes, so a misbehaving endpoint
+is easy to spot. Anything other than a 2xx response counts as a failure.
 
 ## How it is built
 

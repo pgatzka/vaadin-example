@@ -64,6 +64,8 @@ import dev.gatzka.flowboard.ui.calendar.CalendarView;
 import dev.gatzka.flowboard.ui.support.Celebration;
 import dev.gatzka.flowboard.ui.support.Toasts;
 import dev.gatzka.flowboard.ui.support.UiAccess;
+import dev.gatzka.flowboard.webhook.WebhookDispatcher;
+import dev.gatzka.flowboard.webhook.WebhookService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -100,6 +102,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final PresenceTracker presence;
     private final SharingService sharing;
     private final VisitService visits;
+    private final WebhookService webhookService;
+    private final WebhookDispatcher webhookDispatcher;
     private final UserSession session;
     private final Clock clock;
 
@@ -127,9 +131,11 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             InsightsService insightsService, FlowSnapshotService flowSnapshots, AssistantService assistant,
             ExecutorService executor, ActivityLog activityLog,
             BoardChangeBroadcaster broadcaster, PresenceTracker presence, SharingService sharing, VisitService visits,
-            UserSession session, Clock clock) {
+            WebhookService webhookService, WebhookDispatcher webhookDispatcher, UserSession session, Clock clock) {
         this.sharing = sharing;
         this.visits = visits;
+        this.webhookService = webhookService;
+        this.webhookDispatcher = webhookDispatcher;
         this.boardService = boardService;
         this.checklistService = checklistService;
         this.commentService = commentService;
@@ -205,10 +211,16 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         share.setTooltipText("Public link");
         share.setId("share-board");
 
+        Button hooks = new Button(VaadinIcon.PLUG.create(), event -> new WebhooksDialog(board, webhookService, webhookDispatcher, this::actor, clock).open());
+        hooks.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        hooks.setAriaLabel("Webhooks");
+        hooks.setTooltipText("Webhooks");
+        hooks.setId("board-webhooks");
+
         Button addLane = new Button("Add lane", VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        Div toolbar = new Div(titles, search, filters, participants, activity, insights, calendar, archive, share);
+        Div toolbar = new Div(titles, search, filters, participants, activity, insights, calendar, archive, share, hooks);
         if (assistant.isAvailable()) {
             toolbar.add(assistantMenu());
         }

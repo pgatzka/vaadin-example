@@ -14,6 +14,7 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
 import dev.gatzka.flowboard.domain.Recurrence;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.messages.MessageInput;
 import com.vaadin.flow.component.messages.MessageList;
@@ -384,6 +385,26 @@ class BoardViewTest extends FlowboardUiTest {
         assertThat($(Span.class, toast).first().getText()).contains("Done: Almost there");
         clickUndo();
         assertThat(cardOnBoard(card.id()).laneId()).isEqualTo(board.lanes().get(0).id());
+    }
+
+    @Test
+    void webhooksAreManagedFromTheBoard() {
+        navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        test($(Button.class).withId("board-webhooks").single()).click();
+        WebhooksDialog dialog = $(WebhooksDialog.class).single();
+
+        $(TextField.class, dialog).withLabel("Endpoint URL").single().setValue("nope");
+        test($(Button.class, dialog).withId("add-webhook").single()).click();
+        assertThat($(TextField.class, dialog).withLabel("Endpoint URL").single().isInvalid()).isTrue();
+        assertThat($(Div.class, dialog).withClassName("webhooks__row").all()).isEmpty();
+
+        $(TextField.class, dialog).withLabel("Endpoint URL").single().setValue("https://example.com/hook");
+        test($(Button.class, dialog).withId("add-webhook").single()).click();
+        assertThat($(Div.class, dialog).withClassName("webhooks__row").all()).hasSize(1);
+        assertThat($(Badge.class, dialog).withClassName("webhooks__status").single().getText()).isEqualTo("Not called yet");
+
+        test($(Button.class, dialog).withClassName("remove-webhook").single()).click();
+        assertThat($(Div.class, dialog).withClassName("webhooks__row").all()).isEmpty();
     }
 
     @Test
