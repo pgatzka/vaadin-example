@@ -15,6 +15,7 @@ import com.vaadin.flow.component.badge.Badge;
 import com.vaadin.flow.component.badge.BadgeVariant;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
@@ -27,6 +28,7 @@ import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.theme.lumo.Lumo;
+import jakarta.annotation.security.PermitAll;
 import dev.gatzka.flowboard.domain.BoardSummary;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardService;
@@ -43,6 +45,7 @@ import java.util.List;
 
 /** Application frame: navigation drawer with all boards, theme toggle and the current user. */
 @Layout
+@PermitAll
 public class MainLayout extends AppLayout {
 
     private final BoardService boardService;
@@ -113,6 +116,7 @@ public class MainLayout extends AppLayout {
         }));
         list.add(new Command("Keyboard shortcuts", VaadinIcon.QUESTION_CIRCLE_O, () -> new ShortcutsDialog().open()));
         list.add(new Command("Change display name", VaadinIcon.USER, () -> new ProfileDialog(session, this::onProfileSaved).open()));
+        list.add(new Command("Sign out", VaadinIcon.SIGN_OUT, session::signOut));
         for (BoardSummary board : boardService.listBoards()) {
             RouteParameters parameters = new RouteParameters(BoardView.BOARD_ID, Long.toString(board.id()));
             list.add(new Command("Open board: " + board.name(), VaadinIcon.TASKS, () -> getUI().ifPresent(ui -> ui.navigate(BoardView.class, parameters))));
@@ -132,7 +136,10 @@ public class MainLayout extends AppLayout {
 
         userButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         userButton.addClassName("user-button");
-        userButton.addClickListener(event -> new ProfileDialog(session, this::onProfileSaved).open());
+        ContextMenu userMenu = new ContextMenu(userButton);
+        userMenu.setOpenOnClick(true);
+        userMenu.addItem("Change display name", event -> new ProfileDialog(session, this::onProfileSaved).open());
+        userMenu.addItem("Sign out", event -> session.signOut()).setId("sign-out");
 
         Button search = new Button(VaadinIcon.SEARCH.create(), event -> searchDialog.open());
         search.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
@@ -247,7 +254,7 @@ public class MainLayout extends AppLayout {
         avatar.addThemeVariants(AvatarVariant.LUMO_XSMALL);
         userButton.setIcon(avatar);
         userButton.setText(session.getDisplayName());
-        userButton.setTooltipText("Change your display name");
+        userButton.setTooltipText("Account");
     }
 
     private void onProfileSaved() {

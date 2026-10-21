@@ -7,6 +7,7 @@ import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.repository.BoardRepository;
+import dev.gatzka.flowboard.security.AccountService;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.CommentService;
@@ -27,6 +28,8 @@ class SampleDataInitializer implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(SampleDataInitializer.class);
     private static final String ACTOR = "Flowboard";
+    static final String DEMO_USER = "demo";
+    static final String DEMO_PASSWORD = "demo1234";
     private static final java.util.Map<String, Integer> ESTIMATES = java.util.Map.of(
             "Write the onboarding guide", 3,
             "Real-time sync via server push", 8,
@@ -39,11 +42,13 @@ class SampleDataInitializer implements ApplicationRunner {
     private final BoardService boardService;
     private final ChecklistService checklistService;
     private final CommentService commentService;
+    private final AccountService accounts;
     private final Clock clock;
 
     SampleDataInitializer(BoardRepository boards, BoardService boardService, ChecklistService checklistService,
-            CommentService commentService, Clock clock) {
+            CommentService commentService, AccountService accounts, Clock clock) {
         this.boards = boards;
+        this.accounts = accounts;
         this.boardService = boardService;
         this.checklistService = checklistService;
         this.commentService = commentService;
@@ -52,6 +57,10 @@ class SampleDataInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        if (accounts.find(DEMO_USER).isEmpty()) {
+            LOG.info("Creating the demo account '{}'", DEMO_USER);
+            accounts.register(DEMO_USER, "Demo User", DEMO_PASSWORD);
+        }
         if (boards.count() > 0) {
             return;
         }

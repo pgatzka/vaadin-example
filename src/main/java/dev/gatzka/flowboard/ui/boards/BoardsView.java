@@ -15,6 +15,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.shared.Registration;
@@ -38,6 +39,7 @@ import java.util.List;
 
 /** Home: what needs attention across all boards, what happened lately, and the boards themselves. */
 @Route("")
+@PermitAll
 @PageTitle("Home · Flowboard")
 public class BoardsView extends VerticalLayout {
 

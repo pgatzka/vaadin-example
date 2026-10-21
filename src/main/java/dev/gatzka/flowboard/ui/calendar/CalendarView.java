@@ -14,6 +14,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.shared.Registration;
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
 
 /** A month calendar of a board's due dates. Clicking a card opens it on the board. */
 @Route("board/:boardId/calendar/:month?")
+@PermitAll
 public class CalendarView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle {
 
     static final String MONTH = "month";

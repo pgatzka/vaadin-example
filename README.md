@@ -44,6 +44,9 @@ Java on top of Vaadin Flow's server push.
   and **file attachments** on cards (up to 5 MB each, stored in the database).
 - **Votes** on cards with "sort by votes" for backlogs, multi-line paste into a lane to create several
   cards, and a little confetti when a card lands in a done lane.
+- **Accounts.** Register with a username and password (BCrypt-hashed), sign in, sign out. The
+  display name on your account is what everyone else sees. With sample data on, a `demo` account
+  (password `demo1234`) is created so you can look around straight away.
 - **Persistent.** Boards live in a file-based H2 database under `./data`, so they survive restarts.
   The schema is managed with Flyway migrations and validated by Hibernate on startup. A demo board
   is seeded on the first start.
@@ -94,8 +97,8 @@ including dialogs and server push, without a browser or servlet container.
 ## API
 
 A small JSON API under `/api` lets scripts and other tools work with boards. Changes made through
-it are pushed to open browsers like any other change. The optional `X-Flowboard-Actor` header names
-who did it in the activity feed.
+it are pushed to open browsers like any other change. Requests authenticate with HTTP Basic using
+a Flowboard account; the account's display name is what the activity feed shows.
 
 | Method and path | Purpose |
 |---|---|
@@ -109,13 +112,14 @@ who did it in the activity feed.
 | `DELETE /api/cards/{id}` | Delete a card |
 
 ```bash
-curl -s localhost:8080/api/boards | jq '.[0].id'
-curl -s -X POST localhost:8080/api/boards/1/lanes/1/cards \
-  -H 'Content-Type: application/json' -H 'X-Flowboard-Actor: deploy-bot' \
+curl -s -u demo:demo1234 localhost:8080/api/boards | jq '.[0].id'
+curl -s -u demo:demo1234 -X POST localhost:8080/api/boards/1/lanes/1/cards \
+  -H 'Content-Type: application/json' \
   -d '{"title": "Rotate the signing key", "priority": "HIGH", "tags": ["ops"]}'
 ```
 
-Errors come back as `{"error": "…"}` with 400 for invalid input and 404 for unknown ids.
+Errors come back as `{"error": "…"}` with 400 for invalid input, 401 without credentials and 404
+for unknown ids.
 
 ## How it is built
 

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.security.AccountService;
 import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.BoardService;
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,13 +41,30 @@ class BoardsApiTest {
     @Autowired
     private JsonMapper json;
 
+    @Autowired
+    private AccountService accounts;
+
     private final HttpClient http = HttpClient.newHttpClient();
     private BoardSnapshot board;
 
     @BeforeEach
     void seed() {
+        if (accounts.find("deploy-bot").isEmpty()) {
+            accounts.register("deploy-bot", "Deploy Bot", "robots-only");
+        }
         boardService.listBoards().forEach(existing -> boardService.deleteBoard(existing.id(), "Seeder"));
         board = boardService.createBoard(new BoardDraft("Api board", "Reachable over HTTP"), "Seeder");
+    }
+
+    @Test
+    void refusesAnonymousAndUnknownCallers() throws Exception {
+        HttpRequest anonymous = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/boards")).GET().build();
+        assertThat(http.send(anonymous, HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(401);
+
+        HttpRequest wrongPassword = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/boards"))
+                .header("Authorization", basic("deploy-bot", "wrong")).GET().build();
+        HttpResponse<String> refused = http.send(wrongPassword, HttpResponse.BodyHandlers.ofString());
+        assertThat(refused.statusCode()).as(refused.headers().map() + refused.body()).isEqualTo(401);
     }
 
     @Test
@@ -70,14 +89,14 @@ class BoardsApiTest {
         long done = board.lanes().get(3).id();
 
         HttpResponse<String> created = send("POST", "/api/boards/" + board.id() + "/lanes/" + backlog + "/cards",
-                "{\"title\": \"From the API\", \"priority\": \"high\", \"tags\": [\"ops\"], \"estimate\": 3}", "X-Flowboard-Actor", "deploy-bot");
+                "{\"title\": \"From the API\", \"priority\": \"high\", \"tags\": [\"ops\"], \"estimate\": 3}");
         assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
         JsonNode card = json.readTree(created.body());
         long cardId = card.get("id").asLong();
         assertThat(created.headers().firstValue("location")).contains("/api/cards/" + cardId);
         assertThat(card.get("priority").asString()).isEqualTo("HIGH");
         assertThat(card.get("tags").get(0).asString()).isEqualTo("ops");
-        assertThat(activityLog.recent(board.id()).getFirst().actor()).isEqualTo("deploy-bot");
+        assertThat(activityLog.recent(board.id()).getFirst().actor()).isEqualTo("Deploy Bot");
 
         assertThat(send("POST", "/api/cards/" + cardId + "/move", "{\"targetLaneId\": " + done + ", \"targetIndex\": 0}").statusCode()).isEqualTo(204);
         assertThat(boardService.findBoard(board.id()).orElseThrow().lane(done).orElseThrow().cards())
@@ -126,6 +145,7 @@ class BoardsApiTest {
     private HttpResponse<String> send(String method, String path, String body, String... headers) throws IOException, InterruptedException {
         HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
                 .header("Accept", "application/json")
+                .header("Authorization", basic("deploy-bot", "robots-only"))
                 .method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
         if (body != null) {
             request.header("Content-Type", "application/json");
@@ -134,5 +154,9 @@ class BoardsApiTest {
             request.header(headers[i], headers[i + 1]);
         }
         return http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String basic(String user, String password) {
+        return "Basic " + Base64.getEncoder().encodeToString((user + ":" + password).getBytes(StandardCharsets.UTF_8));
     }
 }

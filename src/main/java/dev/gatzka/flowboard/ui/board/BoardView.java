@@ -27,6 +27,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.shared.Registration;
@@ -74,6 +75,7 @@ import java.util.function.Supplier;
  * whether through this user or through anybody else (via server push).
  */
 @Route("board/:boardId")
+@PermitAll
 @RouteAlias("board/:boardId/card/:cardId")
 public class BoardView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle, BoardActions, CardEditorActions {
 

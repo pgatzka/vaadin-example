@@ -6,9 +6,11 @@ import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.exchange.BoardExport;
+import dev.gatzka.flowboard.security.AccountService;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import java.net.URI;
+import java.security.Principal;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,7 +19,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,16 +31,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/api", produces = "application/json")
 public class BoardsApi {
 
-    /** Name recorded in the activity feed; override with the {@code X-Flowboard-Actor} header. */
-    static final String ACTOR_HEADER = "X-Flowboard-Actor";
-    static final String DEFAULT_ACTOR = "API";
-
     private final BoardService boardService;
     private final BoardExchangeService exchange;
+    private final AccountService accounts;
 
-    BoardsApi(BoardService boardService, BoardExchangeService exchange) {
+    BoardsApi(BoardService boardService, BoardExchangeService exchange, AccountService accounts) {
         this.boardService = boardService;
         this.exchange = exchange;
+        this.accounts = accounts;
+    }
+
+    /** The name recorded in the activity feed: the display name of the caller's account. */
+    private String actor(Principal caller) {
+        return accounts.displayNameOf(caller.getName());
     }
 
     @GetMapping("/boards")
@@ -54,45 +58,40 @@ public class BoardsApi {
 
     /** Creates a board from the export format; lanes and cards are optional. */
     @PostMapping(path = "/boards", consumes = "application/json")
-    public ResponseEntity<BoardSnapshot> createBoard(@RequestBody BoardExport export,
-            @RequestHeader(value = ACTOR_HEADER, defaultValue = DEFAULT_ACTOR) String actor) {
-        BoardSnapshot created = exchange.importBoard(exchange.validate(export), actor);
+    public ResponseEntity<BoardSnapshot> createBoard(@RequestBody BoardExport export, Principal caller) {
+        BoardSnapshot created = exchange.importBoard(exchange.validate(export), actor(caller));
         return ResponseEntity.created(URI.create("/api/boards/" + created.id())).body(created);
     }
 
     @DeleteMapping("/boards/{boardId}")
-    public ResponseEntity<Void> deleteBoard(@PathVariable long boardId,
-            @RequestHeader(value = ACTOR_HEADER, defaultValue = DEFAULT_ACTOR) String actor) {
-        boardService.deleteBoard(boardId, actor);
+    public ResponseEntity<Void> deleteBoard(@PathVariable long boardId, Principal caller) {
+        boardService.deleteBoard(boardId, actor(caller));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping(path = "/boards/{boardId}/lanes/{laneId}/cards", consumes = "application/json")
     public ResponseEntity<CardSnapshot> createCard(@PathVariable long boardId, @PathVariable long laneId,
-            @RequestBody CardDraft draft, @RequestHeader(value = ACTOR_HEADER, defaultValue = DEFAULT_ACTOR) String actor) {
+            @RequestBody CardDraft draft, Principal caller) {
         requireLaneOnBoard(boardId, laneId);
-        CardSnapshot created = boardService.createCard(laneId, draft, actor);
+        CardSnapshot created = boardService.createCard(laneId, draft, actor(caller));
         return ResponseEntity.created(URI.create("/api/cards/" + created.id())).body(created);
     }
 
     @PutMapping(path = "/cards/{cardId}", consumes = "application/json")
-    public CardSnapshot updateCard(@PathVariable long cardId, @RequestBody CardDraft draft,
-            @RequestHeader(value = ACTOR_HEADER, defaultValue = DEFAULT_ACTOR) String actor) {
-        return boardService.updateCard(cardId, draft, actor);
+    public CardSnapshot updateCard(@PathVariable long cardId, @RequestBody CardDraft draft, Principal caller) {
+        return boardService.updateCard(cardId, draft, actor(caller));
     }
 
     /** Moves a card to {@code targetIndex} in {@code targetLaneId}; the index is clamped to the lane. */
     @PostMapping(path = "/cards/{cardId}/move", consumes = "application/json")
-    public ResponseEntity<Void> moveCard(@PathVariable long cardId, @RequestBody MoveRequest move,
-            @RequestHeader(value = ACTOR_HEADER, defaultValue = DEFAULT_ACTOR) String actor) {
-        boardService.moveCard(cardId, move.targetLaneId(), move.targetIndex(), actor);
+    public ResponseEntity<Void> moveCard(@PathVariable long cardId, @RequestBody MoveRequest move, Principal caller) {
+        boardService.moveCard(cardId, move.targetLaneId(), move.targetIndex(), actor(caller));
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/cards/{cardId}")
-    public ResponseEntity<Void> deleteCard(@PathVariable long cardId,
-            @RequestHeader(value = ACTOR_HEADER, defaultValue = DEFAULT_ACTOR) String actor) {
-        boardService.deleteCard(cardId, actor);
+    public ResponseEntity<Void> deleteCard(@PathVariable long cardId, Principal caller) {
+        boardService.deleteCard(cardId, actor(caller));
         return ResponseEntity.noContent().build();
     }
 

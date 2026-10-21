@@ -11,6 +11,7 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.shared.Registration;
 import dev.gatzka.flowboard.domain.CardLocation;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 
 /** Everything assigned to the current user, across boards, grouped by urgency. */
 @Route("my-work")
+@PermitAll
 @PageTitle("My work · Flowboard")
 public class MyWorkView extends VerticalLayout {
 
