@@ -6,10 +6,12 @@ import com.vaadin.browserless.SpringBrowserlessTest;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.textfield.TextField;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.BoardSummary;
+import dev.gatzka.flowboard.domain.BoardTemplate;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.ui.board.BoardView;
 import java.util.Map;
@@ -77,9 +79,12 @@ class BoardsViewTest extends SpringBrowserlessTest {
         test($(Button.class).withText("New board").single()).click();
         BoardDialog dialog = $(BoardDialog.class).single();
         test($(TextField.class, dialog).withLabel("Name").single()).setValue("Roadmap");
+        test($(RadioButtonGroup.class, dialog).single(), BoardTemplate.class).selectItem("Personal");
         test($(Button.class, dialog).withText("Create board").single()).click();
 
         assertThat(getCurrentView()).isInstanceOf(BoardView.class);
         assertThat(service.listBoards()).extracting(BoardSummary::name).containsExactly("Roadmap");
+        assertThat(service.findBoard(service.listBoards().getFirst().id()).orElseThrow().lanes())
+                .extracting(lane -> lane.name()).containsExactly("To do", "Doing", "Done");
     }
 }

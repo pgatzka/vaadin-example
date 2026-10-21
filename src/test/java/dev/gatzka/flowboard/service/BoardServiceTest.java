@@ -9,6 +9,7 @@ import dev.gatzka.flowboard.domain.ActivityEntry;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.BoardSummary;
+import dev.gatzka.flowboard.domain.BoardTemplate;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneDraft;
@@ -59,6 +60,18 @@ class BoardServiceTest {
         assertThat(board.lanes()).extracting(LaneSnapshot::position).containsExactly(0, 1, 2, 3);
         assertThat(board.lanes().get(1).wipLimit()).isEqualTo(3);
         assertThat(board.lanes().get(3).done()).isTrue();
+    }
+
+    @Test
+    void boardsCanBeCreatedFromTemplates() {
+        BoardSnapshot scrum = service.createBoard(new BoardDraft("Sprint 1", null), BoardTemplate.SCRUM, ACTOR);
+        assertThat(scrum.lanes()).extracting(LaneSnapshot::name)
+                .containsExactly("Product backlog", "Sprint backlog", "In progress", "Review", "Done");
+        assertThat(scrum.lanes().getLast().done()).isTrue();
+
+        BoardSnapshot blank = service.createBoard(new BoardDraft("Empty", null), BoardTemplate.BLANK, ACTOR);
+        assertThat(blank.lanes()).isEmpty();
+        assertThat(activityLog.recent(blank.id()).getFirst().message()).isEqualTo("created board \"Empty\" from the Blank template");
     }
 
     @Test
@@ -260,7 +273,7 @@ class BoardServiceTest {
         assertThat(recent).extracting(ActivityEntry::message).containsExactly(
                 "added \"Second\" to Backlog",
                 "added \"First\" to Backlog",
-                "created board \"Launch\"");
+                "created board \"Launch\" from the Kanban template");
         assertThat(recent).extracting(ActivityEntry::actor).containsOnly(ACTOR);
     }
 

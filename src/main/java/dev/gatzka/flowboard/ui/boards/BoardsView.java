@@ -113,8 +113,8 @@ public class BoardsView extends VerticalLayout {
     }
 
     private void openCreateDialog() {
-        BoardDialog.forNewBoard(draft -> {
-            BoardSnapshot created = boardService.createBoard(draft, session.getDisplayName());
+        BoardDialog.forNewBoard((draft, template) -> {
+            BoardSnapshot created = boardService.createBoard(draft, template, session.getDisplayName());
             refresh();
             getUI().ifPresent(ui -> ui.navigate(BoardView.class, new RouteParameters(BoardView.BOARD_ID, Long.toString(created.id()))));
         }).open();

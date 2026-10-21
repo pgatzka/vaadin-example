@@ -6,6 +6,7 @@ import dev.gatzka.flowboard.domain.Board;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.BoardSummary;
+import dev.gatzka.flowboard.domain.BoardTemplate;
 import dev.gatzka.flowboard.domain.Card;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
@@ -36,12 +37,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class BoardService {
 
-    static final List<LaneDraft> DEFAULT_LANES = List.of(
-            new LaneDraft("Backlog", null, false),
-            new LaneDraft("In progress", 3, false),
-            new LaneDraft("Review", 2, false),
-            new LaneDraft("Done", null, true));
-
     private final BoardRepository boards;
     private final LaneRepository lanes;
     private final CardRepository cards;
@@ -71,12 +66,19 @@ public class BoardService {
         return boards.findById(boardId).map(this::snapshot);
     }
 
+    /** Creates a board with the standard Kanban lanes. */
     public BoardSnapshot createBoard(BoardDraft draft, String actor) {
+        return createBoard(draft, BoardTemplate.KANBAN, actor);
+    }
+
+    public BoardSnapshot createBoard(BoardDraft draft, BoardTemplate template, String actor) {
         Board board = boards.save(new Board(draft, clock.instant()));
-        for (int i = 0; i < DEFAULT_LANES.size(); i++) {
-            lanes.save(new Lane(board, DEFAULT_LANES.get(i), i));
+        List<LaneDraft> templateLanes = template.lanes();
+        for (int i = 0; i < templateLanes.size(); i++) {
+            lanes.save(new Lane(board, templateLanes.get(i), i));
         }
-        activityLog.record(BoardChangedEvent.created(board.getId(), actor, "created board \"%s\"".formatted(board.getName())));
+        activityLog.record(BoardChangedEvent.created(board.getId(), actor,
+                "created board \"%s\" from the %s template".formatted(board.getName(), template.label())));
         return snapshot(board);
     }
 
