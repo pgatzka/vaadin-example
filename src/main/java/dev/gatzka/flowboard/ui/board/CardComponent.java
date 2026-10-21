@@ -116,6 +116,13 @@ final class CardComponent extends Div {
             checklist.getElement().setAttribute("title", "Checklist");
             meta.add(checklist);
         }
+        if (card.hasAttachments()) {
+            Badge files = new Badge(Integer.toString(card.attachments().size()), VaadinIcon.PAPERCLIP.create());
+            files.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
+            files.addClassName("task-card__attachments");
+            files.getElement().setAttribute("title", "Attachments");
+            meta.add(files);
+        }
         if (card.hasComments()) {
             Badge comments = new Badge(Integer.toString(card.comments().size()), VaadinIcon.COMMENT_O.create());
             comments.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);

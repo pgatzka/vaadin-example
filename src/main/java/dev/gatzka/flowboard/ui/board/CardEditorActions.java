@@ -18,6 +18,12 @@ interface CardEditorActions {
     /** The card's history, newest first. */
     List<ActivityEntry> history(long cardId);
 
+    CardSnapshot attach(long cardId, String fileName, String contentType, byte[] data);
+
+    CardSnapshot removeAttachment(long attachmentId);
+
+    java.util.Optional<byte[]> attachmentContent(long attachmentId);
+
     CardSnapshot addBlocker(long cardId, long blockerId);
 
     CardSnapshot removeBlocker(long cardId, long blockerId);

@@ -37,6 +37,7 @@ import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.service.ActivityLog;
+import dev.gatzka.flowboard.service.AttachmentService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardChangedEvent;
 import dev.gatzka.flowboard.service.BoardService;
@@ -84,6 +85,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final CommentService commentService;
     private final VoteService voteService;
     private final DependencyService dependencyService;
+    private final AttachmentService attachmentService;
     private final InsightsService insightsService;
     private final FlowSnapshotService flowSnapshots;
     private final AssistantService assistant;
@@ -113,7 +115,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private Registration profileSubscription;
 
     public BoardView(BoardService boardService, ChecklistService checklistService, CommentService commentService,
-            VoteService voteService, DependencyService dependencyService, InsightsService insightsService, FlowSnapshotService flowSnapshots, AssistantService assistant,
+            VoteService voteService, DependencyService dependencyService, AttachmentService attachmentService,
+            InsightsService insightsService, FlowSnapshotService flowSnapshots, AssistantService assistant,
             ExecutorService executor, ActivityLog activityLog,
             BoardChangeBroadcaster broadcaster, PresenceTracker presence, UserSession session, Clock clock) {
         this.boardService = boardService;
@@ -121,6 +124,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         this.commentService = commentService;
         this.voteService = voteService;
         this.dependencyService = dependencyService;
+        this.attachmentService = attachmentService;
         this.insightsService = insightsService;
         this.flowSnapshots = flowSnapshots;
         this.assistant = assistant;
@@ -511,6 +515,26 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Override
     public List<ActivityEntry> history(long cardId) {
         return activityLog.recentForCard(cardId);
+    }
+
+    @Override
+    public CardSnapshot attach(long cardId, String fileName, String contentType, byte[] data) {
+        try {
+            return changeCard(() -> attachmentService.attach(cardId, fileName, contentType, data, actor()));
+        } catch (IllegalArgumentException rejected) {
+            Toasts.error(rejected.getMessage());
+            return findCard(cardId).orElseThrow();
+        }
+    }
+
+    @Override
+    public CardSnapshot removeAttachment(long attachmentId) {
+        return changeCard(() -> attachmentService.remove(attachmentId, actor()));
+    }
+
+    @Override
+    public Optional<byte[]> attachmentContent(long attachmentId) {
+        return attachmentService.content(attachmentId);
     }
 
     @Override

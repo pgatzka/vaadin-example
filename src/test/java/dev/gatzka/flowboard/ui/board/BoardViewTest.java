@@ -11,6 +11,7 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.messages.MessageInput;
 import com.vaadin.flow.component.messages.MessageList;
 import com.vaadin.flow.component.messages.MessageListItem;
@@ -24,6 +25,7 @@ import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
+import dev.gatzka.flowboard.service.AttachmentService;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.CommentService;
 import dev.gatzka.flowboard.service.DependencyService;
@@ -55,6 +57,9 @@ class BoardViewTest extends SpringBrowserlessTest {
 
     @Autowired
     private DependencyService dependencyService;
+
+    @Autowired
+    private AttachmentService attachmentService;
 
     @Autowired
     private ApplicationContext context;
@@ -404,6 +409,23 @@ class BoardViewTest extends SpringBrowserlessTest {
         assertThat(service.findBoard(board.id()).orElseThrow().lanes().get(3).cards()).as("nothing moves before confirming").isEmpty();
         test(confirm).confirm();
         assertThat(service.findBoard(board.id()).orElseThrow().lanes().get(3).cards()).extracting(CardSnapshot::title).containsExactly("Build");
+    }
+
+    @Test
+    void attachmentsAreListedAndRemovableFromTheEditor() {
+        CardSnapshot created = createCard("Has a file");
+        attachmentService.attach(created.id(), "spec.pdf", "application/pdf", new byte[] {1, 2}, SEEDER);
+        openBoard();
+        assertThat($(Badge.class, $(CardComponent.class).single()).withClassName("task-card__attachments").single().getText()).isEqualTo("1");
+
+        test($(CardComponent.class).single()).click();
+        CardEditorDialog dialog = $(CardEditorDialog.class).single();
+        test($(TabSheet.class, dialog).withClassName("card-tabs").single()).select("Files (1)");
+        assertThat($(Anchor.class, $(AttachmentsSection.class).single()).withText("spec.pdf").all()).hasSize(1);
+
+        test($(Button.class, $(AttachmentsSection.class).single()).withCondition(b -> "Remove spec.pdf".equals(b.getAriaLabel().orElse(null))).single()).click();
+
+        assertThat($(CardComponent.class).single().card().hasAttachments()).isFalse();
     }
 
     @Test

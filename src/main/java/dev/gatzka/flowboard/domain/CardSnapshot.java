@@ -21,6 +21,7 @@ public record CardSnapshot(
         Integer estimate,
         Set<String> voters,
         List<BlockerSnapshot> blockers,
+        List<AttachmentSnapshot> attachments,
         List<ChecklistItemSnapshot> checklist,
         List<CommentSnapshot> comments,
         int position,
@@ -30,6 +31,7 @@ public record CardSnapshot(
 
     public CardSnapshot {
         blockers = List.copyOf(blockers);
+        attachments = List.copyOf(attachments);
         checklist = List.copyOf(checklist);
         comments = List.copyOf(comments);
     }
@@ -58,6 +60,7 @@ public record CardSnapshot(
                 Set.copyOf(card.getVoters()),
                 card.getBlockers().stream().map(BlockerSnapshot::of)
                         .sorted(java.util.Comparator.comparing(BlockerSnapshot::title, String.CASE_INSENSITIVE_ORDER)).toList(),
+                card.getAttachments().stream().map(AttachmentSnapshot::of).toList(),
                 card.getChecklist().stream().map(ChecklistItemSnapshot::of).toList(),
                 card.getComments().stream().map(CommentSnapshot::of).toList(),
                 card.getPosition(),
@@ -92,6 +95,10 @@ public record CardSnapshot(
 
     public boolean isArchived() {
         return archivedAt != null;
+    }
+
+    public boolean hasAttachments() {
+        return !attachments.isEmpty();
     }
 
     public boolean hasComments() {

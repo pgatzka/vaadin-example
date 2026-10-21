@@ -61,6 +61,9 @@ public class Card {
     /** Story points, or {@code null} when not estimated. */
     private Integer estimate;
 
+    @OneToMany(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Attachment> attachments = new HashSet<>();
+
     /** Cards this one waits for. Same board only, acyclic; enforced by the service. */
     @ManyToMany
     @JoinTable(name = "card_blockers",
@@ -179,6 +182,26 @@ public class Card {
         comments.add(comment);
         updatedAt = requireNonNull(now);
         return comment;
+    }
+
+    public Attachment addAttachment(String fileName, String contentType, long size, String uploadedBy, Instant now) {
+        Attachment attachment = new Attachment(this, fileName, contentType, size, uploadedBy, now);
+        attachments.add(attachment);
+        updatedAt = requireNonNull(now);
+        return attachment;
+    }
+
+    public void removeAttachment(Attachment attachment, Instant now) {
+        if (attachments.remove(attachment)) {
+            updatedAt = requireNonNull(now);
+        }
+    }
+
+    /** Attachments oldest first; read-only, modify through the card. */
+    public List<Attachment> getAttachments() {
+        return attachments.stream()
+                .sorted(Comparator.comparing(Attachment::getUploadedAt).thenComparing(Attachment::getId))
+                .toList();
     }
 
     public boolean addBlocker(Card blocker, Instant now) {

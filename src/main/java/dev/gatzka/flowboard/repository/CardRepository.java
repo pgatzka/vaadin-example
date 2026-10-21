@@ -15,10 +15,10 @@ import org.springframework.data.jpa.repository.Query;
 public interface CardRepository extends JpaRepository<Card, Long> {
 
     /** All live cards of a board with tags, checklists and comments loaded in the same query. */
-    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers"})
+    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers", "attachments"})
     List<Card> findAllByLaneBoardIdAndArchivedAtIsNullOrderByPositionAsc(long boardId);
 
-    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers"})
+    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers", "attachments"})
     List<Card> findAllByLaneBoardIdAndArchivedAtIsNotNullOrderByArchivedAtDesc(long boardId);
 
     List<Card> findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(long laneId);
@@ -31,10 +31,10 @@ public interface CardRepository extends JpaRepository<Card, Long> {
 
     long countByLaneBoardIdAndLaneDoneFalseAndArchivedAtIsNullAndDueDateBefore(long boardId, LocalDate date);
 
-    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers", "lane", "lane.board"})
+    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers", "attachments", "lane", "lane.board"})
     List<Card> findAllByAssigneeIgnoreCaseAndArchivedAtIsNull(String assignee);
 
-    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers", "lane", "lane.board"})
+    @EntityGraph(attributePaths = {"tags", "checklist", "comments", "voters", "blockers", "attachments", "lane", "lane.board"})
     List<Card> findAllByArchivedAtIsNull();
 
     List<Card> findAllByLaneId(long laneId);

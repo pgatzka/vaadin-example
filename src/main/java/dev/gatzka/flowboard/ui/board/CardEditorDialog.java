@@ -58,6 +58,8 @@ final class CardEditorDialog extends Dialog {
     private Long cardId;
     private ChecklistSection checklistSection;
     private DependenciesSection dependenciesSection;
+    private AttachmentsSection attachmentsSection;
+    private Tab attachmentsTab;
     private CommentsSection commentsSection;
     private HistorySection historySection;
     private Tab commentsTab;
@@ -98,6 +100,8 @@ final class CardEditorDialog extends Dialog {
         }
         checklistSection.show(card);
         dependenciesSection.show(card);
+        attachmentsSection.show(card);
+        attachmentsTab.setLabel(attachmentsLabel(card));
         commentsSection.show(card);
         commentsTab.setLabel(commentsLabel(card));
         historySection.show(actions.history(card.id()));
@@ -113,6 +117,7 @@ final class CardEditorDialog extends Dialog {
         getHeader().add(copyLink);
         checklistSection = new ChecklistSection(card, actions, this::refresh);
         dependenciesSection = new DependenciesSection(card, board, actions, this::refresh);
+        attachmentsSection = new AttachmentsSection(card, actions, this::refresh);
         commentsSection = new CommentsSection(card, actions, this::refresh);
         historySection = new HistorySection(actions.history(card.id()));
 
@@ -120,6 +125,8 @@ final class CardEditorDialog extends Dialog {
         tabs.addClassName("card-tabs");
         commentsTab = new Tab(commentsLabel(card));
         tabs.add(commentsTab, commentsSection);
+        attachmentsTab = new Tab(attachmentsLabel(card));
+        tabs.add(attachmentsTab, attachmentsSection);
         tabs.add("Dependencies", dependenciesSection);
         tabs.add("History", historySection);
         tabs.setWidthFull();
@@ -130,6 +137,10 @@ final class CardEditorDialog extends Dialog {
         String path = BoardView.pathTo(board.id(), card.id());
         getUI().ifPresent(ui -> ui.getPage().executeJs("navigator.clipboard.writeText(location.origin + '/' + $0)", path));
         Toasts.success("Link copied");
+    }
+
+    private static String attachmentsLabel(CardSnapshot card) {
+        return card.hasAttachments() ? "Files (" + card.attachments().size() + ")" : "Files";
     }
 
     private static String commentsLabel(CardSnapshot card) {
