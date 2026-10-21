@@ -34,6 +34,7 @@ import dev.gatzka.flowboard.service.BoardChangedEvent;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.CommentService;
+import dev.gatzka.flowboard.service.InsightsService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.service.PresenceTracker;
@@ -61,6 +62,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final BoardService boardService;
     private final ChecklistService checklistService;
     private final CommentService commentService;
+    private final InsightsService insightsService;
     private final ActivityLog activityLog;
     private final BoardChangeBroadcaster broadcaster;
     private final PresenceTracker presence;
@@ -74,6 +76,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final AvatarGroup participants = new AvatarGroup();
     private final Div lanes = new Div();
     private final ActivityDialog activityDialog = new ActivityDialog();
+    private final InsightsDialog insightsDialog = new InsightsDialog();
     private final List<LaneComponent> laneComponents = new ArrayList<>();
 
     private BoardSnapshot board;
@@ -84,11 +87,12 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private Registration profileSubscription;
 
     public BoardView(BoardService boardService, ChecklistService checklistService, CommentService commentService,
-            ActivityLog activityLog, BoardChangeBroadcaster broadcaster, PresenceTracker presence, UserSession session,
-            Clock clock) {
+            InsightsService insightsService, ActivityLog activityLog, BoardChangeBroadcaster broadcaster,
+            PresenceTracker presence, UserSession session, Clock clock) {
         this.boardService = boardService;
         this.checklistService = checklistService;
         this.commentService = commentService;
+        this.insightsService = insightsService;
         this.activityLog = activityLog;
         this.broadcaster = broadcaster;
         this.presence = presence;
@@ -129,10 +133,15 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         activity.setAriaLabel("Show activity");
         activity.setTooltipText("Activity");
 
+        Button insights = new Button(VaadinIcon.CHART.create(), event -> openInsights());
+        insights.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        insights.setAriaLabel("Show insights");
+        insights.setTooltipText("Insights");
+
         Button addLane = new Button("Add lane", VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        Div toolbar = new Div(titles, search, filters, participants, activity, addLane);
+        Div toolbar = new Div(titles, search, filters, participants, activity, insights, addLane);
         toolbar.addClassName("board-toolbar");
         return toolbar;
     }
@@ -231,6 +240,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         if (activityDialog.isOpened()) {
             activityDialog.show(activityLog.recent(board.id()));
         }
+        if (insightsDialog.isOpened()) {
+            insightsDialog.show(insightsService.forBoard(board.id()));
+        }
         if (openEditor != null) {
             openEditor.cardId().flatMap(this::findCard).ifPresent(openEditor::refresh);
         }
@@ -256,6 +268,11 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
                     return item;
                 })
                 .toList());
+    }
+
+    private void openInsights() {
+        insightsDialog.show(insightsService.forBoard(board.id()));
+        insightsDialog.open();
     }
 
     private void openActivity() {

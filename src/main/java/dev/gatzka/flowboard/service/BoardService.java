@@ -107,7 +107,12 @@ public class BoardService {
 
     public void updateLane(long laneId, LaneDraft draft, String actor) {
         Lane lane = requireLane(laneId);
+        boolean wasDone = lane.isDone();
         lane.update(draft);
+        if (wasDone != lane.isDone()) {
+            Instant now = clock.instant();
+            cards.findAllByLaneIdOrderByPositionAsc(laneId).forEach(card -> card.markCompletion(lane.isDone(), now));
+        }
         activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor, "updated lane \"%s\"".formatted(lane.getName())));
     }
 

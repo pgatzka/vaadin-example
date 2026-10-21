@@ -255,6 +255,19 @@ class BoardViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void insightsDialogShowsTheNumbers() {
+        createCard("Counted");
+        openBoard();
+
+        test($(Button.class).withCondition(b -> "Show insights".equals(b.getAriaLabel().orElse(null))).single()).click();
+
+        InsightsDialog dialog = $(InsightsDialog.class).single();
+        assertThat(dialog.isOpened()).isTrue();
+        assertThat($(com.vaadin.flow.component.html.Span.class, dialog).withClassName("insights__tile-value").all())
+                .extracting(span -> span.getText()).startsWith("1", "0");
+    }
+
+    @Test
     void changesMadeElsewhereArePushedIntoTheView() {
         openBoard();
         assertThat(visibleCardTitles()).isEmpty();

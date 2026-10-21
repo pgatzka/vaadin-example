@@ -76,6 +76,9 @@ public class Card {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    /** When the card last entered a done lane; {@code null} while it is open. */
+    private Instant completedAt;
+
     protected Card() {
         // JPA
     }
@@ -84,6 +87,7 @@ public class Card {
         this.lane = requireNonNull(lane);
         this.position = position;
         this.createdAt = requireNonNull(now);
+        this.completedAt = lane.isDone() ? now : null;
         update(draft, now);
     }
 
@@ -101,6 +105,16 @@ public class Card {
     public void moveTo(Lane lane, Instant now) {
         this.lane = requireNonNull(lane);
         this.updatedAt = requireNonNull(now);
+        markCompletion(lane.isDone(), now);
+    }
+
+    /** Keeps {@link #getCompletedAt()} in step with whether the card sits in a done lane. */
+    public void markCompletion(boolean done, Instant now) {
+        if (done && completedAt == null) {
+            completedAt = requireNonNull(now);
+        } else if (!done) {
+            completedAt = null;
+        }
     }
 
     public void setPosition(int position) {
@@ -186,5 +200,9 @@ public class Card {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Instant getCompletedAt() {
+        return completedAt;
     }
 }
