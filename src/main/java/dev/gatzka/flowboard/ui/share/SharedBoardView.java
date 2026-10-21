@@ -24,6 +24,7 @@ import dev.gatzka.flowboard.service.BoardChangedEvent;
 import dev.gatzka.flowboard.service.SharingService;
 import dev.gatzka.flowboard.ui.account.LoginView;
 import dev.gatzka.flowboard.ui.board.CardComponent;
+import dev.gatzka.flowboard.ui.support.Themes;
 import dev.gatzka.flowboard.ui.support.UiAccess;
 import java.time.Clock;
 import java.time.Instant;
@@ -104,6 +105,7 @@ public class SharedBoardView extends Div implements BeforeEnterObserver, HasDyna
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         UI ui = attachEvent.getUI();
+        Themes.followSystem(ui);
         changeSubscription = broadcaster.subscribe(event -> {
             if (board != null && event.boardId() == board.id()) {
                 UiAccess.run(ui, () -> onRemoteChange(event));

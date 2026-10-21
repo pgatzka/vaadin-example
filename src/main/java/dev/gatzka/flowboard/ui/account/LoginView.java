@@ -1,5 +1,6 @@
 package dev.gatzka.flowboard.ui.account;
 
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
@@ -11,6 +12,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import dev.gatzka.flowboard.ui.support.Themes;
 import org.springframework.beans.factory.annotation.Value;
 
 /** Sign-in page; the form posts to Spring Security, which sends the user back to where they wanted to go. */
@@ -18,6 +20,11 @@ import org.springframework.beans.factory.annotation.Value;
 @PageTitle("Sign in · Flowboard")
 @AnonymousAllowed
 public class LoginView extends Div implements BeforeEnterObserver {
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        Themes.followSystem(attachEvent.getUI());
+    }
 
     public static final String PATH = "login";
     static final String ERROR_PARAMETER = "error";

@@ -160,7 +160,9 @@ html {
 .account-page {
   min-height: 100vh;
   display: grid;
-  place-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
   padding: var(--lumo-space-l);
   box-sizing: border-box;
   background:
@@ -170,7 +172,9 @@ html {
 }
 
 .account-page__card {
-  width: min(26rem, 100%);
+  width: 100%;
+  max-width: 26rem;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: var(--lumo-space-s);
@@ -1671,4 +1675,42 @@ vaadin-dialog.activity-sheet::part(content) {
   padding: var(--lumo-space-l);
   text-align: center;
   color: var(--lumo-secondary-text-color);
+}
+
+/* ------------------------------------------------------------ small screens */
+
+@media (max-width: 600px) {
+  .account-page {
+    padding: var(--lumo-space-m);
+  }
+
+  .account-page__card {
+    padding: var(--lumo-space-m);
+  }
+
+  .account-page__card vaadin-login-form,
+  .account-page__card vaadin-login-form-wrapper {
+    min-width: 0;
+  }
+
+  .card-row {
+    flex-wrap: wrap;
+  }
+
+  .card-row__title {
+    flex-basis: 100%;
+    white-space: normal;
+  }
+
+  .card-row__where {
+    white-space: normal;
+  }
+
+  .digest__sheet .digest__body h1 {
+    font-size: var(--lumo-font-size-xxl);
+  }
+
+  .digest__sheet .digest__body {
+    padding: var(--lumo-space-m);
+  }
 }

@@ -4,6 +4,7 @@ import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
@@ -14,6 +15,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import dev.gatzka.flowboard.ui.support.Themes;
 import dev.gatzka.flowboard.security.AccountService;
 import dev.gatzka.flowboard.security.RegistrationException;
 import java.util.Map;
@@ -23,6 +25,11 @@ import java.util.Map;
 @PageTitle("Create an account · Flowboard")
 @AnonymousAllowed
 public class RegisterView extends Div {
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        Themes.followSystem(attachEvent.getUI());
+    }
 
     public static final String PATH = "register";
 
