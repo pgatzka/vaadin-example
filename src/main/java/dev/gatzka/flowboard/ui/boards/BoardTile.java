@@ -40,6 +40,12 @@ final class BoardTile extends Card {
         add(description);
 
         addToFooter(count(board.laneCount(), "lane"), count(board.cardCount(), "card"));
+        if (board.membersOnly()) {
+            Badge members = new Badge("Members only", VaadinIcon.LOCK.create());
+            members.addThemeVariants(BadgeVariant.CONTRAST);
+            members.addClassName("board-tile__private");
+            addToFooter(members);
+        }
         if (board.archivedCount() > 0) {
             Badge archived = new Badge(board.archivedCount() + " archived");
             archived.addThemeVariants(BadgeVariant.CONTRAST);

@@ -24,6 +24,7 @@ import dev.gatzka.flowboard.domain.BoardSummary;
 import dev.gatzka.flowboard.domain.Overview;
 import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
+import dev.gatzka.flowboard.service.AccessService;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.OverviewService;
 import dev.gatzka.flowboard.service.NotFoundException;
@@ -49,6 +50,7 @@ public class BoardsView extends VerticalLayout {
     private final BoardChangeBroadcaster broadcaster;
     private final UserSession session;
     private final Clock clock;
+    private final AccessService access;
 
     private final Div dashboard = new Div();
     private final Div grid = new Div();
@@ -56,8 +58,9 @@ public class BoardsView extends VerticalLayout {
     private Registration newBoardSubscription;
 
     public BoardsView(BoardService boardService, OverviewService overviewService, BoardExchangeService exchange,
-            BoardChangeBroadcaster broadcaster, UserSession session, Clock clock) {
+            BoardChangeBroadcaster broadcaster, AccessService access, UserSession session, Clock clock) {
         this.boardService = boardService;
+        this.access = access;
         this.overviewService = overviewService;
         this.exchange = exchange;
         this.broadcaster = broadcaster;
@@ -110,9 +113,9 @@ public class BoardsView extends VerticalLayout {
     }
 
     private void refresh() {
-        renderDashboard(overviewService.overview());
+        renderDashboard(overviewService.overview(access.visibleBoardIds(session.login())));
         grid.removeAll();
-        List<BoardSummary> boards = boardService.listBoards();
+        List<BoardSummary> boards = access.visibleBoards(session.login());
         if (boards.isEmpty()) {
             grid.add(emptyState());
             return;

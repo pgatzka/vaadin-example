@@ -27,6 +27,10 @@ public class Board {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
+    /** When set, only the accounts listed as members can see the board. */
+    @Column(name = "members_only", nullable = false)
+    private boolean membersOnly;
+
     /** Token of the public read-only link, or {@code null} while the board is not shared. */
     @Column(name = "share_token", length = 40)
     private String shareToken;
@@ -55,6 +59,14 @@ public class Board {
 
     public String getDescription() {
         return description;
+    }
+
+    public boolean isMembersOnly() {
+        return membersOnly;
+    }
+
+    public void setMembersOnly(boolean membersOnly) {
+        this.membersOnly = membersOnly;
     }
 
     public String getShareToken() {

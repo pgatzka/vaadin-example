@@ -30,6 +30,7 @@ import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.theme.lumo.Lumo;
 import jakarta.annotation.security.PermitAll;
 import dev.gatzka.flowboard.domain.BoardSummary;
+import dev.gatzka.flowboard.service.AccessService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.InboxBroadcaster;
@@ -61,6 +62,7 @@ public class MainLayout extends AppLayout {
     private final NotificationService notificationService;
     private final VisitService visits;
     private final TimeService timeService;
+    private final AccessService access;
     private final InboxBroadcaster inboxBroadcaster;
     private final InboxDialog inboxDialog;
     private final Button inboxButton = new Button();
@@ -78,8 +80,9 @@ public class MainLayout extends AppLayout {
 
     public MainLayout(BoardService boardService, WorkService workService, NotificationService notificationService,
             BoardChangeBroadcaster broadcaster, InboxBroadcaster inboxBroadcaster, VisitService visits, TimeService timeService,
-            UserSession session, Clock clock) {
+            AccessService access, UserSession session, Clock clock) {
         this.boardService = boardService;
+        this.access = access;
         this.visits = visits;
         this.timeService = timeService;
         this.broadcaster = broadcaster;
@@ -87,7 +90,7 @@ public class MainLayout extends AppLayout {
         this.notificationService = notificationService;
         this.inboxBroadcaster = inboxBroadcaster;
         this.inboxDialog = new InboxDialog(notificationService, session, this::refreshInbox);
-        this.searchDialog = new SearchDialog(workService, this::commands, clock);
+        this.searchDialog = new SearchDialog(workService, this::commands, location -> access.canAccess(location.boardId(), session.login()), clock);
         Shortcuts.addShortcutListener(this, event -> searchDialog.open(), Key.KEY_K, KeyModifier.CONTROL);
         Shortcuts.addShortcutListener(this, event -> new ShortcutsDialog().open(), Key.SLASH, KeyModifier.CONTROL);
 
@@ -131,7 +134,7 @@ public class MainLayout extends AppLayout {
         list.add(new Command("Keyboard shortcuts", VaadinIcon.QUESTION_CIRCLE_O, () -> new ShortcutsDialog().open()));
         list.add(new Command("Change display name", VaadinIcon.USER, () -> new ProfileDialog(session, this::onProfileSaved).open()));
         list.add(new Command("Sign out", VaadinIcon.SIGN_OUT, session::signOut));
-        for (BoardSummary board : boardService.listBoards()) {
+        for (BoardSummary board : access.visibleBoards(session.login())) {
             RouteParameters parameters = new RouteParameters(BoardView.BOARD_ID, Long.toString(board.id()));
             list.add(new Command("Open board: " + board.name(), VaadinIcon.TASKS, () -> getUI().ifPresent(ui -> ui.navigate(BoardView.class, parameters))));
         }
@@ -259,7 +262,7 @@ public class MainLayout extends AppLayout {
     private void refreshBoards() {
         boardsNav.removeAll();
         Map<Long, Long> unread = visits.unreadCounts(session.login(), session.getDisplayName());
-        for (BoardSummary board : boardService.listBoards()) {
+        for (BoardSummary board : access.visibleBoards(session.login())) {
             RouteParameters parameters = new RouteParameters(BoardView.BOARD_ID, Long.toString(board.id()));
             SideNavItem item = new SideNavItem(board.name(), BoardView.class, parameters, VaadinIcon.TASKS.create());
             Long count = unread.get(board.id());

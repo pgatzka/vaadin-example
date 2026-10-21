@@ -30,6 +30,12 @@ class BoardsViewTest extends FlowboardUiTest {
     @Autowired
     private BoardService service;
 
+    @Autowired
+    private dev.gatzka.flowboard.service.AccessService access;
+
+    @Autowired
+    private dev.gatzka.flowboard.security.AccountService accounts;
+
     /**
      * The test environment navigates to the root view (this one) as soon as it is initialised,
      * so the database has to be clean before that happens, not merely before the test method.
@@ -106,6 +112,33 @@ class BoardsViewTest extends FlowboardUiTest {
         navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(alpha.id())));
         assertThat($(dev.gatzka.flowboard.ui.board.CardComponent.class).withClassName("task-card--changed").all())
                 .extracting(component -> component.card().title()).containsExactly("Newer");
+    }
+
+    @Test
+    void membersOnlyBoardsHideFromEverybodyElse() {
+        BoardSnapshot open = service.createBoard(new BoardDraft("Open", null), "Mara");
+        BoardSnapshot secret = service.createBoard(new BoardDraft("Secret", null), "Jonas");
+        if (accounts.find("jonas").isEmpty()) {
+            accounts.register("jonas", "Jonas", "longenough");
+        }
+        if (accounts.find("mara").isEmpty()) {
+            accounts.register("mara", "mara", "longenough"); // the mock principal, shown by its login like before
+        }
+        access.setMembersOnly(secret.id(), true, "jonas", "Jonas");
+
+        navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(open.id())));
+        navigate(BoardsView.class);
+        assertThat($(BoardTile.class).all()).hasSize(1);
+        assertThat($(com.vaadin.flow.component.sidenav.SideNavItem.class).all())
+                .extracting(com.vaadin.flow.component.sidenav.SideNavItem::getLabel).contains("Open").doesNotContain("Secret");
+
+        navigate("board/" + secret.id(), BoardsView.class);
+
+        access.addMember(secret.id(), "mara", "Jonas");
+        navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(secret.id())));
+        navigate(BoardsView.class);
+        assertThat($(BoardTile.class).all()).hasSize(2);
+        assertThat($(com.vaadin.flow.component.badge.Badge.class).withClassName("board-tile__private").all()).hasSize(1);
     }
 
     @Test

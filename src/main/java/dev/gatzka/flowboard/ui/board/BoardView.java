@@ -46,6 +46,8 @@ import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.domain.SavedViewSnapshot;
 import dev.gatzka.flowboard.domain.TimerSnapshot;
 import dev.gatzka.flowboard.domain.WorkEntrySnapshot;
+import dev.gatzka.flowboard.security.AccountService;
+import dev.gatzka.flowboard.service.AccessService;
 import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.AttachmentService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
@@ -123,6 +125,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final SavedViewService savedViews;
     private final TimeService timeService;
     private final CardTemplateService templateService;
+    private final AccessService access;
+    private final AccountService accounts;
     private final UserSession session;
     private final Clock clock;
 
@@ -180,7 +184,10 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             ExecutorService executor, ActivityLog activityLog,
             BoardChangeBroadcaster broadcaster, PresenceTracker presence, SharingService sharing, VisitService visits,
             WebhookService webhookService, WebhookDispatcher webhookDispatcher, SavedViewService savedViews,
-            TimeService timeService, CardTemplateService templateService, UserSession session, Clock clock) {
+            TimeService timeService, CardTemplateService templateService, AccessService access, AccountService accounts,
+            UserSession session, Clock clock) {
+        this.access = access;
+        this.accounts = accounts;
         this.savedViews = savedViews;
         this.timeService = timeService;
         this.templateService = templateService;
@@ -272,6 +279,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         items.addItem(entry(VaadinIcon.NEWSPAPER, "Weekly digest"), event -> getUI().ifPresent(ui -> ui.navigate(
                 DigestView.class, new RouteParameters(BOARD_ID, Long.toString(board.id()))))).setId("board-digest");
         items.addItem(entry(VaadinIcon.ARCHIVE, "Archive"), event -> openArchive()).setId("board-archive");
+        items.addItem(entry(VaadinIcon.USERS, "Members…"), event ->
+                new MembersDialog(board, access, accounts, session).open()).setId("board-members");
         items.addItem(entry(VaadinIcon.COPY_O, "Card templates…"), event ->
                 new TemplatesDialog(board, templateService, this::actor, this::reload).open()).setId("board-templates");
         items.addItem(entry(VaadinIcon.SHARE, "Public link…"), event -> new ShareDialog(board, sharing, this::actor).open()).setId("share-board");
@@ -311,9 +320,10 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        Optional<BoardSnapshot> found = event.getRouteParameters().getLong(BOARD_ID).flatMap(boardService::findBoard);
+        Optional<BoardSnapshot> found = event.getRouteParameters().getLong(BOARD_ID).flatMap(boardService::findBoard)
+                .filter(snapshot -> access.canAccess(snapshot.id(), session.login()));
         if (found.isEmpty()) {
-            Toasts.error("That board does not exist");
+            Toasts.error("That board does not exist or is not open to you");
             event.forwardTo(BoardsView.class);
             return;
         }

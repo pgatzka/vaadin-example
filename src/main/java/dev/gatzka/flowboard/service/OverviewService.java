@@ -41,10 +41,17 @@ public class OverviewService {
     }
 
     public Overview overview() {
+        return overview(null);
+    }
+
+    /** The overview restricted to the given boards; {@code null} means every board. */
+    public Overview overview(java.util.Set<Long> boardIds) {
         LocalDate today = LocalDate.now(clock);
         LocalDate weekAhead = today.plusDays(7);
         Instant weekAgo = today.minusDays(7).atStartOfDay(clock.getZone()).toInstant();
-        Map<Long, String> boardNames = boards.findAll().stream().collect(Collectors.toMap(Board::getId, Board::getName));
+        Map<Long, String> boardNames = boards.findAll().stream()
+                .filter(board -> boardIds == null || boardIds.contains(board.getId()))
+                .collect(Collectors.toMap(Board::getId, Board::getName));
 
         int open = 0;
         int overdue = 0;
@@ -52,6 +59,9 @@ public class OverviewService {
         int completedLast7Days = 0;
         List<CardLocation> attention = new java.util.ArrayList<>();
         for (Card card : cards.findAllByArchivedAtIsNull()) {
+            if (!boardNames.containsKey(card.getLane().getBoard().getId())) {
+                continue;
+            }
             if (card.getLane().isDone()) {
                 Instant completedAt = card.getCompletedAt() == null ? card.getUpdatedAt() : card.getCompletedAt();
                 if (!completedAt.isBefore(weekAgo)) {
@@ -71,8 +81,9 @@ public class OverviewService {
         attention.sort(Comparator.comparing((CardLocation location) -> location.card().dueDate())
                 .thenComparing(location -> location.card().title(), String.CASE_INSENSITIVE_ORDER));
 
-        List<ActivityLocation> recent = activities.findTop12ByOrderByOccurredAtDesc().stream()
+        List<ActivityLocation> recent = activities.findTop50ByOrderByOccurredAtDesc().stream()
                 .filter(activity -> boardNames.containsKey(activity.getBoardId()))
+                .limit(ACTIVITY_LIMIT)
                 .map(activity -> new ActivityLocation(activity.getBoardId(), boardNames.get(activity.getBoardId()), ActivityEntry.of(activity)))
                 .toList();
 

@@ -14,6 +14,7 @@ import dev.gatzka.flowboard.domain.Lane;
 import dev.gatzka.flowboard.domain.LaneDraft;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Recurrence;
+import dev.gatzka.flowboard.repository.BoardMemberRepository;
 import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.repository.CardRepository;
 import dev.gatzka.flowboard.repository.CardTemplateRepository;
@@ -53,12 +54,14 @@ public class BoardService {
     private final WebhookRepository webhooks;
     private final SavedViewRepository savedViews;
     private final CardTemplateRepository cardTemplates;
+    private final BoardMemberRepository boardMembers;
     private final Clock clock;
 
     BoardService(BoardRepository boards, LaneRepository lanes, CardRepository cards, ActivityLog activityLog,
             NotificationService notifications, VisitService visits, WebhookRepository webhooks,
-            SavedViewRepository savedViews, CardTemplateRepository cardTemplates, Clock clock) {
+            SavedViewRepository savedViews, CardTemplateRepository cardTemplates, BoardMemberRepository boardMembers, Clock clock) {
         this.cardTemplates = cardTemplates;
+        this.boardMembers = boardMembers;
         this.visits = visits;
         this.webhooks = webhooks;
         this.savedViews = savedViews;
@@ -118,6 +121,7 @@ public class BoardService {
         webhooks.deleteAllByBoardId(boardId);
         savedViews.deleteAllByBoardId(boardId);
         cardTemplates.deleteAllByBoardId(boardId);
+        boardMembers.deleteAllByBoardId(boardId);
         boards.delete(board);
         activityLog.record(BoardChangedEvent.deleted(boardId, actor, "deleted board \"%s\"".formatted(board.getName())));
     }
@@ -385,7 +389,8 @@ public class BoardService {
                 cards.countByLaneBoardIdAndArchivedAtIsNull(id),
                 cards.countByLaneBoardIdAndLaneDoneFalseAndArchivedAtIsNullAndDueDateBefore(id, today),
                 cards.countByLaneBoardIdAndArchivedAtIsNotNull(id),
-                board.getCreatedAt());
+                board.getCreatedAt(),
+                board.isMembersOnly());
     }
 
     private BoardSnapshot snapshot(Board board) {

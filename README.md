@@ -76,6 +76,8 @@ Java on top of Vaadin Flow's server push.
   edited since your last visit carry a dot.
 - **Public links.** Share a board read-only with anyone, no account needed. Viewers see every
   change live; turn the link off and it stops working.
+- **Members-only boards.** Boards are open to everyone who signs in, unless you restrict one to a
+  list of members; then it disappears for everyone else, in the sidebar, search, My work and the API.
 - **Accounts.** Register with a username and password (BCrypt-hashed), sign in, sign out. The
   display name on your account is what everyone else sees. With sample data on, a `demo` account
   (password `demo1234`) is created so you can look around straight away.

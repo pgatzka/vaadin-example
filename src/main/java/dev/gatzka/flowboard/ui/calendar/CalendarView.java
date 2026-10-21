@@ -23,7 +23,9 @@ import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardChangedEvent;
+import dev.gatzka.flowboard.service.AccessService;
 import dev.gatzka.flowboard.service.BoardService;
+import dev.gatzka.flowboard.ui.UserSession;
 import dev.gatzka.flowboard.ui.board.BoardView;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
 import dev.gatzka.flowboard.ui.support.Toasts;
@@ -49,6 +51,8 @@ public class CalendarView extends VerticalLayout implements BeforeEnterObserver,
     private final BoardService boardService;
     private final BoardChangeBroadcaster broadcaster;
     private final Clock clock;
+    private final AccessService access;
+    private final UserSession session;
 
     private final H2 heading = new H2();
     private final Span monthTitle = new Span();
@@ -59,7 +63,10 @@ public class CalendarView extends VerticalLayout implements BeforeEnterObserver,
     private CalendarMonth month;
     private Registration changeSubscription;
 
-    public CalendarView(BoardService boardService, BoardChangeBroadcaster broadcaster, Clock clock) {
+    public CalendarView(BoardService boardService, BoardChangeBroadcaster broadcaster, AccessService access, UserSession session,
+            Clock clock) {
+        this.access = access;
+        this.session = session;
         this.boardService = boardService;
         this.broadcaster = broadcaster;
         this.clock = clock;
@@ -102,9 +109,10 @@ public class CalendarView extends VerticalLayout implements BeforeEnterObserver,
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        Optional<BoardSnapshot> found = event.getRouteParameters().getLong(BoardView.BOARD_ID).flatMap(boardService::findBoard);
+        Optional<BoardSnapshot> found = event.getRouteParameters().getLong(BoardView.BOARD_ID).flatMap(boardService::findBoard)
+                .filter(snapshot -> access.canAccess(snapshot.id(), session.login()));
         if (found.isEmpty()) {
-            Toasts.error("That board does not exist");
+            Toasts.error("That board does not exist or is not open to you");
             event.forwardTo(BoardsView.class);
             return;
         }

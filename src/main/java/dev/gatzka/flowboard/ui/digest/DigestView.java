@@ -14,7 +14,9 @@ import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import dev.gatzka.flowboard.domain.WeeklyDigest;
+import dev.gatzka.flowboard.service.AccessService;
 import dev.gatzka.flowboard.service.DigestService;
+import dev.gatzka.flowboard.ui.UserSession;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.ui.board.BoardView;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
@@ -34,13 +36,17 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
 
     private final DigestService digests;
     private final Clock clock;
+    private final AccessService access;
+    private final UserSession session;
     private final H2 heading = new H2();
     private final Span period = new Span();
     private final Markdown markdown = new Markdown();
     private long boardId;
     private WeeklyDigest digest;
 
-    public DigestView(DigestService digests, Clock clock) {
+    public DigestView(DigestService digests, AccessService access, UserSession session, Clock clock) {
+        this.access = access;
+        this.session = session;
         this.digests = digests;
         this.clock = clock;
         addClassName("digest-view");
@@ -90,6 +96,11 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         boardId = event.getRouteParameters().getLong(BoardView.BOARD_ID).orElse(-1L);
+        if (!access.canAccess(boardId, session.login())) {
+            Toasts.error("That board does not exist or is not open to you");
+            event.forwardTo(BoardsView.class);
+            return;
+        }
         LocalDate weekEnding = event.getRouteParameters().get(WEEK).flatMap(DigestView::parse).orElse(LocalDate.now(clock));
         try {
             show(weekEnding);

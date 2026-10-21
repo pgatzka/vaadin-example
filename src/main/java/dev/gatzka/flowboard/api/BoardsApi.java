@@ -11,6 +11,7 @@ import dev.gatzka.flowboard.domain.WeeklyDigest;
 import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.exchange.BoardExport;
 import dev.gatzka.flowboard.security.AccountService;
+import dev.gatzka.flowboard.service.AccessService;
 import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.CardTemplateService;
@@ -50,10 +51,12 @@ public class BoardsApi {
     private final TimeService time;
     private final CardTemplateService templates;
     private final ActivityLog activityLog;
+    private final AccessService access;
     private final Clock clock;
 
     BoardsApi(BoardService boardService, BoardExchangeService exchange, AccountService accounts, DigestService digests,
-            TimeService time, CardTemplateService templates, ActivityLog activityLog, Clock clock) {
+            TimeService time, CardTemplateService templates, ActivityLog activityLog, AccessService access, Clock clock) {
+        this.access = access;
         this.boardService = boardService;
         this.exchange = exchange;
         this.accounts = accounts;
@@ -70,12 +73,13 @@ public class BoardsApi {
     }
 
     @GetMapping("/boards")
-    public List<BoardSummary> boards() {
-        return boardService.listBoards();
+    public List<BoardSummary> boards(Principal caller) {
+        return access.visibleBoards(caller.getName());
     }
 
     @GetMapping("/boards/{boardId}")
-    public BoardExport board(@PathVariable long boardId) {
+    public BoardExport board(@PathVariable long boardId, Principal caller) {
+        requireAccess(boardId, caller);
         return exchange.export(boardId);
     }
 
@@ -88,6 +92,7 @@ public class BoardsApi {
 
     @DeleteMapping("/boards/{boardId}")
     public ResponseEntity<Void> deleteBoard(@PathVariable long boardId, Principal caller) {
+        requireAccess(boardId, caller);
         boardService.deleteBoard(boardId, actor(caller));
         return ResponseEntity.noContent().build();
     }
@@ -95,6 +100,7 @@ public class BoardsApi {
     @PostMapping(path = "/boards/{boardId}/lanes/{laneId}/cards", consumes = "application/json")
     public ResponseEntity<CardSnapshot> createCard(@PathVariable long boardId, @PathVariable long laneId,
             @RequestBody CardDraft draft, Principal caller) {
+        requireAccess(boardId, caller);
         requireLaneOnBoard(boardId, laneId);
         CardSnapshot created = boardService.createCard(laneId, draft, actor(caller));
         return ResponseEntity.created(URI.create("/api/cards/" + created.id())).body(created);
@@ -102,58 +108,63 @@ public class BoardsApi {
 
     @PutMapping(path = "/cards/{cardId}", consumes = "application/json")
     public CardSnapshot updateCard(@PathVariable long cardId, @RequestBody CardDraft draft, Principal caller) {
+        requireCardAccess(cardId, caller);
         return boardService.updateCard(cardId, draft, actor(caller));
     }
 
     /** Moves a card to {@code targetIndex} in {@code targetLaneId}; the index is clamped to the lane. */
     @PostMapping(path = "/cards/{cardId}/move", consumes = "application/json")
     public ResponseEntity<Void> moveCard(@PathVariable long cardId, @RequestBody MoveRequest move, Principal caller) {
+        requireCardAccess(cardId, caller);
         boardService.moveCard(cardId, move.targetLaneId(), move.targetIndex(), actor(caller));
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/cards/{cardId}")
     public ResponseEntity<Void> deleteCard(@PathVariable long cardId, Principal caller) {
+        requireCardAccess(cardId, caller);
         boardService.deleteCard(cardId, actor(caller));
         return ResponseEntity.noContent().build();
     }
 
     /** The board's recent history, newest first. */
     @GetMapping("/boards/{boardId}/activity")
-    public List<ActivityEntry> activity(@PathVariable long boardId) {
-        requireBoard(boardId);
+    public List<ActivityEntry> activity(@PathVariable long boardId, Principal caller) {
+        requireAccess(boardId, caller);
         return activityLog.recent(boardId);
     }
 
     /** The weekly digest as data; {@code week} is the last day of the week, default today. */
     @GetMapping("/boards/{boardId}/digest")
-    public WeeklyDigest digest(@PathVariable long boardId, @RequestParam(required = false) LocalDate week) {
+    public WeeklyDigest digest(@PathVariable long boardId, @RequestParam(required = false) LocalDate week, Principal caller) {
+        requireAccess(boardId, caller);
         return digests.weekly(boardId, week == null ? LocalDate.now(clock) : week);
     }
 
     /** The same digest as Markdown, ready to paste into a chat. */
     @GetMapping(path = "/boards/{boardId}/digest.md", produces = "text/markdown;charset=UTF-8")
-    public String digestMarkdown(@PathVariable long boardId, @RequestParam(required = false) LocalDate week) {
-        return digest(boardId, week).toMarkdown();
+    public String digestMarkdown(@PathVariable long boardId, @RequestParam(required = false) LocalDate week, Principal caller) {
+        return digest(boardId, week, caller).toMarkdown();
     }
 
     /** Logs time on a card in the caller's name. */
     @PostMapping(path = "/cards/{cardId}/time", consumes = "application/json")
     public ResponseEntity<CardSnapshot> logTime(@PathVariable long cardId, @RequestBody TimeRequest request, Principal caller) {
+        requireCardAccess(cardId, caller);
         String actor = actor(caller);
         return ResponseEntity.status(HttpStatus.CREATED).body(time.log(cardId, actor, request.minutes(), request.note(), actor));
     }
 
     @GetMapping("/boards/{boardId}/templates")
-    public List<CardTemplateSnapshot> templates(@PathVariable long boardId) {
-        requireBoard(boardId);
+    public List<CardTemplateSnapshot> templates(@PathVariable long boardId, Principal caller) {
+        requireAccess(boardId, caller);
         return templates.forBoard(boardId);
     }
 
     /** Creates a template or replaces the one with the same name. */
     @PostMapping(path = "/boards/{boardId}/templates", consumes = "application/json")
     public ResponseEntity<CardTemplateSnapshot> saveTemplate(@PathVariable long boardId, @RequestBody CardTemplateDraft draft, Principal caller) {
-        requireBoard(boardId);
+        requireAccess(boardId, caller);
         CardTemplateSnapshot saved = templates.save(boardId, draft, actor(caller));
         return ResponseEntity.created(URI.create("/api/templates/" + saved.id())).body(saved);
     }
@@ -181,8 +192,17 @@ public class BoardsApi {
     public record FromTemplateRequest(long laneId) {
     }
 
-    private void requireBoard(long boardId) {
-        boardService.findBoard(boardId).orElseThrow(() -> new NotFoundException("Board", boardId));
+    /** Boards the caller may not see are reported as missing, so their existence is not leaked. */
+    private void requireAccess(long boardId, Principal caller) {
+        if (!access.canAccess(boardId, caller.getName())) {
+            throw new NotFoundException("Board", boardId);
+        }
+    }
+
+    private void requireCardAccess(long cardId, Principal caller) {
+        if (!access.canAccessCard(cardId, caller.getName())) {
+            throw new NotFoundException("Card", cardId);
+        }
     }
 
     private void requireLaneOnBoard(long boardId, long laneId) {

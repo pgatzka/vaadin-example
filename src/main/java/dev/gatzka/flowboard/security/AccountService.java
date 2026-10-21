@@ -3,6 +3,7 @@ package dev.gatzka.flowboard.security;
 import dev.gatzka.flowboard.domain.Account;
 import dev.gatzka.flowboard.repository.AccountRepository;
 import java.time.Clock;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -56,6 +57,12 @@ public class AccountService implements UserDetailsService {
     @Transactional(readOnly = true)
     public Optional<Account> find(String username) {
         return username == null ? Optional.empty() : accounts.findByUsername(normalise(username));
+    }
+
+    /** Every login, alphabetically, e.g. for picking members. */
+    @Transactional(readOnly = true)
+    public List<String> usernames() {
+        return accounts.findAll().stream().map(Account::getUsername).sorted().toList();
     }
 
     /** The name others see for a login, or the login itself when no account exists for it. */

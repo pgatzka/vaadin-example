@@ -15,6 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,9 @@ class BoardsApiTest {
 
     @Autowired
     private AccountService accounts;
+
+    @Autowired
+    private dev.gatzka.flowboard.service.AccessService access;
 
     private final HttpClient http = HttpClient.newHttpClient();
     private BoardSnapshot board;
@@ -164,6 +168,32 @@ class BoardsApiTest {
         assertThat(send("DELETE", "/api/templates/" + templateId, null).statusCode()).isEqualTo(204);
         assertThat(send("GET", "/api/boards/999999/templates", null).statusCode()).isEqualTo(404);
         assertThat(send("GET", "/api/boards/999999/digest", null).statusCode()).isEqualTo(404);
+    }
+
+    @Test
+    void membersOnlyBoardsAreInvisibleToNonMembers() throws Exception {
+        if (accounts.find("outsider").isEmpty()) {
+            accounts.register("outsider", "Outsider", "robots-only");
+        }
+        access.setMembersOnly(board.id(), true, "deploy-bot", "Deploy Bot");
+        long backlog = board.lanes().get(0).id();
+        CardSnapshot card = boardService.createCard(backlog, dev.gatzka.flowboard.domain.CardDraft.titled("Secret"), "Deploy Bot");
+
+        assertThat(json.readTree(send("GET", "/api/boards", null).body()).size()).as("member still sees it").isEqualTo(1);
+        assertThat(send("GET", "/api/boards/" + board.id(), null).statusCode()).isEqualTo(200);
+
+        HttpRequest list = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/boards"))
+                .header("Authorization", basic("outsider", "robots-only")).GET().build();
+        assertThat(json.readTree(http.send(list, HttpResponse.BodyHandlers.ofString()).body()).size()).isZero();
+        for (String path : List.of("/api/boards/" + board.id(), "/api/boards/" + board.id() + "/digest", "/api/boards/" + board.id() + "/templates")) {
+            HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+                    .header("Authorization", basic("outsider", "robots-only")).GET().build();
+            assertThat(http.send(request, HttpResponse.BodyHandlers.ofString()).statusCode()).as(path).isEqualTo(404);
+        }
+        HttpRequest move = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/cards/" + card.id() + "/move"))
+                .header("Authorization", basic("outsider", "robots-only")).header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"targetLaneId\": " + backlog + ", \"targetIndex\": 0}")).build();
+        assertThat(http.send(move, HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(404);
     }
 
     @Test

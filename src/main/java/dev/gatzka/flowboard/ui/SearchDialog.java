@@ -14,6 +14,7 @@ import dev.gatzka.flowboard.ui.work.CardLocationRow;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -27,12 +28,14 @@ final class SearchDialog extends Dialog {
     private final WorkService workService;
     private final Supplier<List<Command>> commands;
     private final Clock clock;
+    private final Predicate<CardLocation> visible;
     private final TextField query = new TextField();
     private final Div actions = new Div();
     private final Div results = new Div();
     private final Span hint = new Span("Type to search titles, descriptions, assignees and tags on all boards.");
 
-    SearchDialog(WorkService workService, Supplier<List<Command>> commands, Clock clock) {
+    SearchDialog(WorkService workService, Supplier<List<Command>> commands, Predicate<CardLocation> visible, Clock clock) {
+        this.visible = visible;
         this.workService = workService;
         this.commands = commands;
         this.clock = clock;
@@ -65,7 +68,7 @@ final class SearchDialog extends Dialog {
         actions.removeAll();
         commands.get().stream().filter(command -> command.matches(text)).limit(MAX_COMMANDS).forEach(command -> actions.add(button(command)));
 
-        List<CardLocation> hits = workService.search(text);
+        List<CardLocation> hits = workService.search(text).stream().filter(visible).toList();
         results.removeAll();
         LocalDate today = LocalDate.now(clock);
         hits.forEach(hit -> results.add(new CardLocationRow(hit, today)));

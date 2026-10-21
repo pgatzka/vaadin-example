@@ -11,7 +11,8 @@ public record BoardSummary(
         long cardCount,
         long overdueCount,
         long archivedCount,
-        Instant createdAt) {
+        Instant createdAt,
+        boolean membersOnly) {
 
     public BoardDraft toDraft() {
         return new BoardDraft(name, description);

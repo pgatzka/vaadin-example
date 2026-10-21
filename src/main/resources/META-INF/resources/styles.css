@@ -314,6 +314,35 @@ html {
   margin-bottom: var(--lumo-space-s);
 }
 
+.members__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-xs);
+  margin: var(--lumo-space-s) 0;
+}
+
+.members__row {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+}
+
+.members__name {
+  font-weight: 600;
+}
+
+.members__login {
+  color: var(--lumo-secondary-text-color);
+  font-size: var(--lumo-font-size-s);
+  flex: 1;
+}
+
+.members__form {
+  display: flex;
+  gap: var(--lumo-space-xs);
+  align-items: center;
+}
+
 .menu-entry {
   display: flex;
   align-items: center;

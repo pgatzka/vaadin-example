@@ -14,6 +14,7 @@ import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.shared.Registration;
 import dev.gatzka.flowboard.domain.CardLocation;
+import dev.gatzka.flowboard.service.AccessService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.WorkService;
 import dev.gatzka.flowboard.ui.ProfileChangedEvent;
@@ -68,6 +69,7 @@ public class MyWorkView extends VerticalLayout {
     private final WorkService workService;
     private final BoardChangeBroadcaster broadcaster;
     private final UserSession session;
+    private final AccessService access;
     private final Clock clock;
 
     private final Span subtitle = new Span();
@@ -75,7 +77,8 @@ public class MyWorkView extends VerticalLayout {
     private Registration changeSubscription;
     private Registration profileSubscription;
 
-    public MyWorkView(WorkService workService, BoardChangeBroadcaster broadcaster, UserSession session, Clock clock) {
+    public MyWorkView(WorkService workService, BoardChangeBroadcaster broadcaster, AccessService access, UserSession session, Clock clock) {
+        this.access = access;
         this.workService = workService;
         this.broadcaster = broadcaster;
         this.session = session;
@@ -106,7 +109,8 @@ public class MyWorkView extends VerticalLayout {
     private void refresh() {
         String me = session.getDisplayName();
         LocalDate today = LocalDate.now(clock);
-        List<CardLocation> mine = workService.assignedTo(me);
+        List<CardLocation> mine = workService.assignedTo(me).stream()
+                .filter(location -> access.canAccess(location.boardId(), session.login())).toList();
         Map<Bucket, List<CardLocation>> byBucket = mine.stream()
                 .collect(Collectors.groupingBy(location -> Bucket.of(location, today), () -> new EnumMap<>(Bucket.class), Collectors.toList()));
 

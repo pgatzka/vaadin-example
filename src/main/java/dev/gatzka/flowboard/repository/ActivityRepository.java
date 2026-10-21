@@ -11,7 +11,7 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     List<Activity> findTop50ByCardIdOrderByOccurredAtDesc(long cardId);
 
-    List<Activity> findTop12ByOrderByOccurredAtDesc();
+    List<Activity> findTop50ByOrderByOccurredAtDesc();
 
     long countByBoardIdAndOccurredAtAfterAndActorNot(long boardId, Instant since, String actor);
 
