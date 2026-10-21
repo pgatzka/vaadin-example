@@ -853,6 +853,10 @@ html {
   box-shadow: 0 -3px 0 0 var(--lumo-primary-color), var(--lumo-box-shadow-xs);
 }
 
+.toast__undo {
+  font-weight: 600;
+}
+
 .task-card--changed::after {
   content: "";
   position: absolute;

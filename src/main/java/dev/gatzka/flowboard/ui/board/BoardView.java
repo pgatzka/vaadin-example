@@ -403,7 +403,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     public void openCard(CardSnapshot card) {
         CardEditorDialog editor = CardEditorDialog.forCard(card, board, this,
                 draft -> perform(() -> boardService.updateCard(card.id(), draft, actor())),
-                () -> perform(() -> boardService.archiveCard(card.id(), actor())),
+                () -> archiveCard(card),
                 () -> perform(() -> boardService.deleteCard(card.id(), actor())));
         editor.addOpenedChangeListener(event -> {
             if (!event.isOpened() && openEditor == editor) {
@@ -462,9 +462,19 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     private void completeMove(long cardId, long targetLaneId, int targetIndex, boolean completing) {
+        Optional<CardSnapshot> before = findCard(cardId);
         perform(() -> boardService.moveCard(cardId, targetLaneId, targetIndex, actor()));
+        Optional<CardSnapshot> after = findCard(cardId);
+        if (before.isEmpty() || after.isEmpty() || before.get().laneId() == after.get().laneId()) {
+            return;
+        }
+        CardSnapshot origin = before.get();
+        Runnable undo = () -> perform(() -> boardService.moveCard(cardId, origin.laneId(), origin.position(), actor()));
         if (completing) {
-            findCard(cardId).ifPresent(card -> celebrate(card.title()));
+            celebrate(origin.title(), undo);
+        } else {
+            String laneName = board.lane(targetLaneId).map(LaneSnapshot::name).orElse("another lane");
+            Toasts.undoable("Moved \"" + origin.title() + "\" to " + laneName, undo);
         }
     }
 
@@ -484,8 +494,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         return targetDone && !sourceDone;
     }
 
-    private void celebrate(String title) {
-        Toasts.success("🎉 Done: " + title);
+    private void celebrate(String title, Runnable undo) {
+        Toasts.undoable("🎉 Done: " + title, undo);
         getUI().ifPresent(Celebration::confetti);
     }
 
@@ -611,10 +621,21 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     @Override
     public void archiveLane(LaneSnapshot lane) {
+        List<Long> cardIds = lane.cards().stream().map(CardSnapshot::id).toList();
         perform(() -> {
             int archived = boardService.archiveLane(lane.id(), actor());
-            Toasts.info(archived == 1 ? "1 card archived" : archived + " cards archived");
+            if (archived == 0) {
+                Toasts.info("Nothing to archive");
+                return;
+            }
+            Toasts.undoable(archived == 1 ? "1 card archived" : archived + " cards archived",
+                    () -> perform(() -> boardService.restoreCards(cardIds, actor())));
         });
+    }
+
+    private void archiveCard(CardSnapshot card) {
+        perform(() -> boardService.archiveCard(card.id(), actor()));
+        Toasts.undoable("Archived \"" + card.title() + "\"", () -> perform(() -> boardService.restoreCard(card.id(), actor())));
     }
 
     private void addLane() {

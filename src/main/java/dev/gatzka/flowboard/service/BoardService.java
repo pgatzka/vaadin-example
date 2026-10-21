@@ -19,6 +19,8 @@ import dev.gatzka.flowboard.repository.LaneRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -244,6 +246,25 @@ public class BoardService {
     }
 
     /** Puts an archived card back at the end of its lane. */
+    /** Restores several archived cards at once, e.g. to undo archiving a whole lane. */
+    public int restoreCards(Collection<Long> cardIds, String actor) {
+        List<Card> restored = new ArrayList<>();
+        Instant now = clock.instant();
+        for (Long cardId : cardIds) {
+            cards.findById(cardId).filter(Card::isArchived).ifPresent(card -> {
+                card.restore((int) cards.countByLaneIdAndArchivedAtIsNull(card.getLane().getId()), now);
+                restored.add(card);
+            });
+        }
+        if (restored.isEmpty()) {
+            return 0;
+        }
+        Lane lane = restored.getFirst().getLane();
+        activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
+                "restored %s to %s".formatted(count(restored.size(), "card"), lane.getName())));
+        return restored.size();
+    }
+
     public void restoreCard(long cardId, String actor) {
         Card card = requireCard(cardId);
         if (!card.isArchived()) {

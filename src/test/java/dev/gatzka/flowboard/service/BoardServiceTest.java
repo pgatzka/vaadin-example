@@ -251,6 +251,24 @@ class BoardServiceTest {
     }
 
     @Test
+    void severalArchivedCardsCanBeRestoredAtOnce() {
+        BoardSnapshot board = service.createBoard(new BoardDraft("Restore", null), ACTOR);
+        long backlog = board.lanes().get(0).id();
+        CardSnapshot a = service.createCard(backlog, CardDraft.titled("A"), ACTOR);
+        CardSnapshot b = service.createCard(backlog, CardDraft.titled("B"), ACTOR);
+        CardSnapshot c = service.createCard(backlog, CardDraft.titled("C"), ACTOR);
+        service.archiveLane(backlog, ACTOR);
+
+        assertThat(service.restoreCards(List.of(a.id(), c.id(), 999_999L), ACTOR)).isEqualTo(2);
+        assertThat(service.restoreCards(List.of(a.id()), ACTOR)).as("already live").isZero();
+
+        assertThat(service.findBoard(board.id()).orElseThrow().lanes().get(0).cards())
+                .extracting(CardSnapshot::title).containsExactly("A", "C");
+        assertThat(service.archivedCards(board.id())).extracting(CardSnapshot::title).containsExactly("B");
+        assertThat(activityLog.recent(board.id()).getFirst().message()).isEqualTo("restored 2 cards to Backlog");
+    }
+
+    @Test
     void archivedCardsLeaveTheBoardButCanBeRestored() {
         createCard(backlog, "keep");
         CardSnapshot gone = createCard(backlog, "archive me");

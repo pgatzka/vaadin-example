@@ -12,6 +12,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.messages.MessageInput;
 import com.vaadin.flow.component.messages.MessageList;
 import com.vaadin.flow.component.messages.MessageListItem;
@@ -377,8 +378,42 @@ class BoardViewTest extends SpringBrowserlessTest {
 
         view.moveCard(card.id(), board.lanes().get(3).id(), 0);
 
-        assertThat($(Notification.class).all()).anySatisfy(notification ->
-                assertThat(test(notification).getText()).contains("Done: Almost there"));
+        Notification toast = $(Notification.class).withClassName("toast--undoable").single();
+        assertThat($(Span.class, toast).first().getText()).contains("Done: Almost there");
+        clickUndo();
+        assertThat(cardOnBoard(card.id()).laneId()).isEqualTo(board.lanes().get(0).id());
+    }
+
+    @Test
+    void movesAndLaneArchivingCanBeUndone() {
+        CardSnapshot first = createCard("First");
+        CardSnapshot second = createCard("Second");
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+
+        view.moveCard(second.id(), board.lanes().get(1).id(), 0);
+        assertThat(cardOnBoard(second.id()).laneId()).isEqualTo(board.lanes().get(1).id());
+        clickUndo();
+        CardSnapshot back = cardOnBoard(second.id());
+        assertThat(back.laneId()).isEqualTo(board.lanes().get(0).id());
+        assertThat(back.position()).isEqualTo(1);
+
+        view.archiveLane(service.findBoard(board.id()).orElseThrow().lanes().get(0));
+        assertThat(service.findBoard(board.id()).orElseThrow().lanes().get(0).cards()).isEmpty();
+        clickUndo();
+        assertThat(service.findBoard(board.id()).orElseThrow().lanes().get(0).cards())
+                .extracting(CardSnapshot::title).containsExactly("First", "Second");
+        assertThat($(CardComponent.class).all()).hasSize(2);
+    }
+
+    private CardSnapshot cardOnBoard(long cardId) {
+        return service.findBoard(board.id()).orElseThrow().lanes().stream().flatMap(lane -> lane.cards().stream())
+                .filter(card -> card.id() == cardId).findFirst().orElseThrow();
+    }
+
+    private void clickUndo() {
+        Notification toast = $(Notification.class).withClassName("toast--undoable").last();
+        test($(Button.class, toast).withText("Undo").single()).click();
+        assertThat(toast.isOpened()).isFalse();
     }
 
     @Test
