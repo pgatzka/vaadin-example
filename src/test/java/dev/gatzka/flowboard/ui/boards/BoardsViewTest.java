@@ -73,6 +73,20 @@ class BoardsViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void homeShowsTotalsAttentionAndActivity() {
+        BoardSnapshot alpha = service.createBoard(new BoardDraft("Alpha", null), "Mara");
+        service.createCard(alpha.lanes().get(0).id(), new dev.gatzka.flowboard.domain.CardDraft("Late", null, null,
+                java.time.LocalDate.now().minusDays(1), null, java.util.Set.of(), null), "Mara");
+        navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(alpha.id())));
+        navigate(BoardsView.class);
+
+        assertThat($(com.vaadin.flow.component.html.Span.class).withClassName("insights__tile-value").all())
+                .extracting(span -> span.getText()).containsExactly("1", "1", "0", "0");
+        assertThat($(dev.gatzka.flowboard.ui.work.CardLocationRow.class).all()).hasSize(1);
+        assertThat($(com.vaadin.flow.component.html.Div.class).withClassName("dashboard__activity-row").all()).isNotEmpty();
+    }
+
+    @Test
     void creatingBoardOpensIt() {
         navigate(BoardsView.class);
 

@@ -105,7 +105,7 @@ public class MainLayout extends AppLayout {
             ui.navigate(BoardsView.class);
             ComponentUtil.fireEvent(ui, new NewBoardRequestedEvent(ui));
         })));
-        list.add(new Command("All boards", VaadinIcon.GRID_BIG_O, () -> getUI().ifPresent(ui -> ui.navigate(BoardsView.class))));
+        list.add(new Command("Home", VaadinIcon.HOME_O, () -> getUI().ifPresent(ui -> ui.navigate(BoardsView.class))));
         list.add(new Command("My work", VaadinIcon.USER_CHECK, () -> getUI().ifPresent(ui -> ui.navigate(MyWorkView.class))));
         list.add(new Command(session.isDarkMode() ? "Switch to light theme" : "Switch to dark theme", VaadinIcon.ADJUST, () -> {
             session.setDarkMode(!session.isDarkMode());
@@ -164,7 +164,7 @@ public class MainLayout extends AppLayout {
 
     private Scroller drawer() {
         SideNav mainNav = new SideNav();
-        mainNav.addItem(new SideNavItem("All boards", BoardsView.class, VaadinIcon.GRID_BIG_O.create()));
+        mainNav.addItem(new SideNavItem("Home", BoardsView.class, VaadinIcon.HOME_O.create()));
         mainNav.addItem(new SideNavItem("My work", MyWorkView.class, VaadinIcon.USER_CHECK.create()));
 
         Div content = new Div(mainNav, boardsNav);
