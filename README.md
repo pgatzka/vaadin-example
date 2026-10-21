@@ -31,7 +31,10 @@ Java on top of Vaadin Flow's server push.
 - **Rich cards.** Priority (shown as a coloured stripe), due date with overdue and due-soon states,
   assignee, tags, and a Markdown description with live preview.
 - **Activity feed.** A side sheet lists the recent history of the board as a chat-like log.
-- **Filtering.** Type in the filter box (or press `/`) to narrow the board down to matching cards.
+- **Filtering.** Type in the filter box (or press `/`) to narrow the board down to matching cards;
+  structured filters for priority, tag, assignee, overdue, mine and unassigned. The filter lives
+  in the URL, so a filtered board can be linked to, and can be saved as a named **view** that
+  shows up as a chip for everybody on the board.
 - **Light and dark theme**, following the operating system on first visit, and an installable PWA manifest.
 - **Export and import** boards as JSON files.
 - **Checklists, comments and history** on every card; **deep links** to cards.

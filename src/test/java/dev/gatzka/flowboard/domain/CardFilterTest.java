@@ -75,6 +75,34 @@ class CardFilterTest {
         assertThat(filter.matches(match, DONE_LANE, TODAY, "me")).isFalse();
     }
 
+    @Test
+    void tagAndAssigneeNarrowFurther() {
+        CardSnapshot backend = card("Index", null, "Mara", Priority.LOW, "backend", "perf");
+        CardSnapshot frontend = card("Button", null, "Jonas", Priority.LOW, "ui");
+        CardFilter byTag = CardFilter.none().withTag("Backend");
+        assertThat(byTag.matches(backend, OPEN_LANE, TODAY, "x")).isTrue();
+        assertThat(byTag.matches(frontend, OPEN_LANE, TODAY, "x")).isFalse();
+        CardFilter byPerson = CardFilter.none().withAssignee("jonas");
+        assertThat(byPerson.matches(frontend, OPEN_LANE, TODAY, "x")).isTrue();
+        assertThat(byPerson.matches(backend, OPEN_LANE, TODAY, "x")).isFalse();
+        assertThat(byPerson.matches(card("Nobody", null, null, Priority.LOW), OPEN_LANE, TODAY, "x")).isFalse();
+        assertThat(byTag.withAssignee("Mara").toggleCount()).isEqualTo(2);
+        assertThat(CardFilter.none().withTag("  ").withAssignee("")).isEqualTo(CardFilter.none());
+    }
+
+    @Test
+    void codecRoundTripsAndToleratesGarbage() {
+        CardFilter filter = CardFilter.none().withText("login & sync").withPriority(Priority.URGENT).withOverdueOnly(true)
+                .withMineOnly(true).withUnassignedOnly(true).withTag("back end").withAssignee("Lena Kovač");
+        String encoded = CardFilterCodec.encode(filter);
+        assertThat(encoded).isEqualTo("q=login+%26+sync&p=urgent&overdue&mine&unassigned&tag=back+end&who=Lena+Kova%C4%8D");
+        assertThat(CardFilterCodec.decode(encoded)).isEqualTo(filter);
+        assertThat(CardFilterCodec.encode(CardFilter.none())).isEmpty();
+        assertThat(CardFilterCodec.decode(null)).isEqualTo(CardFilter.none());
+        assertThat(CardFilterCodec.decode("p=nope&bogus=1&who=%E0%A4%A")).isEqualTo(CardFilter.none());
+        assertThat(CardFilterCodec.decode("tag=ops")).isEqualTo(CardFilter.none().withTag("ops"));
+    }
+
     private static CardSnapshot card(String title, String description, String assignee, Priority priority, String... tags) {
         return new CardSnapshot(1, 1, title, description, priority, null, assignee, Set.of(tags), null, Recurrence.NONE, Set.of(), List.of(), List.of(), List.of(), List.of(), 0, Instant.EPOCH, null, Instant.EPOCH);
     }

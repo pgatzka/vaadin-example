@@ -35,9 +35,12 @@ import dev.gatzka.flowboard.assistant.AssistantService;
 import dev.gatzka.flowboard.domain.ActivityEntry;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
+import dev.gatzka.flowboard.domain.CardFilter;
+import dev.gatzka.flowboard.domain.CardFilterCodec;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Recurrence;
+import dev.gatzka.flowboard.domain.SavedViewSnapshot;
 import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.AttachmentService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
@@ -51,6 +54,7 @@ import dev.gatzka.flowboard.service.InsightsService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.service.PresenceTracker;
+import dev.gatzka.flowboard.service.SavedViewService;
 import dev.gatzka.flowboard.service.SharingService;
 import dev.gatzka.flowboard.service.VisitService;
 import dev.gatzka.flowboard.service.VoteService;
@@ -88,6 +92,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     public static final String BOARD_ID = "boardId";
     public static final String CARD_ID = "cardId";
+    /** Query parameter carrying an encoded {@link CardFilter}, so a filtered board can be linked to. */
+    public static final String FILTER_PARAMETER = "f";
 
     private final BoardService boardService;
     private final ChecklistService checklistService;
@@ -106,13 +112,38 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final VisitService visits;
     private final WebhookService webhookService;
     private final WebhookDispatcher webhookDispatcher;
+    private final SavedViewService savedViews;
     private final UserSession session;
     private final Clock clock;
 
     private final H2 heading = new H2();
     private final Span description = new Span();
     private final TextField search = new TextField();
-    private final FilterMenu filters = new FilterMenu(filter -> applyFilter());
+    private final FilterMenu filters = new FilterMenu(filter -> onFilterChanged());
+    private final ViewsBar viewsBar = new ViewsBar(new ViewsBar.Actions() {
+        @Override
+        public void applyView(SavedViewSnapshot view) {
+            applyFilterEverywhere(view.filter());
+        }
+
+        @Override
+        public void saveView(String name) {
+            try {
+                savedViews.save(board.id(), name, filters.filter(), actor());
+                Toasts.success("View \"" + name.strip() + "\" saved");
+            } catch (IllegalArgumentException e) {
+                Toasts.error(e.getMessage());
+            }
+            showViews();
+        }
+
+        @Override
+        public void deleteView(SavedViewSnapshot view) {
+            savedViews.delete(view.id(), actor());
+            Toasts.info("View \"" + view.name() + "\" deleted");
+            showViews();
+        }
+    });
     private final AvatarGroup participants = new AvatarGroup();
     private final Div lanes = new Div();
     private final ActivityDialog activityDialog = new ActivityDialog();
@@ -137,7 +168,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             InsightsService insightsService, FlowSnapshotService flowSnapshots, AssistantService assistant,
             ExecutorService executor, ActivityLog activityLog,
             BoardChangeBroadcaster broadcaster, PresenceTracker presence, SharingService sharing, VisitService visits,
-            WebhookService webhookService, WebhookDispatcher webhookDispatcher, UserSession session, Clock clock) {
+            WebhookService webhookService, WebhookDispatcher webhookDispatcher, SavedViewService savedViews,
+            UserSession session, Clock clock) {
+        this.savedViews = savedViews;
         this.sharing = sharing;
         this.visits = visits;
         this.webhookService = webhookService;
@@ -166,7 +199,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         setSizeFull();
         setPadding(false);
         setSpacing(false);
-        add(toolbar(), lanes);
+        add(toolbar(), viewsBar, lanes);
         lanes.addClassName("lanes");
         setFlexGrow(1, lanes);
 
@@ -275,6 +308,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         }
         lastVisit = visits.visit(session.login(), found.get().id()).orElse(null);
         render(found.get());
+        event.getLocation().getQueryParameters().getSingleParameter(FILTER_PARAMETER)
+                .map(CardFilterCodec::decode).filter(CardFilter::isActive).ifPresent(this::applyFilterEverywhere);
         event.getRouteParameters().getLong(CARD_ID).ifPresent(cardId -> findCard(cardId).ifPresentOrElse(
                 this::openCard,
                 () -> Toasts.error("That card is not on this board any more")));
@@ -401,7 +436,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
                 component.openComposer();
             }
         }
+        filters.setOptions(snapshot.tags(), snapshot.assignees());
         applyFilter();
+        showViews();
         if (focusCardId != null) {
             long wanted = focusCardId;
             laneComponents.stream().flatMap(lane -> lane.cardComponent(wanted).stream()).findFirst().ifPresent(CardComponent::focus);
@@ -433,6 +470,38 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private void applyFilter() {
         LocalDate today = LocalDate.now(clock);
         laneComponents.forEach(lane -> lane.filter(filters.filter(), today, session.getDisplayName()));
+    }
+
+    /** Sets the filter in the search box and the menu, applies it, and reflects it in the URL and chips. */
+    private void applyFilterEverywhere(CardFilter filter) {
+        search.setValue(filter.text());
+        filters.setFilter(filter);
+        onFilterChanged();
+    }
+
+    private void onFilterChanged() {
+        applyFilter();
+        showViews();
+        if (board != null && openEditor == null) {
+            showPath(currentPath(null));
+        }
+    }
+
+    private void showViews() {
+        if (board != null) {
+            viewsBar.show(savedViews.forBoard(board.id()), filters.filter());
+        }
+    }
+
+    /** Path to this board, with the active filter appended so the address bar stays shareable. */
+    private String currentPath(Long cardId) {
+        String path = pathTo(board.id(), cardId);
+        CardFilter filter = filters.filter();
+        return filter.isActive() ? path + "?" + FILTER_PARAMETER + "=" + encodeQuery(CardFilterCodec.encode(filter)) : path;
+    }
+
+    private static String encodeQuery(String value) {
+        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     private void showParticipants(List<Participant> people) {
@@ -475,12 +544,12 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         editor.addOpenedChangeListener(event -> {
             if (!event.isOpened() && openEditor == editor) {
                 openEditor = null;
-                showPath(pathTo(board.id(), null));
+                showPath(currentPath(null));
             }
         });
         openEditor = editor;
         editor.open();
-        showPath(pathTo(board.id(), card.id()));
+        showPath(currentPath(card.id()));
     }
 
     /** Keeps the address bar in sync with the open card without triggering navigation. */

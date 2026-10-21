@@ -310,6 +310,41 @@ html {
   margin-bottom: var(--lumo-space-s);
 }
 
+.views-bar {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--lumo-space-xs) var(--lumo-space-s);
+  padding: var(--lumo-space-xs) var(--lumo-space-l);
+  border-bottom: 1px solid var(--lumo-contrast-10pct);
+  background: var(--lumo-base-color);
+}
+
+.views-bar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lumo-space-xs);
+}
+
+.views-bar__item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.views-bar__chip {
+  border-radius: 999px;
+}
+
+.views-bar__remove {
+  margin-inline-start: -4px;
+}
+
+.views-bar__save {
+  margin-inline-start: auto;
+}
+
 .digest__period {
   color: var(--lumo-secondary-text-color);
   font-size: var(--lumo-font-size-s);

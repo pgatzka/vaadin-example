@@ -13,6 +13,7 @@ import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import dev.gatzka.flowboard.domain.Recurrence;
 import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
@@ -190,6 +191,42 @@ class BoardViewTest extends FlowboardUiTest {
 
         test($(Button.class).withText("Clear filters").single()).click();
         assertThat(visibleCardTitles()).containsExactly("Late and mine", "On time");
+    }
+
+    @Test
+    void filtersCanBeSavedAsViewsAndLinked() {
+        long backlog = board.lanes().get(0).id();
+        service.createCard(backlog, new CardDraft("Index tuning", null, Priority.HIGH, null, "Mara", Set.of("backend"), null), SEEDER);
+        service.createCard(backlog, new CardDraft("New button", null, Priority.LOW, null, "Jonas", Set.of("ui"), null), SEEDER);
+        openBoard();
+        assertThat($(ViewsBar.class).all()).as("no filter, no views: bar hidden").isEmpty();
+
+        $(ComboBox.class).withLabel("Tag").single().setValue("backend");
+        assertThat(visibleCardTitles()).containsExactly("Index tuning");
+        assertThat($(ViewsBar.class).single().isVisible()).isTrue();
+        test($(Button.class).withText("Save view").single()).click();
+        $(TextField.class).withId("view-name").single().setValue("Backend work");
+        test($(Button.class, $(Dialog.class).withCondition(d -> "Save view".equals(d.getHeaderTitle())).single()).withText("Save").single()).click();
+
+        assertThat($(Button.class).withClassName("views-bar__chip").all()).extracting(Button::getText).containsExactly("Backend work");
+        assertThat($(Button.class).withClassName("views-bar__chip--active").all()).hasSize(1);
+        assertThat($(Button.class).withText("Save view").all()).as("the current filter is already a view").isEmpty();
+
+        test($(Button.class).withText("Clear filters").single()).click();
+        assertThat(visibleCardTitles()).containsExactly("Index tuning", "New button");
+        assertThat($(Button.class).withClassName("views-bar__chip--active").all()).isEmpty();
+
+        test($(Button.class).withClassName("views-bar__chip").single()).click();
+        assertThat(visibleCardTitles()).containsExactly("Index tuning");
+        assertThat($(FilterMenu.class).single().filter().tag()).isEqualTo("backend");
+
+        test($(Button.class).withCondition(b -> b.getAriaLabel().orElse("").startsWith("Delete view")).single()).click();
+        assertThat($(Button.class).withClassName("views-bar__chip").all()).isEmpty();
+        assertThat(visibleCardTitles()).as("deleting the view keeps the filter").containsExactly("Index tuning");
+
+        navigate("board/" + board.id() + "?f=who%3Djonas%26p%3Dlow", BoardView.class);
+        assertThat(visibleCardTitles()).as("filter from the URL").containsExactly("New button");
+        assertThat($(FilterMenu.class).single().filter().assignee()).isEqualTo("jonas");
     }
 
     @Test

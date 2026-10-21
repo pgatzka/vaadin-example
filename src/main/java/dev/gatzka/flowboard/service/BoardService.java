@@ -17,6 +17,7 @@ import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.repository.CardRepository;
 import dev.gatzka.flowboard.repository.LaneRepository;
+import dev.gatzka.flowboard.repository.SavedViewRepository;
 import dev.gatzka.flowboard.repository.WebhookRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -49,12 +50,15 @@ public class BoardService {
     private final NotificationService notifications;
     private final VisitService visits;
     private final WebhookRepository webhooks;
+    private final SavedViewRepository savedViews;
     private final Clock clock;
 
     BoardService(BoardRepository boards, LaneRepository lanes, CardRepository cards, ActivityLog activityLog,
-            NotificationService notifications, VisitService visits, WebhookRepository webhooks, Clock clock) {
+            NotificationService notifications, VisitService visits, WebhookRepository webhooks,
+            SavedViewRepository savedViews, Clock clock) {
         this.visits = visits;
         this.webhooks = webhooks;
+        this.savedViews = savedViews;
         this.boards = boards;
         this.lanes = lanes;
         this.cards = cards;
@@ -109,6 +113,7 @@ public class BoardService {
         notifications.forgetBoard(boardId);
         visits.forgetBoard(boardId);
         webhooks.deleteAllByBoardId(boardId);
+        savedViews.deleteAllByBoardId(boardId);
         boards.delete(board);
         activityLog.record(BoardChangedEvent.deleted(boardId, actor, "deleted board \"%s\"".formatted(board.getName())));
     }

@@ -10,13 +10,18 @@ import java.time.LocalDate;
  * @param overdueOnly only cards whose due date has passed (and that are not in a done lane)
  * @param mineOnly only cards assigned to the current user
  * @param unassignedOnly only cards without an assignee
+ * @param tag only cards carrying this tag, or {@code null} for any
+ * @param assignee only cards assigned to this person, or {@code null} for anybody
  */
-public record CardFilter(String text, Priority priority, boolean overdueOnly, boolean mineOnly, boolean unassignedOnly) {
+public record CardFilter(String text, Priority priority, boolean overdueOnly, boolean mineOnly, boolean unassignedOnly,
+        String tag, String assignee) {
 
-    private static final CardFilter NONE = new CardFilter("", null, false, false, false);
+    private static final CardFilter NONE = new CardFilter("", null, false, false, false, null, null);
 
     public CardFilter {
         text = text == null ? "" : text.strip();
+        tag = Text.clean(tag);
+        assignee = Text.clean(assignee);
     }
 
     public static CardFilter none() {
@@ -24,28 +29,36 @@ public record CardFilter(String text, Priority priority, boolean overdueOnly, bo
     }
 
     public CardFilter withText(String text) {
-        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly);
+        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly, tag, assignee);
     }
 
     public CardFilter withPriority(Priority priority) {
-        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly);
+        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly, tag, assignee);
     }
 
     public CardFilter withOverdueOnly(boolean overdueOnly) {
-        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly);
+        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly, tag, assignee);
     }
 
     public CardFilter withMineOnly(boolean mineOnly) {
-        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly);
+        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly, tag, assignee);
     }
 
     public CardFilter withUnassignedOnly(boolean unassignedOnly) {
-        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly);
+        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly, tag, assignee);
+    }
+
+    public CardFilter withTag(String tag) {
+        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly, tag, assignee);
+    }
+
+    public CardFilter withAssignee(String assignee) {
+        return new CardFilter(text, priority, overdueOnly, mineOnly, unassignedOnly, tag, assignee);
     }
 
     /** Clears everything except the free text, which lives in its own field in the UI. */
     public CardFilter withoutToggles() {
-        return new CardFilter(text, null, false, false, false);
+        return new CardFilter(text, null, false, false, false, null, null);
     }
 
     /** Number of active criteria other than the free text. */
@@ -58,6 +71,12 @@ public record CardFilter(String text, Priority priority, boolean overdueOnly, bo
             count++;
         }
         if (unassignedOnly) {
+            count++;
+        }
+        if (tag != null) {
+            count++;
+        }
+        if (assignee != null) {
             count++;
         }
         return count;
@@ -84,6 +103,12 @@ public record CardFilter(String text, Priority priority, boolean overdueOnly, bo
         if (mineOnly && (card.assignee() == null || !card.assignee().equalsIgnoreCase(me))) {
             return false;
         }
-        return !unassignedOnly || card.assignee() == null;
+        if (unassignedOnly && card.assignee() != null) {
+            return false;
+        }
+        if (tag != null && card.tags().stream().noneMatch(tag::equalsIgnoreCase)) {
+            return false;
+        }
+        return assignee == null || (card.assignee() != null && card.assignee().equalsIgnoreCase(assignee));
     }
 }
