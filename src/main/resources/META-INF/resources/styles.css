@@ -1,0 +1,454 @@
+/*
+ * Flowboard application styles. Loaded after Lumo (see FlowboardApplication), so Lumo's
+ * custom properties are available and can be tuned here.
+ */
+
+html {
+  /* Lumo tuning: a violet accent and slightly softer corners. */
+  --lumo-primary-color: hsl(252, 72%, 57%);
+  --lumo-primary-color-50pct: hsla(252, 72%, 57%, 0.5);
+  --lumo-primary-color-10pct: hsla(252, 72%, 57%, 0.1);
+  --lumo-primary-text-color: hsl(252, 60%, 48%);
+  --lumo-border-radius-m: 0.6em;
+  --lumo-border-radius-l: 0.9em;
+
+  /* Flowboard tokens */
+  --fb-lane-width: 300px;
+  --fb-board-background: var(--lumo-contrast-5pct);
+  --fb-lane-background: var(--lumo-base-color);
+  --fb-lane-border: var(--lumo-contrast-10pct);
+  --fb-card-background: var(--lumo-base-color);
+  --fb-priority-low: var(--lumo-contrast-30pct);
+  --fb-priority-medium: hsl(210, 85%, 55%);
+  --fb-priority-high: hsl(32, 95%, 50%);
+  --fb-priority-urgent: hsl(355, 80%, 55%);
+
+  /* Participant colours used by avatars and the activity feed. */
+  --vaadin-user-color-0: hsl(252, 72%, 57%);
+  --vaadin-user-color-1: hsl(174, 60%, 38%);
+  --vaadin-user-color-2: hsl(32, 95%, 48%);
+  --vaadin-user-color-3: hsl(340, 70%, 52%);
+  --vaadin-user-color-4: hsl(205, 80%, 48%);
+  --vaadin-user-color-5: hsl(130, 50%, 40%);
+  --vaadin-user-color-6: hsl(20, 75%, 50%);
+}
+
+[theme~="dark"] {
+  --lumo-primary-color: hsl(252, 80%, 68%);
+  --lumo-primary-color-50pct: hsla(252, 80%, 68%, 0.5);
+  --lumo-primary-color-10pct: hsla(252, 80%, 68%, 0.12);
+  --lumo-primary-text-color: hsl(252, 90%, 78%);
+  --fb-board-background: var(--lumo-shade-20pct);
+  --fb-lane-background: var(--lumo-contrast-5pct);
+  --fb-card-background: var(--lumo-base-color);
+  --fb-priority-low: var(--lumo-contrast-40pct);
+}
+
+/* ------------------------------------------------------------- app frame */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  width: 100%;
+  padding-inline-end: var(--lumo-space-m);
+}
+
+.app-header > span {
+  flex: 1;
+}
+
+.app-title {
+  margin: 0;
+  font-size: var(--lumo-font-size-l);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  background: linear-gradient(90deg, var(--lumo-primary-color), hsl(200, 85%, 55%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.user-button {
+  max-width: 14rem;
+}
+
+.drawer-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-m);
+  padding: var(--lumo-space-s);
+}
+
+/* ---------------------------------------------------------- boards page */
+
+.boards-view {
+  padding: var(--lumo-space-l);
+  gap: var(--lumo-space-l);
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--lumo-space-m);
+  width: 100%;
+}
+
+.page-header h2 {
+  margin: 0 0 var(--lumo-space-xs);
+}
+
+.page-subtitle {
+  color: var(--lumo-secondary-text-color);
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--lumo-space-m);
+  width: 100%;
+}
+
+.board-tile {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.board-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--lumo-box-shadow-m);
+}
+
+.board-tile a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.board-tile a:hover {
+  color: var(--lumo-primary-text-color);
+}
+
+.board-tile__description {
+  margin: 0;
+  color: var(--lumo-secondary-text-color);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  padding: var(--lumo-space-xl);
+  text-align: center;
+  color: var(--lumo-secondary-text-color);
+  border: 1px dashed var(--lumo-contrast-20pct);
+  border-radius: var(--lumo-border-radius-l);
+}
+
+.empty-state__title {
+  font-size: var(--lumo-font-size-l);
+  font-weight: 600;
+  color: var(--lumo-body-text-color);
+}
+
+/* ------------------------------------------------------------ board view */
+
+.board-toolbar {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--lumo-space-s) var(--lumo-space-m);
+  padding: var(--lumo-space-s) var(--lumo-space-l);
+  border-bottom: 1px solid var(--lumo-contrast-10pct);
+}
+
+.board-toolbar__titles {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.board-toolbar__title {
+  margin: 0;
+  font-size: var(--lumo-font-size-xl);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-toolbar__description {
+  display: block;
+  color: var(--lumo-secondary-text-color);
+  font-size: var(--lumo-font-size-s);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-toolbar__search {
+  width: 16rem;
+  max-width: 100%;
+}
+
+.board-toolbar__presence {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.lanes {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--lumo-space-m);
+  padding: var(--lumo-space-m) var(--lumo-space-l) var(--lumo-space-l);
+  overflow-x: auto;
+  min-height: 0;
+  background: var(--fb-board-background);
+  scroll-snap-type: x proximity;
+}
+
+.lane {
+  flex: 0 0 var(--fb-lane-width);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  background: var(--fb-lane-background);
+  border: 1px solid var(--fb-lane-border);
+  border-radius: var(--lumo-border-radius-l);
+  box-shadow: var(--lumo-box-shadow-xs);
+  scroll-snap-align: start;
+}
+
+.lane--over-limit {
+  border-color: var(--lumo-error-color-50pct);
+}
+
+.lane--over-limit .lane__name {
+  color: var(--lumo-error-text-color);
+}
+
+.lane__header {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  padding: var(--lumo-space-s) var(--lumo-space-xs) var(--lumo-space-s) var(--lumo-space-m);
+}
+
+.lane__name {
+  flex: 1;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lane__cards {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-s);
+  min-height: 3.5rem;
+  padding: 2px var(--lumo-space-s);
+  overflow-y: auto;
+  border-radius: var(--lumo-border-radius-m);
+  transition: background-color 0.15s ease;
+}
+
+.lane__cards.v-drag-over-target {
+  background: var(--lumo-primary-color-10pct);
+  outline: 2px dashed var(--lumo-primary-color-50pct);
+  outline-offset: -2px;
+}
+
+.lane__empty {
+  padding: var(--lumo-space-m);
+  text-align: center;
+  font-size: var(--lumo-font-size-s);
+  color: var(--lumo-tertiary-text-color);
+  border: 1px dashed var(--lumo-contrast-20pct);
+  border-radius: var(--lumo-border-radius-m);
+  pointer-events: none;
+}
+
+.lane__add {
+  margin: var(--lumo-space-xs) var(--lumo-space-s) var(--lumo-space-s);
+  justify-content: flex-start;
+  color: var(--lumo-secondary-text-color);
+}
+
+/* ------------------------------------------------------------------ cards */
+
+.task-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-xs);
+  padding: var(--lumo-space-s) var(--lumo-space-m) var(--lumo-space-s) calc(var(--lumo-space-m) + 4px);
+  background: var(--fb-card-background);
+  border: 1px solid var(--lumo-contrast-10pct);
+  border-radius: var(--lumo-border-radius-m);
+  box-shadow: var(--lumo-box-shadow-xs);
+  cursor: grab;
+  transition: box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.task-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: var(--lumo-border-radius-m) 0 0 var(--lumo-border-radius-m);
+  background: var(--fb-priority-medium);
+}
+
+.task-card[data-priority="low"]::before {
+  background: var(--fb-priority-low);
+}
+
+.task-card[data-priority="high"]::before {
+  background: var(--fb-priority-high);
+}
+
+.task-card[data-priority="urgent"]::before {
+  background: var(--fb-priority-urgent);
+}
+
+.task-card:hover {
+  box-shadow: var(--lumo-box-shadow-s);
+  border-color: var(--lumo-contrast-20pct);
+}
+
+.task-card:focus-visible {
+  outline: 2px solid var(--lumo-primary-color-50pct);
+  outline-offset: 1px;
+}
+
+.task-card.v-dragged {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.task-card.v-drag-over-target {
+  box-shadow: 0 -3px 0 0 var(--lumo-primary-color), var(--lumo-box-shadow-xs);
+}
+
+.task-card__title {
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.lane--done .task-card__title {
+  color: var(--lumo-secondary-text-color);
+}
+
+.task-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--lumo-space-xs);
+  min-height: 1.5rem;
+}
+
+.task-card__meta:empty {
+  display: none;
+}
+
+.task-card__notes {
+  width: 0.9em;
+  height: 0.9em;
+  color: var(--lumo-tertiary-text-color);
+}
+
+.task-card__assignee {
+  margin-inline-start: auto;
+}
+
+/* ---------------------------------------------------------------- dialogs */
+
+.field-label {
+  display: block;
+  margin-bottom: var(--lumo-space-xs);
+  font-size: var(--lumo-font-size-s);
+  font-weight: 500;
+  color: var(--lumo-secondary-text-color);
+}
+
+.markdown-preview {
+  min-height: 9em;
+  max-height: 20em;
+  overflow: auto;
+  padding: var(--lumo-space-s) var(--lumo-space-m);
+  border: 1px solid var(--lumo-contrast-20pct);
+  border-radius: var(--lumo-border-radius-m);
+  font-size: var(--lumo-font-size-s);
+}
+
+.markdown-preview > :first-child {
+  margin-top: 0;
+}
+
+.markdown-preview > :last-child {
+  margin-bottom: 0;
+}
+
+.priority-option::before {
+  content: "";
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-inline-end: 0.5em;
+  border-radius: 50%;
+  background: var(--fb-priority-medium);
+}
+
+.priority-option[data-priority="low"]::before {
+  background: var(--fb-priority-low);
+}
+
+.priority-option[data-priority="high"]::before {
+  background: var(--fb-priority-high);
+}
+
+.priority-option[data-priority="urgent"]::before {
+  background: var(--fb-priority-urgent);
+}
+
+.dialog-footer__start {
+  margin-inline-end: auto;
+}
+
+.danger {
+  color: var(--lumo-error-text-color);
+}
+
+/* Activity side sheet: the dialog's overlay is docked to the right edge. */
+vaadin-dialog.activity-sheet::part(overlay) {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(420px, 100vw);
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  border-radius: 0;
+}
+
+vaadin-dialog.activity-sheet::part(content) {
+  padding-top: 0;
+}
+
+.activity-sheet__empty {
+  display: block;
+  padding: var(--lumo-space-l);
+  text-align: center;
+  color: var(--lumo-secondary-text-color);
+}

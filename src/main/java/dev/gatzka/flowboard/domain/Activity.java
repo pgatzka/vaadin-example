@@ -1,0 +1,61 @@
+package dev.gatzka.flowboard.domain;
+
+import static java.util.Objects.requireNonNull;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import java.time.Instant;
+
+/** One line in a board's activity feed, e.g. "Mara moved "Dark mode" to Done". */
+@Entity
+@Table(name = "activities", indexes = @Index(columnList = "board_id, occurred_at"))
+public class Activity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private Long boardId;
+
+    @Column(nullable = false, length = 60)
+    private String actor;
+
+    @Column(nullable = false, length = 300)
+    private String message;
+
+    @Column(nullable = false)
+    private Instant occurredAt;
+
+    protected Activity() {
+        // JPA
+    }
+
+    public Activity(long boardId, String actor, String message, Instant occurredAt) {
+        this.boardId = boardId;
+        this.actor = requireNonNull(actor);
+        this.message = requireNonNull(message);
+        this.occurredAt = requireNonNull(occurredAt);
+    }
+
+    public Long getBoardId() {
+        return boardId;
+    }
+
+    public String getActor() {
+        return actor;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public Instant getOccurredAt() {
+        return occurredAt;
+    }
+}

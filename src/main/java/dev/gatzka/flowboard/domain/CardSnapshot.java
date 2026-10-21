@@ -1,0 +1,68 @@
+package dev.gatzka.flowboard.domain;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Stream;
+
+public record CardSnapshot(
+        long id,
+        long laneId,
+        String title,
+        String description,
+        Priority priority,
+        LocalDate dueDate,
+        String assignee,
+        Set<String> tags,
+        int position,
+        Instant updatedAt) {
+
+    /** Cards due within this many days (inclusive) are flagged as due soon. */
+    private static final int DUE_SOON_DAYS = 2;
+
+    public static CardSnapshot of(Card card) {
+        TreeSet<String> sortedTags = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        sortedTags.addAll(card.getTags());
+        return new CardSnapshot(
+                card.getId(),
+                card.getLane().getId(),
+                card.getTitle(),
+                card.getDescription(),
+                card.getPriority(),
+                card.getDueDate(),
+                card.getAssignee(),
+                Collections.unmodifiableSet(sortedTags),
+                card.getPosition(),
+                card.getUpdatedAt());
+    }
+
+    public boolean hasDescription() {
+        return description != null;
+    }
+
+    public boolean isOverdue(LocalDate today) {
+        return dueDate != null && dueDate.isBefore(today);
+    }
+
+    public boolean isDueSoon(LocalDate today) {
+        return dueDate != null && !isOverdue(today) && !dueDate.isAfter(today.plusDays(DUE_SOON_DAYS));
+    }
+
+    /** Case-insensitive free text match over title, description, assignee and tags. */
+    public boolean matches(String query) {
+        if (query == null || query.isBlank()) {
+            return true;
+        }
+        String needle = query.strip().toLowerCase(Locale.ROOT);
+        return Stream.concat(Stream.of(title, description, assignee), tags.stream())
+                .filter(text -> text != null)
+                .anyMatch(text -> text.toLowerCase(Locale.ROOT).contains(needle));
+    }
+
+    public CardDraft toDraft() {
+        return new CardDraft(title, description, priority, dueDate, assignee, tags);
+    }
+}

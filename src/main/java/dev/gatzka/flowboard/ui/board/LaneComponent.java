@@ -1,0 +1,142 @@
+package dev.gatzka.flowboard.ui.board;
+
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.badge.Badge;
+import com.vaadin.flow.component.badge.BadgeVariant;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.contextmenu.SubMenu;
+import com.vaadin.flow.component.dnd.DragSource;
+import com.vaadin.flow.component.dnd.DropEffect;
+import com.vaadin.flow.component.dnd.DropTarget;
+import com.vaadin.flow.component.dnd.EffectAllowed;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.menubar.MenuBarVariant;
+import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.domain.LaneSnapshot;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * A lane with its cards. Cards are drag sources; both the cards and the lane body are drop
+ * targets: dropping on a card inserts before it, dropping on the body appends.
+ */
+final class LaneComponent extends Div {
+
+    private final LaneSnapshot lane;
+    private final List<CardComponent> cardComponents = new ArrayList<>();
+
+    LaneComponent(LaneSnapshot lane, int laneCount, LocalDate today, BoardActions actions) {
+        this.lane = lane;
+        addClassName("lane");
+        if (lane.isOverWipLimit()) {
+            addClassName("lane--over-limit");
+        }
+        if (lane.done()) {
+            addClassName("lane--done");
+        }
+        getElement().setAttribute("data-lane-id", Long.toString(lane.id()));
+
+        Button addCard = new Button("Add card", VaadinIcon.PLUS.create(), event -> actions.newCard(lane));
+        addCard.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        addCard.addClassName("lane__add");
+
+        add(header(laneCount, actions), cards(today, actions), addCard);
+    }
+
+    LaneSnapshot lane() {
+        return lane;
+    }
+
+    /** Hides cards that do not match the query; the lane itself stays visible as a drop target. */
+    void filter(String query) {
+        for (CardComponent component : cardComponents) {
+            component.setVisible(component.card().matches(query));
+        }
+    }
+
+    private Component header(int laneCount, BoardActions actions) {
+        Span name = new Span(lane.name());
+        name.addClassName("lane__name");
+
+        Div header = new Div(name, countBadge(), menu(laneCount, actions));
+        header.addClassName("lane__header");
+        return header;
+    }
+
+    private Badge countBadge() {
+        int count = lane.cards().size();
+        Badge badge = new Badge(lane.hasWipLimit() ? count + " / " + lane.wipLimit() : Integer.toString(count));
+        badge.addThemeVariants(BadgeVariant.SMALL, lane.isOverWipLimit() ? BadgeVariant.ERROR : BadgeVariant.CONTRAST);
+        badge.addClassName("lane__count");
+        if (lane.hasWipLimit()) {
+            badge.getElement().setAttribute("title", lane.isOverWipLimit()
+                    ? "Over the work-in-progress limit of " + lane.wipLimit()
+                    : "Work-in-progress limit: " + lane.wipLimit());
+        }
+        return badge;
+    }
+
+    private MenuBar menu(int laneCount, BoardActions actions) {
+        MenuBar menu = new MenuBar();
+        menu.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE, MenuBarVariant.LUMO_ICON, MenuBarVariant.LUMO_SMALL);
+        MenuItem root = menu.addItem(VaadinIcon.ELLIPSIS_DOTS_V.create());
+        root.setAriaLabel("Lane actions");
+        SubMenu items = root.getSubMenu();
+        items.addItem("Edit lane", event -> actions.editLane(lane));
+        MenuItem left = items.addItem("Move left", event -> actions.moveLane(lane, -1));
+        left.setEnabled(lane.position() > 0);
+        MenuItem right = items.addItem("Move right", event -> actions.moveLane(lane, 1));
+        right.setEnabled(lane.position() < laneCount - 1);
+        MenuItem delete = items.addItem("Delete lane", event -> actions.deleteLane(lane));
+        delete.addClassName("danger");
+        return menu;
+    }
+
+    private Component cards(LocalDate today, BoardActions actions) {
+        Div body = new Div();
+        body.addClassName("lane__cards");
+
+        DropTarget<Div> appendTarget = DropTarget.create(body);
+        appendTarget.setDropEffect(DropEffect.MOVE);
+        appendTarget.addDropListener(event -> draggedCardId(event.getDragData().orElse(null))
+                .ifPresent(cardId -> actions.moveCard(cardId, lane.id(), lane.cards().size())));
+
+        for (CardSnapshot card : lane.cards()) {
+            CardComponent component = new CardComponent(card, today, lane.done(), () -> actions.openCard(card));
+            makeDraggable(component, card);
+            makeInsertTarget(component, card, actions);
+            cardComponents.add(component);
+            body.add(component);
+        }
+        if (lane.cards().isEmpty()) {
+            Span hint = new Span("Drop cards here");
+            hint.addClassName("lane__empty");
+            body.add(hint);
+        }
+        return body;
+    }
+
+    private static void makeDraggable(CardComponent component, CardSnapshot card) {
+        DragSource<CardComponent> source = DragSource.create(component);
+        source.setEffectAllowed(EffectAllowed.MOVE);
+        source.setDragData(card.id());
+    }
+
+    private void makeInsertTarget(CardComponent component, CardSnapshot card, BoardActions actions) {
+        DropTarget<CardComponent> target = DropTarget.create(component);
+        target.setDropEffect(DropEffect.MOVE);
+        target.addDropListener(event -> draggedCardId(event.getDragData().orElse(null))
+                .filter(cardId -> cardId != card.id())
+                .ifPresent(cardId -> actions.moveCard(cardId, lane.id(), card.position())));
+    }
+
+    private static java.util.Optional<Long> draggedCardId(Object dragData) {
+        return dragData instanceof Long cardId ? java.util.Optional.of(cardId) : java.util.Optional.empty();
+    }
+}
