@@ -27,6 +27,10 @@ public class Board {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
+    /** Token of the public read-only link, or {@code null} while the board is not shared. */
+    @Column(name = "share_token", length = 40)
+    private String shareToken;
+
     protected Board() {
         // JPA
     }
@@ -51,6 +55,22 @@ public class Board {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getShareToken() {
+        return shareToken;
+    }
+
+    public boolean isShared() {
+        return shareToken != null;
+    }
+
+    public void share(String token) {
+        this.shareToken = requireNonNull(token);
+    }
+
+    public void unshare() {
+        this.shareToken = null;
     }
 
     public Instant getCreatedAt() {

@@ -50,6 +50,7 @@ import dev.gatzka.flowboard.service.InsightsService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.service.PresenceTracker;
+import dev.gatzka.flowboard.service.SharingService;
 import dev.gatzka.flowboard.service.VoteService;
 import dev.gatzka.flowboard.ui.ProfileChangedEvent;
 import dev.gatzka.flowboard.ui.UserSession;
@@ -95,6 +96,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final ActivityLog activityLog;
     private final BoardChangeBroadcaster broadcaster;
     private final PresenceTracker presence;
+    private final SharingService sharing;
     private final UserSession session;
     private final Clock clock;
 
@@ -120,7 +122,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             VoteService voteService, DependencyService dependencyService, AttachmentService attachmentService,
             InsightsService insightsService, FlowSnapshotService flowSnapshots, AssistantService assistant,
             ExecutorService executor, ActivityLog activityLog,
-            BoardChangeBroadcaster broadcaster, PresenceTracker presence, UserSession session, Clock clock) {
+            BoardChangeBroadcaster broadcaster, PresenceTracker presence, SharingService sharing, UserSession session,
+            Clock clock) {
+        this.sharing = sharing;
         this.boardService = boardService;
         this.checklistService = checklistService;
         this.commentService = commentService;
@@ -190,10 +194,16 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         archive.setAriaLabel("Show archive");
         archive.setTooltipText("Archive");
 
+        Button share = new Button(VaadinIcon.SHARE.create(), event -> new ShareDialog(board, sharing, this::actor).open());
+        share.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        share.setAriaLabel("Share");
+        share.setTooltipText("Public link");
+        share.setId("share-board");
+
         Button addLane = new Button("Add lane", VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        Div toolbar = new Div(titles, search, filters, participants, activity, insights, calendar, archive);
+        Div toolbar = new Div(titles, search, filters, participants, activity, insights, calendar, archive, share);
         if (assistant.isAvailable()) {
             toolbar.add(assistantMenu());
         }

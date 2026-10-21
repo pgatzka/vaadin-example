@@ -20,7 +20,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /** A single card on the board. Purely presentational: drag and drop is wired up by the lane. */
-final class CardComponent extends Div {
+public final class CardComponent extends Div {
 
     private static final DateTimeFormatter SAME_YEAR = DateTimeFormatter.ofPattern("MMM d");
     private static final DateTimeFormatter OTHER_YEAR = DateTimeFormatter.ofPattern("MMM d, uuuu");
@@ -31,28 +31,39 @@ final class CardComponent extends Div {
     record Voting(boolean voted, Runnable onToggle) {
     }
 
+    /** A card that only shows its state: no voting, no opening, no dragging. */
+    public static CardComponent readOnly(CardSnapshot card, LocalDate today, Instant now, boolean completed) {
+        return new CardComponent(card, today, now, completed, null, null);
+    }
+
     CardComponent(CardSnapshot card, LocalDate today, Instant now, boolean completed, Runnable onOpen, Voting voting) {
         this.card = card;
         addClassName("task-card");
+        boolean readOnly = onOpen == null;
+        if (readOnly) {
+            addClassName("task-card--readonly");
+        }
         CardAge age = card.age(now);
         if (!completed && age.level() == CardAge.Level.STALE) {
             addClassName("task-card--stale");
         }
         getElement().setAttribute("data-priority", card.priority().name().toLowerCase(Locale.ROOT));
-        getElement().setAttribute("role", "button");
-        getElement().setAttribute("tabindex", "0");
         getElement().setAttribute("aria-label", card.title() + ", " + card.priority().label() + " priority");
 
         Div title = new Div(card.title());
         title.addClassName("task-card__title");
         add(title, meta(today, completed, age, voting));
 
-        addClickListener(event -> onOpen.run());
-        getElement().addEventListener("keydown", event -> onOpen.run())
-                .setFilter("event.key === 'Enter' || event.key === ' '");
+        if (!readOnly) {
+            getElement().setAttribute("role", "button");
+            getElement().setAttribute("tabindex", "0");
+            addClickListener(event -> onOpen.run());
+            getElement().addEventListener("keydown", event -> onOpen.run())
+                    .setFilter("event.key === 'Enter' || event.key === ' '");
+        }
     }
 
-    CardSnapshot card() {
+    public CardSnapshot card() {
         return card;
     }
 
@@ -60,17 +71,14 @@ final class CardComponent extends Div {
         Div meta = new Div();
         meta.addClassName("task-card__meta");
 
-        Button vote = new Button((voting.voted() ? VaadinIcon.THUMBS_UP : VaadinIcon.THUMBS_UP_O).create(), event -> voting.onToggle().run());
-        vote.setText(card.votes() == 0 ? "" : Integer.toString(card.votes()));
-        vote.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
-        vote.addClassName("task-card__vote");
-        if (voting.voted()) {
-            vote.addClassName("task-card__vote--mine");
+        if (voting != null) {
+            meta.add(voteButton(voting));
+        } else if (card.votes() > 0) {
+            Badge votes = new Badge(Integer.toString(card.votes()), VaadinIcon.THUMBS_UP_O.create());
+            votes.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
+            votes.addClassName("task-card__vote");
+            meta.add(votes);
         }
-        vote.setAriaLabel(voting.voted() ? "Withdraw your vote" : "Vote for this card");
-        vote.setTooltipText(card.votes() == 0 ? "Vote" : card.votes() + (card.votes() == 1 ? " vote" : " votes"));
-        vote.getElement().addEventListener("click", event -> { }).stopPropagation();
-        meta.add(vote);
 
         if (!completed && age.isNoteworthy()) {
             Badge aging = new Badge(age.days() + " d here", VaadinIcon.HOURGLASS.create());
@@ -140,6 +148,20 @@ final class CardComponent extends Div {
             meta.add(assigneeAvatar());
         }
         return meta;
+    }
+
+    private Button voteButton(Voting voting) {
+        Button vote = new Button((voting.voted() ? VaadinIcon.THUMBS_UP : VaadinIcon.THUMBS_UP_O).create(), event -> voting.onToggle().run());
+        vote.setText(card.votes() == 0 ? "" : Integer.toString(card.votes()));
+        vote.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
+        vote.addClassName("task-card__vote");
+        if (voting.voted()) {
+            vote.addClassName("task-card__vote--mine");
+        }
+        vote.setAriaLabel(voting.voted() ? "Withdraw your vote" : "Vote for this card");
+        vote.setTooltipText(card.votes() == 0 ? "Vote" : card.votes() + (card.votes() == 1 ? " vote" : " votes"));
+        vote.getElement().addEventListener("click", event -> { }).stopPropagation();
+        return vote;
     }
 
     private Component dueBadge(LocalDate today, boolean completed) {
