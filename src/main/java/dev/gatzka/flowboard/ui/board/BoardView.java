@@ -41,6 +41,7 @@ import dev.gatzka.flowboard.domain.CardFilterCodec;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
+import dev.gatzka.flowboard.domain.QuickAdd;
 import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.domain.SavedViewSnapshot;
 import dev.gatzka.flowboard.domain.TimerSnapshot;
@@ -579,14 +580,23 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     @Override
-    public void quickAddCard(LaneSnapshot lane, String title) {
-        perform(() -> boardService.createCard(lane.id(), CardDraft.titled(title), actor()));
+    public void quickAddCard(LaneSnapshot lane, String text) {
+        perform(() -> createFromShorthand(lane, text));
     }
 
     @Override
-    public void quickAddCards(LaneSnapshot lane, List<String> titles) {
-        perform(() -> titles.forEach(title -> boardService.createCard(lane.id(), CardDraft.titled(title), actor())));
-        Toasts.success(titles.size() + " cards added to " + lane.name());
+    public void quickAddCards(LaneSnapshot lane, List<String> lines) {
+        perform(() -> lines.forEach(line -> createFromShorthand(lane, line)));
+        Toasts.success(lines.size() + " cards added to " + lane.name());
+    }
+
+    /** Creates a card from quick-add text, honouring the {@link QuickAdd} shorthand. */
+    private void createFromShorthand(LaneSnapshot lane, String text) {
+        QuickAdd parsed = QuickAdd.parse(text, LocalDate.now(clock));
+        CardSnapshot created = boardService.createCard(lane.id(), parsed.draft(), actor());
+        if (parsed.recurrence().repeats()) {
+            boardService.setRecurrence(created.id(), parsed.recurrence(), actor());
+        }
     }
 
     @Override

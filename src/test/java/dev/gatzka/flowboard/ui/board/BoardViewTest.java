@@ -196,6 +196,21 @@ class BoardViewTest extends FlowboardUiTest {
     }
 
     @Test
+    void quickAddUnderstandsTheShorthand() {
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        view.quickAddCard(board.lanes().get(0), "Rotate keys !urgent @ops #security ~2 due:tomorrow every:month");
+
+        CardSnapshot created = service.findBoard(board.id()).orElseThrow().lanes().get(0).cards().getFirst();
+        assertThat(created.title()).isEqualTo("Rotate keys");
+        assertThat(created.priority()).isEqualTo(Priority.URGENT);
+        assertThat(created.assignee()).isEqualTo("ops");
+        assertThat(created.tags()).containsExactly("security");
+        assertThat(created.estimate()).isEqualTo(2);
+        assertThat(created.dueDate()).isEqualTo(LocalDate.now().plusDays(1));
+        assertThat(created.recurrence()).isEqualTo(Recurrence.MONTHLY);
+    }
+
+    @Test
     void templatesMakeCardsWithChecklistsAndCardsBecomeTemplates() {
         BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
         assertThat($(MenuItem.class).withClassName("lane__from-template").all()).as("no templates yet").isEmpty();

@@ -65,7 +65,7 @@ final class QuickAddComposer extends Div {
         title.setValueChangeMode(ValueChangeMode.EAGER);
         title.addKeyPressListener(Key.ENTER, event -> submit(onQuickAdd));
         title.addKeyDownListener(Key.ESCAPE, event -> close());
-        title.setHelperText("Paste several lines to add several cards.");
+        title.setHelperText("Shorthand: !high @name #tag ~3 due:fri every:week. Paste several lines to add several cards.");
         title.getElement().addEventListener("multiline-paste", event -> pasteLines(event.getEventData().path("event.detail.text").asString()))
                 .addEventData("event.detail.text");
         title.addAttachListener(event -> title.getElement().executeJs(MULTILINE_PASTE_JS, title.getElement()));

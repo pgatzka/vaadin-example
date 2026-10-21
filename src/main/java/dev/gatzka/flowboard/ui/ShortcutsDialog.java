@@ -14,6 +14,8 @@ final class ShortcutsDialog extends Dialog {
             {"/", "Focus the card filter on a board"},
             {"Enter", "Add the card typed into a lane's composer"},
             {"Paste", "Several lines pasted into a composer become several cards"},
+            {"!high @mara #ui ~3", "In a composer: priority, assignee, tag and points for the new card"},
+            {"due:fri every:week", "In a composer: due date (today, tomorrow, a weekday, +3, a date) and repetition"},
             {"Ctrl + Enter", "Save the open dialog"},
             {"Esc", "Close a dialog or the composer"},
             {"Drag", "Move cards between lanes, drag a lane header to reorder lanes"},
