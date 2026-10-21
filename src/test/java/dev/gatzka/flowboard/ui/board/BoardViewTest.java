@@ -7,6 +7,8 @@ import com.vaadin.browserless.SpringBrowserlessTest;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.textfield.TextField;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
@@ -155,6 +157,23 @@ class BoardViewTest extends SpringBrowserlessTest {
 
         test($(Button.class).withText("Clear filters").single()).click();
         assertThat(visibleCardTitles()).containsExactly("Late and mine", "On time");
+    }
+
+    @Test
+    void deletingLaneOffersToMoveItsCards() {
+        createCard("Keep me");
+        openBoard();
+        LaneComponent backlog = $(LaneComponent.class).first();
+
+        test($(MenuItem.class, backlog).withText("Delete lane").single()).click();
+        DeleteLaneDialog dialog = $(DeleteLaneDialog.class).single();
+        RadioButtonGroup<DeleteLaneDialog.Fate> fate = $(RadioButtonGroup.class, dialog).single();
+        assertThat(fate.getValue()).isEqualTo(DeleteLaneDialog.Fate.MOVE);
+        test($(Button.class, dialog).withText("Delete lane").single()).click();
+
+        assertThat($(LaneComponent.class).all()).extracting(lane -> lane.lane().name())
+                .containsExactly("In progress", "Review", "Done");
+        assertThat($(LaneComponent.class).first().lane().cards()).extracting(CardSnapshot::title).containsExactly("Keep me");
     }
 
     @Test

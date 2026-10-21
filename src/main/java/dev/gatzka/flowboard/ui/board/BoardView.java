@@ -11,7 +11,6 @@ import com.vaadin.flow.component.avatar.AvatarGroup.AvatarGroupItem;
 import com.vaadin.flow.component.avatar.AvatarGroupVariant;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
@@ -293,15 +292,13 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     @Override
     public void deleteLane(LaneSnapshot lane) {
-        int cardCount = lane.cards().size();
-        String text = cardCount == 0
-                ? "The lane is empty and will be removed."
-                : "The lane and its %d card%s will be removed for everyone.".formatted(cardCount, cardCount == 1 ? "" : "s");
-        ConfirmDialog confirm = new ConfirmDialog("Delete \"%s\"?".formatted(lane.name()), text, "Delete",
-                event -> perform(() -> boardService.deleteLane(lane.id(), actor())));
-        confirm.setCancelable(true);
-        confirm.setConfirmButtonTheme("error primary");
-        confirm.open();
+        new DeleteLaneDialog(lane, board, target -> perform(() -> {
+            if (target == null) {
+                boardService.deleteLane(lane.id(), actor());
+            } else {
+                boardService.deleteLaneMovingCards(lane.id(), target.id(), actor());
+            }
+        })).open();
     }
 
     private void addLane() {

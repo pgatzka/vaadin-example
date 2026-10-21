@@ -200,6 +200,27 @@ class BoardServiceTest {
     }
 
     @Test
+    void deletingLaneCanMoveItsCardsToAnotherLane() {
+        createCard(inProgress, "existing");
+        createCard(backlog, "first");
+        createCard(backlog, "second");
+
+        service.deleteLaneMovingCards(backlog, inProgress, ACTOR);
+
+        assertThat(laneNames()).containsExactly("In progress", "Review", "Done");
+        assertThat(titles(inProgress)).containsExactly("existing", "first", "second");
+        assertThat(lane(inProgress).cards()).extracting(CardSnapshot::position).containsExactly(0, 1, 2);
+        assertThat(activityLog.recent(board.id()).getFirst().message())
+                .isEqualTo("removed lane \"Backlog\" and moved 2 cards to In progress");
+    }
+
+    @Test
+    void cardsCannotBeMovedIntoTheLaneBeingDeleted() {
+        assertThatThrownBy(() -> service.deleteLaneMovingCards(backlog, backlog, ACTOR))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void laneReportsWipLimitBreaches() {
         createCard(inProgress, "1");
         createCard(inProgress, "2");

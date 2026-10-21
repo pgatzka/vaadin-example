@@ -16,6 +16,7 @@ import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.repository.CardRepository;
 import dev.gatzka.flowboard.repository.LaneRepository;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -110,13 +111,36 @@ public class BoardService {
         activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor, "updated lane \"%s\"".formatted(lane.getName())));
     }
 
+    /** Deletes a lane together with all of its cards. */
     public void deleteLane(long laneId, String actor) {
         Lane lane = requireLane(laneId);
         long boardId = boardIdOf(lane);
         cards.deleteAllByLaneId(laneId);
-        lanes.delete(lane);
-        renumberLanes(lanes.findAllByBoardIdOrderByPositionAsc(boardId));
+        removeLane(lane);
         activityLog.record(BoardChangedEvent.content(boardId, actor, "removed lane \"%s\"".formatted(lane.getName())));
+    }
+
+    /** Deletes a lane after appending its cards, in order, to another lane of the same board. */
+    public void deleteLaneMovingCards(long laneId, long targetLaneId, String actor) {
+        Lane lane = requireLane(laneId);
+        Lane target = requireLane(targetLaneId);
+        if (lane.getId().equals(target.getId())) {
+            throw new IllegalArgumentException("Cards cannot be moved into the lane being deleted");
+        }
+        if (boardIdOf(lane) != boardIdOf(target)) {
+            throw new IllegalArgumentException("Cards can only be moved within their own board");
+        }
+        List<Card> targetCards = cards.findAllByLaneIdOrderByPositionAsc(target.getId());
+        List<Card> moving = cards.findAllByLaneIdOrderByPositionAsc(laneId);
+        Instant now = clock.instant();
+        for (Card card : moving) {
+            card.moveTo(target, now);
+            targetCards.add(card);
+        }
+        renumberCards(targetCards);
+        removeLane(lane);
+        activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
+                "removed lane \"%s\" and moved %s to %s".formatted(lane.getName(), count(moving.size(), "card"), target.getName())));
     }
 
     public void moveLane(long laneId, int targetIndex, String actor) {
@@ -235,6 +259,16 @@ public class BoardService {
 
     private Card requireCard(long cardId) {
         return cards.findById(cardId).orElseThrow(() -> new NotFoundException("Card", cardId));
+    }
+
+    private void removeLane(Lane lane) {
+        long boardId = boardIdOf(lane);
+        lanes.delete(lane);
+        renumberLanes(lanes.findAllByBoardIdOrderByPositionAsc(boardId));
+    }
+
+    private static String count(int n, String noun) {
+        return n + " " + (n == 1 ? noun : noun + "s");
     }
 
     private static long boardIdOf(Lane lane) {
