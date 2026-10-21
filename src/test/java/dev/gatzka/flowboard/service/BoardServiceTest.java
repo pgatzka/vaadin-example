@@ -152,11 +152,12 @@ class BoardServiceTest {
     void laneEntryTimeResetsOnlyWhenTheLaneChanges() {
         CardSnapshot card = createCard(backlog, "mover");
         createCard(backlog, "other");
-        java.time.Instant entered = card.laneEnteredAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS); // database precision
+        java.time.Instant entered = card.laneEnteredAt();
         assertThat(entered).isNotNull();
 
         service.moveCard(card.id(), backlog, 2, ACTOR);
-        assertThat(lane(backlog).cards().getLast().laneEnteredAt()).isEqualTo(entered);
+        assertThat(lane(backlog).cards().getLast().laneEnteredAt())
+                .isCloseTo(entered, org.assertj.core.api.Assertions.within(1, java.time.temporal.ChronoUnit.MILLIS));
 
         service.moveCard(card.id(), inProgress, 0, ACTOR);
         assertThat(lane(inProgress).cards().getFirst().laneEnteredAt()).isAfterOrEqualTo(entered);

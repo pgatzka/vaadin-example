@@ -41,6 +41,7 @@ import dev.gatzka.flowboard.service.BoardChangedEvent;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.CommentService;
+import dev.gatzka.flowboard.service.FlowSnapshotService;
 import dev.gatzka.flowboard.service.InsightsService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.Participant;
@@ -78,6 +79,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final ChecklistService checklistService;
     private final CommentService commentService;
     private final InsightsService insightsService;
+    private final FlowSnapshotService flowSnapshots;
     private final AssistantService assistant;
     private final ExecutorService executor;
     private final ActivityLog activityLog;
@@ -105,12 +107,14 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private Registration profileSubscription;
 
     public BoardView(BoardService boardService, ChecklistService checklistService, CommentService commentService,
-            InsightsService insightsService, AssistantService assistant, ExecutorService executor, ActivityLog activityLog,
+            InsightsService insightsService, FlowSnapshotService flowSnapshots, AssistantService assistant,
+            ExecutorService executor, ActivityLog activityLog,
             BoardChangeBroadcaster broadcaster, PresenceTracker presence, UserSession session, Clock clock) {
         this.boardService = boardService;
         this.checklistService = checklistService;
         this.commentService = commentService;
         this.insightsService = insightsService;
+        this.flowSnapshots = flowSnapshots;
         this.assistant = assistant;
         this.executor = executor;
         this.activityLog = activityLog;
@@ -309,7 +313,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             activityDialog.show(activityLog.recent(board.id()));
         }
         if (insightsDialog.isOpened()) {
-            insightsDialog.show(insightsService.forBoard(board.id()));
+            insightsDialog.show(insightsService.forBoard(board.id()), flowSnapshots.cumulativeFlow(board.id()));
         }
         if (archiveDialog.isOpened()) {
             archiveDialog.show(boardService.archivedCards(board.id()));
@@ -347,7 +351,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     private void openInsights() {
-        insightsDialog.show(insightsService.forBoard(board.id()));
+        insightsDialog.show(insightsService.forBoard(board.id()), flowSnapshots.cumulativeFlow(board.id()));
         insightsDialog.open();
     }
 

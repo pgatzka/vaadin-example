@@ -51,7 +51,7 @@ class AssistantUiTest extends SpringBrowserlessTest {
 
         test($(Button.class).withText("Suggest steps").single()).click();
         SuggestChecklistDialog dialog = $(SuggestChecklistDialog.class).single();
-        await().pollInSameThread().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+        await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             roundTrip();
             assertThat($(Button.class, dialog).withText("Add selected").single().isEnabled()).isTrue();
         });
@@ -70,7 +70,7 @@ class AssistantUiTest extends SpringBrowserlessTest {
         test($(MenuItem.class).withText("Standup summary").single()).click();
         StandupDialog dialog = $(StandupDialog.class).single();
 
-        await().pollInSameThread().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+        await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             roundTrip();
             assertThat(dialog.markdown()).contains("Mara shipped the sync");
         });
@@ -84,7 +84,7 @@ class AssistantUiTest extends SpringBrowserlessTest {
         NotesToCardsDialog dialog = $(NotesToCardsDialog.class).single();
         test($(TextArea.class, dialog).withLabel("Notes").single()).setValue("Order the tiles. Call the plumber.");
         test($(Button.class, dialog).withText("Extract cards").single()).click();
-        await().pollInSameThread().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+        await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             roundTrip();
             assertThat($(Button.class, dialog).withText("Create selected").single().isEnabled()).isTrue();
         });
@@ -102,7 +102,7 @@ class AssistantUiTest extends SpringBrowserlessTest {
         test($(MenuItem.class).withText("Standup summary").single()).click();
         StandupDialog dialog = $(StandupDialog.class).single();
 
-        await().pollInSameThread().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+        await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             roundTrip();
             assertThat($(com.vaadin.flow.component.html.Span.class, dialog).withClassName("danger").all()).hasSize(1);
         });

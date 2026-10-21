@@ -10,12 +10,14 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.Svg;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import dev.gatzka.flowboard.domain.BoardInsights;
 import dev.gatzka.flowboard.domain.BoardInsights.AssigneeLoad;
 import dev.gatzka.flowboard.domain.BoardInsights.DailyCount;
 import dev.gatzka.flowboard.domain.BoardInsights.LaneLoad;
+import dev.gatzka.flowboard.domain.CumulativeFlow;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.ui.support.Durations;
@@ -45,9 +47,32 @@ final class InsightsDialog extends Dialog {
         add(content);
     }
 
-    void show(BoardInsights insights) {
+    void show(BoardInsights insights, CumulativeFlow flow) {
         content.removeAll();
-        content.add(tiles(insights), lanes(insights), completions(insights), people(insights));
+        content.add(tiles(insights), lanes(insights), flowSection(flow), completions(insights), people(insights));
+    }
+
+    private static Component flowSection(CumulativeFlow flow) {
+        Div section = section("Cumulative flow");
+        if (!flow.hasEnoughData()) {
+            Span hint = new Span("The diagram fills in as the board is used day by day. Check back tomorrow.");
+            hint.addClassName("insights__hint");
+            section.add(hint);
+            return section;
+        }
+        Svg chart = new Svg(CumulativeFlowChart.svg(flow, 640, 160));
+        Div legend = new Div();
+        legend.addClassName("insights__legend");
+        for (int i = 0; i < flow.series().size(); i++) {
+            Span swatch = new Span();
+            swatch.addClassName("insights__swatch");
+            swatch.getStyle().set("background", CumulativeFlowChart.colorFor(flow.series().get(i), i));
+            Span entry = new Span(swatch, new Span(flow.series().get(i).laneName()));
+            entry.addClassName("insights__legend-entry");
+            legend.add(entry);
+        }
+        section.add(chart, legend);
+        return section;
     }
 
     private static Component tiles(BoardInsights insights) {
