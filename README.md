@@ -13,6 +13,8 @@ Java on top of Vaadin Flow's server push.
 | ![Live sync](docs/live-sync.png) | ![Card editor](docs/card-editor.png) | ![Activity](docs/activity.png) |
 | Insights with cumulative flow | Calendar | Command palette |
 | ![Insights](docs/insights.png) | ![Calendar](docs/calendar.png) | ![Palette](docs/palette.png) |
+| Home dashboard | Sign in | Create an account |
+| ![Home](docs/home.png) | ![Sign in](docs/login.png) | ![Register](docs/register.png) |
 
 ## Features
 
