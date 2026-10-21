@@ -11,6 +11,8 @@ Java on top of Vaadin Flow's server push.
 | Live sync between two browsers | Card editor | Activity feed |
 |---|---|---|
 | ![Live sync](docs/live-sync.png) | ![Card editor](docs/card-editor.png) | ![Activity](docs/activity.png) |
+| Insights with cumulative flow | Calendar | Command palette |
+| ![Insights](docs/insights.png) | ![Calendar](docs/calendar.png) | ![Palette](docs/palette.png) |
 
 ## Features
 
@@ -31,7 +33,12 @@ Java on top of Vaadin Flow's server push.
 - **AI assistant** (optional, set `ANTHROPIC_API_KEY`): suggests checklist steps for a card, writes a
   standup summary of the board, and turns pasted meeting notes into cards for review.
 - **Story points**, lane point totals and velocity; **templates** for new boards; **archive** with
-  restore; a **calendar** of due dates; a cross-board **My work** view and **global search** (Ctrl+K).
+  restore; a **calendar** of due dates; a cross-board **My work** view and a **command palette** (Ctrl+K)
+  that searches every board, opens boards by name and runs actions.
+- **Flow analytics.** Card aging ("3 d here"), average time per lane, and a cumulative flow diagram
+  built from daily lane snapshots.
+- **Votes** on cards with "sort by votes" for backlogs, multi-line paste into a lane to create several
+  cards, and a little confetti when a card lands in a done lane.
 - **Persistent.** Boards live in a file-based H2 database under `./data`, so they survive restarts.
   The schema is managed with Flyway migrations and validated by Hibernate on startup. A demo board
   is seeded on the first start.

@@ -16,7 +16,8 @@ class CumulativeFlowChartTest {
                 List.of(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 2), LocalDate.of(2026, 10, 3)),
                 List.of(new Series("Backlog", false, List.of(3, 2, 2)),
                         new Series("Doing <wip>", false, List.of(1, 2, 1)),
-                        new Series("Done", true, List.of(0, 1, 3))));
+                        new Series("Done", true, List.of(0, 1, 3))),
+                3);
 
         String svg = CumulativeFlowChart.svg(flow, 400, 120);
 

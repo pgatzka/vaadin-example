@@ -51,6 +51,8 @@ class FlowSnapshotServiceTest {
         assertThat(flow.series()).hasSize(4);
         assertThat(flow.series().getFirst().counts()).endsWith(2);
         assertThat(flow.series().getLast().done()).isTrue();
+        assertThat(flow.recordedDays()).isEqualTo(1);
+        assertThat(flow.hasEnoughData()).as("one day is a spike, not a trend").isFalse();
     }
 
     @Test
@@ -65,6 +67,7 @@ class FlowSnapshotServiceTest {
 
         assertThat(flow.series().getFirst().counts()).containsExactly(0, 3, 3, 3, 5, 5, 5);
         assertThat(flow.maxTotal()).isEqualTo(5);
+        assertThat(flow.recordedDays()).isEqualTo(2);
         assertThat(flow.hasEnoughData()).isTrue();
     }
 

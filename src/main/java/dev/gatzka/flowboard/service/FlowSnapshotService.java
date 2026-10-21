@@ -93,8 +93,10 @@ public class FlowSnapshotService {
         LocalDate from = today.minusDays(days - 1L);
         List<Lane> boardLanes = lanes.findAllByBoardIdOrderByPositionAsc(boardId);
         Map<Long, Map<LocalDate, Integer>> byLane = new HashMap<>();
+        java.util.Set<LocalDate> recorded = new java.util.HashSet<>();
         for (LaneDailyCount row : counts.findAllByBoardIdAndDayGreaterThanEqualOrderByDayAsc(boardId, from)) {
             byLane.computeIfAbsent(row.getLaneId(), id -> new HashMap<>()).put(row.getDay(), row.getCards());
+            recorded.add(row.getDay());
         }
         List<LocalDate> dayList = new ArrayList<>();
         for (LocalDate day = from; !day.isAfter(today); day = day.plusDays(1)) {
@@ -111,6 +113,6 @@ public class FlowSnapshotService {
             }
             series.add(new Series(lane.getName(), lane.isDone(), List.copyOf(values)));
         }
-        return new CumulativeFlow(List.copyOf(dayList), List.copyOf(series));
+        return new CumulativeFlow(List.copyOf(dayList), List.copyOf(series), recorded.size());
     }
 }
