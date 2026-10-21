@@ -2,6 +2,7 @@ package dev.gatzka.flowboard.exchange;
 
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.domain.Recurrence;
+import dev.gatzka.flowboard.domain.RuleAction;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collections;
@@ -18,18 +19,41 @@ public record BoardExport(
         String name,
         String description,
         Instant exportedAt,
-        List<LaneExport> lanes) {
+        List<LaneExport> lanes,
+        List<TemplateExport> templates,
+        List<ViewExport> views) {
 
     public BoardExport {
         lanes = lanes == null ? List.of() : List.copyOf(lanes);
+        templates = templates == null ? List.of() : List.copyOf(templates);
+        views = views == null ? List.of() : List.copyOf(views);
+    }
+
+    /** A card template of the board. */
+    public record TemplateExport(String name, String title, String description, Priority priority, String assignee,
+            Set<String> tags, Integer estimate, List<String> checklist) {
+
+        public TemplateExport {
+            tags = tags == null ? Set.of() : Collections.unmodifiableSortedSet(new TreeSet<>(tags));
+            checklist = checklist == null ? List.of() : List.copyOf(checklist);
+        }
+    }
+
+    /** A saved view: a name and the filter in its URL form, e.g. {@code p=high&tag=ops}. */
+    public record ViewExport(String name, String filter) {
+    }
+
+    /** A lane automation. */
+    public record RuleExport(RuleAction action, String argument) {
     }
 
     public static final int CURRENT_VERSION = 1;
 
-    public record LaneExport(String name, Integer wipLimit, boolean done, List<CardExport> cards) {
+    public record LaneExport(String name, Integer wipLimit, boolean done, List<CardExport> cards, List<RuleExport> rules) {
 
         public LaneExport {
             cards = cards == null ? List.of() : List.copyOf(cards);
+            rules = rules == null ? List.of() : List.copyOf(rules);
         }
     }
 

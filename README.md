@@ -40,7 +40,8 @@ Java on top of Vaadin Flow's server push.
   in the URL, so a filtered board can be linked to, and can be saved as a named **view** that
   shows up as a chip for everybody on the board.
 - **Light and dark theme**, following the operating system on first visit, and an installable PWA manifest.
-- **Export and import** boards as JSON files.
+- **Export and import** boards as JSON files, lanes, cards, checklists, comments, templates, saved
+  views and lane rules included.
 - **Checklists, comments and history** on every card; **deep links** to cards.
 - **Insights** per board: completion rate, cycle time, velocity, load per lane, completions per day, work per person,
   a 12-week activity heatmap with streaks and the busiest contributors.

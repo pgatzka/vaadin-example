@@ -5,18 +5,33 @@ import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.Card;
 import dev.gatzka.flowboard.domain.CardDraft;
+import dev.gatzka.flowboard.domain.CardFilter;
+import dev.gatzka.flowboard.domain.CardFilterCodec;
+import dev.gatzka.flowboard.domain.CardTemplate;
+import dev.gatzka.flowboard.domain.CardTemplateDraft;
+import dev.gatzka.flowboard.domain.LaneRule;
+import dev.gatzka.flowboard.domain.SavedView;
 import dev.gatzka.flowboard.domain.ChecklistItem;
 import dev.gatzka.flowboard.domain.Comment;
 import dev.gatzka.flowboard.domain.Lane;
 import dev.gatzka.flowboard.domain.LaneDraft;
 import dev.gatzka.flowboard.exchange.BoardExport.CardExport;
+import dev.gatzka.flowboard.exchange.BoardExport.RuleExport;
+import dev.gatzka.flowboard.exchange.BoardExport.TemplateExport;
+import dev.gatzka.flowboard.exchange.BoardExport.ViewExport;
 import dev.gatzka.flowboard.exchange.BoardExport.ChecklistItemExport;
 import dev.gatzka.flowboard.exchange.BoardExport.CommentExport;
 import dev.gatzka.flowboard.exchange.BoardExport.LaneExport;
 import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.repository.CardRepository;
+import dev.gatzka.flowboard.repository.CardTemplateRepository;
+import dev.gatzka.flowboard.repository.LaneRuleRepository;
+import dev.gatzka.flowboard.repository.SavedViewRepository;
 import dev.gatzka.flowboard.repository.LaneRepository;
 import dev.gatzka.flowboard.service.ActivityLog;
+import dev.gatzka.flowboard.service.AutomationService;
+import dev.gatzka.flowboard.service.CardTemplateService;
+import dev.gatzka.flowboard.service.SavedViewService;
 import dev.gatzka.flowboard.service.BoardChangedEvent;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.NotFoundException;
@@ -43,10 +58,24 @@ public class BoardExchangeService {
     private final BoardService boardService;
     private final ActivityLog activityLog;
     private final JsonMapper json;
+    private final CardTemplateService templates;
+    private final SavedViewService views;
+    private final AutomationService automations;
+    private final CardTemplateRepository templateRepository;
+    private final SavedViewRepository viewRepository;
+    private final LaneRuleRepository ruleRepository;
     private final Clock clock;
 
     BoardExchangeService(BoardRepository boards, LaneRepository lanes, CardRepository cards, BoardService boardService,
-            ActivityLog activityLog, JsonMapper json, Clock clock) {
+            ActivityLog activityLog, JsonMapper json, CardTemplateService templates, SavedViewService views,
+            AutomationService automations, CardTemplateRepository templateRepository, SavedViewRepository viewRepository,
+            LaneRuleRepository ruleRepository, Clock clock) {
+        this.templates = templates;
+        this.views = views;
+        this.automations = automations;
+        this.templateRepository = templateRepository;
+        this.viewRepository = viewRepository;
+        this.ruleRepository = ruleRepository;
         this.boards = boards;
         this.lanes = lanes;
         this.cards = cards;
@@ -63,9 +92,18 @@ public class BoardExchangeService {
                 .collect(Collectors.groupingBy(card -> card.getLane().getId()));
         List<LaneExport> laneExports = lanes.findAllByBoardIdOrderByPositionAsc(boardId).stream()
                 .map(lane -> new LaneExport(lane.getName(), lane.getWipLimit(), lane.isDone(),
-                        cardsByLane.getOrDefault(lane.getId(), List.of()).stream().map(BoardExchangeService::export).toList()))
+                        cardsByLane.getOrDefault(lane.getId(), List.of()).stream().map(BoardExchangeService::export).toList(),
+                        automations.rulesFor(lane.getId()).stream().map(rule -> new RuleExport(rule.action(), rule.argument())).toList()))
                 .toList();
-        return new BoardExport(BoardExport.CURRENT_VERSION, board.getName(), board.getDescription(), clock.instant(), laneExports);
+        List<TemplateExport> templateExports = templates.forBoard(boardId).stream().map(template -> {
+            CardTemplateDraft draft = template.draft();
+            return new TemplateExport(draft.name(), draft.title(), draft.description(), draft.priority(), draft.assignee(),
+                    draft.tags(), draft.estimate(), draft.checklist());
+        }).toList();
+        List<ViewExport> viewExports = views.forBoard(boardId).stream()
+                .map(view -> new ViewExport(view.name(), CardFilterCodec.encode(view.filter()))).toList();
+        return new BoardExport(BoardExport.CURRENT_VERSION, board.getName(), board.getDescription(), clock.instant(), laneExports,
+                templateExports, viewExports);
     }
 
     public byte[] toJson(BoardExport export) {
@@ -92,7 +130,8 @@ public class BoardExchangeService {
         if (export.version() != 0 && export.version() != BoardExport.CURRENT_VERSION) {
             throw new InvalidBoardFileException("Unsupported board file version " + export.version());
         }
-        return new BoardExport(BoardExport.CURRENT_VERSION, export.name(), export.description(), export.exportedAt(), export.lanes());
+        return new BoardExport(BoardExport.CURRENT_VERSION, export.name(), export.description(), export.exportedAt(), export.lanes(),
+                export.templates(), export.views());
     }
 
     /** Creates a new board from an export, preserving lane order, card order, checklists and comments. */
@@ -115,6 +154,32 @@ public class BoardExchangeService {
                 }
                 cards.save(card);
             }
+            for (RuleExport rule : laneExport.rules()) {
+                if (rule.action() == null) {
+                    throw new InvalidBoardFileException("A lane rule has no action");
+                }
+                try {
+                    ruleRepository.save(new LaneRule(lane.getId(), rule.action(), rule.action().normalise(rule.argument()), now));
+                } catch (IllegalArgumentException invalid) {
+                    throw new InvalidBoardFileException("Lane rule on " + lane.getName() + ": " + invalid.getMessage());
+                }
+            }
+        }
+        for (TemplateExport template : export.templates()) {
+            try {
+                templateRepository.save(new CardTemplate(board.getId(), new CardTemplateDraft(template.name(), template.title(),
+                        template.description(), template.priority(), template.assignee(), template.tags(), template.estimate(),
+                        template.checklist()), now));
+            } catch (IllegalArgumentException invalid) {
+                throw new InvalidBoardFileException("Card template: " + invalid.getMessage());
+            }
+        }
+        for (ViewExport view : export.views()) {
+            CardFilter filter = CardFilterCodec.decode(view.filter());
+            if (view.name() == null || view.name().isBlank() || !filter.isActive()) {
+                throw new InvalidBoardFileException("A saved view needs a name and a filter");
+            }
+            viewRepository.save(new SavedView(board.getId(), view.name().strip(), CardFilterCodec.encode(filter), actor, now));
         }
         activityLog.record(BoardChangedEvent.created(board.getId(), actor,
                 "imported board \"%s\" with %d cards".formatted(board.getName(), export.cardCount())));

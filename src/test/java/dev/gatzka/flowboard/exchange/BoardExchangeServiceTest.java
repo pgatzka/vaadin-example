@@ -5,6 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
+import dev.gatzka.flowboard.domain.CardTemplateDraft;
+import dev.gatzka.flowboard.domain.CardFilter;
+import dev.gatzka.flowboard.domain.RuleAction;
+import java.util.List;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneDraft;
@@ -44,6 +48,15 @@ class BoardExchangeServiceTest {
     @Autowired
     private ActivityLog activityLog;
 
+    @Autowired
+    private dev.gatzka.flowboard.service.CardTemplateService templateService;
+
+    @Autowired
+    private dev.gatzka.flowboard.service.SavedViewService viewService;
+
+    @Autowired
+    private dev.gatzka.flowboard.service.AutomationService automationService;
+
     private BoardSnapshot board;
 
     @BeforeEach
@@ -60,6 +73,9 @@ class BoardExchangeServiceTest {
         checklistService.setDone(withItems.checklist().getFirst().id(), true, ACTOR);
         checklistService.addItem(first.id(), "step two", ACTOR);
         commentService.add(first.id(), "Jonas", "Looks fine");
+        templateService.save(board.id(), new CardTemplateDraft("Bug", null, "Steps", Priority.URGENT, null, Set.of("bug"), 1, List.of("Reproduce", "Fix")), ACTOR);
+        viewService.save(board.id(), "Hot", CardFilter.none().withPriority(Priority.HIGH).withTag("ui"), ACTOR);
+        automationService.addRule(board.lanes().get(2).id(), RuleAction.ASSIGN, "Priya", ACTOR);
     }
 
     @Test
@@ -107,6 +123,15 @@ class BoardExchangeServiceTest {
         assertThat(imported.lanes().get(0).cards().get(1).position()).isEqualTo(1);
         assertThat(activityLog.recent(imported.id()).getFirst().message()).isEqualTo("imported board \"Roundtrip\" with 3 cards");
         assertThat(boardService.listBoards()).hasSize(2);
+
+        assertThat(new String(json, StandardCharsets.UTF_8)).contains("\"templates\"").contains("\"views\"").contains("\"rules\"");
+        assertThat(templateService.forBoard(imported.id())).hasSize(1);
+        assertThat(templateService.forBoard(imported.id()).getFirst().draft().checklist()).containsExactly("Reproduce", "Fix");
+        assertThat(templateService.forBoard(imported.id()).getFirst().draft().priority()).isEqualTo(Priority.URGENT);
+        assertThat(viewService.forBoard(imported.id())).extracting(v -> v.name()).containsExactly("Hot");
+        assertThat(viewService.forBoard(imported.id()).getFirst().filter()).isEqualTo(CardFilter.none().withPriority(Priority.HIGH).withTag("ui"));
+        assertThat(automationService.rulesFor(imported.lanes().get(2).id())).extracting(r -> r.describe()).containsExactly("Assign to Priya");
+        assertThat(automationService.rulesFor(imported.lanes().get(0).id())).isEmpty();
     }
 
     @Test
