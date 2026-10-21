@@ -12,6 +12,7 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.messages.MessageInput;
 import com.vaadin.flow.component.messages.MessageList;
 import com.vaadin.flow.component.messages.MessageListItem;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.TextField;
@@ -279,6 +280,27 @@ class BoardViewTest extends SpringBrowserlessTest {
             roundTrip();
             assertThat(visibleCardTitles()).containsExactly("Added from another session");
         });
+    }
+
+    @Test
+    void cardDeepLinkOpensTheEditor() {
+        CardSnapshot created = createCard("Linked");
+
+        navigate(BoardView.pathTo(board.id(), created.id()), BoardView.class);
+
+        CardEditorDialog dialog = $(CardEditorDialog.class).single();
+        assertThat(dialog.isOpened()).isTrue();
+        assertThat(dialog.cardId()).contains(created.id());
+        assertThat($(TextField.class, dialog).withLabel("Title").single().getValue()).isEqualTo("Linked");
+    }
+
+    @Test
+    void deepLinkToMissingCardStillShowsTheBoard() {
+        navigate(BoardView.pathTo(board.id(), 424242L), BoardView.class);
+
+        assertThat($(CardEditorDialog.class).all()).isEmpty();
+        assertThat($(LaneComponent.class).all()).hasSize(4);
+        assertThat($(Notification.class).all()).isNotEmpty();
     }
 
     @Test

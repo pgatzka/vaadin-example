@@ -12,6 +12,7 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.markdown.Markdown;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.tabs.Tab;
@@ -27,6 +28,7 @@ import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
+import dev.gatzka.flowboard.ui.support.Toasts;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -49,6 +51,7 @@ final class CardEditorDialog extends Dialog {
     private final List<String> assigneeOptions;
     private final List<String> tagOptions;
     private final Consumer<CardDraft> onSave;
+    private final BoardSnapshot board;
     private Long cardId;
     private ChecklistSection checklistSection;
     private CommentsSection commentsSection;
@@ -97,6 +100,11 @@ final class CardEditorDialog extends Dialog {
     private void addCardSections(CardSnapshot card, CardEditorActions actions) {
         this.cardId = card.id();
         this.actions = actions;
+        Button copyLink = new Button(VaadinIcon.LINK.create(), event -> copyLink(card));
+        copyLink.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        copyLink.setAriaLabel("Copy link to this card");
+        copyLink.setTooltipText("Copy link");
+        getHeader().add(copyLink);
         checklistSection = new ChecklistSection(card, actions, this::refresh);
         commentsSection = new CommentsSection(card, actions, this::refresh);
         historySection = new HistorySection(actions.history(card.id()));
@@ -110,12 +118,19 @@ final class CardEditorDialog extends Dialog {
         add(checklistSection, tabs);
     }
 
+    private void copyLink(CardSnapshot card) {
+        String path = BoardView.pathTo(board.id(), card.id());
+        getUI().ifPresent(ui -> ui.getPage().executeJs("navigator.clipboard.writeText(location.origin + '/' + $0)", path));
+        Toasts.success("Link copied");
+    }
+
     private static String commentsLabel(CardSnapshot card) {
         return card.hasComments() ? "Comments (" + card.comments().size() + ")" : "Comments";
     }
 
     private CardEditorDialog(String heading, String saveLabel, BoardSnapshot board, Consumer<CardDraft> onSave) {
         this.onSave = onSave;
+        this.board = board;
         this.assigneeOptions = new ArrayList<>(board.assignees());
         this.tagOptions = new ArrayList<>(board.tags());
 

@@ -22,6 +22,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.shared.Registration;
 import dev.gatzka.flowboard.domain.ActivityEntry;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
@@ -55,9 +56,11 @@ import java.util.function.Supplier;
  * whether through this user or through anybody else (via server push).
  */
 @Route("board/:boardId")
+@RouteAlias("board/:boardId/card/:cardId")
 public class BoardView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle, BoardActions, CardEditorActions {
 
     public static final String BOARD_ID = "boardId";
+    public static final String CARD_ID = "cardId";
 
     private final BoardService boardService;
     private final ChecklistService checklistService;
@@ -157,6 +160,15 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             return;
         }
         render(found.get());
+        event.getRouteParameters().getLong(CARD_ID).ifPresent(cardId -> findCard(cardId).ifPresentOrElse(
+                this::openCard,
+                () -> Toasts.error("That card is not on this board any more")));
+    }
+
+    /** Path of this board, or of one of its cards when {@code cardId} is given. */
+    static String pathTo(long boardId, Long cardId) {
+        String boardPath = "board/" + boardId;
+        return cardId == null ? boardPath : boardPath + "/card/" + cardId;
     }
 
     @Override
@@ -290,10 +302,17 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         editor.addOpenedChangeListener(event -> {
             if (!event.isOpened() && openEditor == editor) {
                 openEditor = null;
+                showPath(pathTo(board.id(), null));
             }
         });
         openEditor = editor;
         editor.open();
+        showPath(pathTo(board.id(), card.id()));
+    }
+
+    /** Keeps the address bar in sync with the open card without triggering navigation. */
+    private void showPath(String path) {
+        getUI().ifPresent(ui -> ui.getPage().getHistory().replaceState(null, path));
     }
 
     @Override
