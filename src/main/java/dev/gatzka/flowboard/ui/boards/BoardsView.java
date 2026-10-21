@@ -17,6 +17,7 @@ import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.shared.Registration;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.BoardSummary;
+import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.NotFoundException;
@@ -32,14 +33,17 @@ import java.util.List;
 public class BoardsView extends VerticalLayout {
 
     private final BoardService boardService;
+    private final BoardExchangeService exchange;
     private final BoardChangeBroadcaster broadcaster;
     private final UserSession session;
 
     private final Div grid = new Div();
     private Registration changeSubscription;
 
-    public BoardsView(BoardService boardService, BoardChangeBroadcaster broadcaster, UserSession session) {
+    public BoardsView(BoardService boardService, BoardExchangeService exchange, BoardChangeBroadcaster broadcaster,
+            UserSession session) {
         this.boardService = boardService;
+        this.exchange = exchange;
         this.broadcaster = broadcaster;
         this.session = session;
 
@@ -53,8 +57,12 @@ public class BoardsView extends VerticalLayout {
 
         Button newBoard = new Button("New board", VaadinIcon.PLUS.create(), event -> openCreateDialog());
         newBoard.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        Button importBoard = new Button("Import", VaadinIcon.UPLOAD.create(), event -> openImportDialog());
+        importBoard.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        Div actions = new Div(importBoard, newBoard);
+        actions.addClassName("page-header__actions");
 
-        Div header = new Div(titles, newBoard);
+        Div header = new Div(titles, actions);
         header.addClassName("page-header");
 
         grid.addClassName("board-grid");
@@ -84,7 +92,8 @@ public class BoardsView extends VerticalLayout {
             return;
         }
         for (BoardSummary board : boards) {
-            grid.add(new BoardTile(board, () -> open(board), () -> openEditDialog(board), () -> confirmDelete(board)));
+            grid.add(new BoardTile(board, () -> open(board), () -> openEditDialog(board),
+                    () -> new ExportDialog(board, exchange).open(), () -> confirmDelete(board)));
         }
     }
 
@@ -108,6 +117,14 @@ public class BoardsView extends VerticalLayout {
             BoardSnapshot created = boardService.createBoard(draft, session.getDisplayName());
             refresh();
             getUI().ifPresent(ui -> ui.navigate(BoardView.class, new RouteParameters(BoardView.BOARD_ID, Long.toString(created.id()))));
+        }).open();
+    }
+
+    private void openImportDialog() {
+        new ImportDialog(exchange, session.getDisplayName(), imported -> {
+            refresh();
+            Toasts.success("Imported \"%s\"".formatted(imported.name()));
+            getUI().ifPresent(ui -> ui.navigate(BoardView.class, new RouteParameters(BoardView.BOARD_ID, Long.toString(imported.id()))));
         }).open();
     }
 

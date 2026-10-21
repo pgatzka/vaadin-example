@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.vaadin.browserless.SpringBrowserlessTest;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.textfield.TextField;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
@@ -53,6 +55,19 @@ class BoardsViewTest extends SpringBrowserlessTest {
         navigate(BoardsView.class);
 
         assertThat($(BoardTile.class).all()).hasSize(2);
+    }
+
+    @Test
+    void exportDialogOffersADownloadLink() {
+        BoardSnapshot alpha = service.createBoard(new BoardDraft("Alpha Board!", null), "Seeder");
+        navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(alpha.id())));
+        navigate(BoardsView.class);
+
+        test($(MenuItem.class, $(BoardTile.class).single()).withText("Export as JSON").single()).click();
+
+        ExportDialog dialog = $(ExportDialog.class).single();
+        assertThat($(Anchor.class, dialog).single().getText()).isEqualTo("Download alpha-board.flowboard.json");
+        assertThat(ExportDialog.fileName("  ")).isEqualTo("board.flowboard.json");
     }
 
     @Test

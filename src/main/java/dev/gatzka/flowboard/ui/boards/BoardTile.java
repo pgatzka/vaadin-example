@@ -24,7 +24,7 @@ final class BoardTile extends Card {
 
     private static final DateTimeFormatter CREATED = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM);
 
-    BoardTile(BoardSummary board, Runnable onOpen, Runnable onEdit, Runnable onDelete) {
+    BoardTile(BoardSummary board, Runnable onOpen, Runnable onEdit, Runnable onExport, Runnable onDelete) {
         addClassName("board-tile");
         addThemeVariants(CardVariant.LUMO_OUTLINED, CardVariant.LUMO_ELEVATED);
 
@@ -33,7 +33,7 @@ final class BoardTile extends Card {
         title.getElement().addEventListener("click", event -> { }).stopPropagation();
         setTitle(title);
         setSubtitle(new Span("Created " + CREATED.format(board.createdAt().atZone(ZoneId.systemDefault()))));
-        setHeaderSuffix(menu(onEdit, onDelete));
+        setHeaderSuffix(menu(onEdit, onExport, onDelete));
 
         Paragraph description = new Paragraph(board.description() == null ? "No description yet." : board.description());
         description.addClassName("board-tile__description");
@@ -53,7 +53,7 @@ final class BoardTile extends Card {
         return new Badge(count + " " + (count == 1 ? noun : noun + "s"));
     }
 
-    private static MenuBar menu(Runnable onEdit, Runnable onDelete) {
+    private static MenuBar menu(Runnable onEdit, Runnable onExport, Runnable onDelete) {
         MenuBar menu = new MenuBar();
         menu.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE, MenuBarVariant.LUMO_ICON);
         menu.getElement().addEventListener("click", event -> { }).stopPropagation();
@@ -61,6 +61,7 @@ final class BoardTile extends Card {
         root.setAriaLabel("Board actions");
         SubMenu actions = root.getSubMenu();
         actions.addItem("Edit details", event -> onEdit.run());
+        actions.addItem("Export as JSON", event -> onExport.run());
         MenuItem delete = actions.addItem("Delete board", event -> onDelete.run());
         delete.addClassName("danger");
         return menu;

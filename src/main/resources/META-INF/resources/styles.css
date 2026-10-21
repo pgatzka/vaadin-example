@@ -100,6 +100,17 @@ html {
   margin: 0 0 var(--lumo-space-xs);
 }
 
+.page-header__actions {
+  display: flex;
+  gap: var(--lumo-space-s);
+}
+
+.export-link {
+  display: inline-block;
+  margin-top: var(--lumo-space-s);
+  font-weight: 600;
+}
+
 .page-subtitle {
   color: var(--lumo-secondary-text-color);
 }
