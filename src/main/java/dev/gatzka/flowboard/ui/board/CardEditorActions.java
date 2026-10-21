@@ -18,6 +18,10 @@ interface CardEditorActions {
     /** The card's history, newest first. */
     List<ActivityEntry> history(long cardId);
 
+    CardSnapshot addBlocker(long cardId, long blockerId);
+
+    CardSnapshot removeBlocker(long cardId, long blockerId);
+
     /** Whether the AI assistant is configured. */
     boolean assistantAvailable();
 

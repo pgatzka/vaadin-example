@@ -57,6 +57,7 @@ final class CardEditorDialog extends Dialog {
     private final BoardSnapshot board;
     private Long cardId;
     private ChecklistSection checklistSection;
+    private DependenciesSection dependenciesSection;
     private CommentsSection commentsSection;
     private HistorySection historySection;
     private Tab commentsTab;
@@ -96,6 +97,7 @@ final class CardEditorDialog extends Dialog {
             return;
         }
         checklistSection.show(card);
+        dependenciesSection.show(card);
         commentsSection.show(card);
         commentsTab.setLabel(commentsLabel(card));
         historySection.show(actions.history(card.id()));
@@ -110,6 +112,7 @@ final class CardEditorDialog extends Dialog {
         copyLink.setTooltipText("Copy link");
         getHeader().add(copyLink);
         checklistSection = new ChecklistSection(card, actions, this::refresh);
+        dependenciesSection = new DependenciesSection(card, board, actions, this::refresh);
         commentsSection = new CommentsSection(card, actions, this::refresh);
         historySection = new HistorySection(actions.history(card.id()));
 
@@ -117,6 +120,7 @@ final class CardEditorDialog extends Dialog {
         tabs.addClassName("card-tabs");
         commentsTab = new Tab(commentsLabel(card));
         tabs.add(commentsTab, commentsSection);
+        tabs.add("Dependencies", dependenciesSection);
         tabs.add("History", historySection);
         tabs.setWidthFull();
         add(checklistSection, tabs);

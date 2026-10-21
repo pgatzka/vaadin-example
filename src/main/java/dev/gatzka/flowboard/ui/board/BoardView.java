@@ -11,6 +11,7 @@ import com.vaadin.flow.component.avatar.AvatarGroup.AvatarGroupItem;
 import com.vaadin.flow.component.avatar.AvatarGroupVariant;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.menubar.MenuBar;
@@ -41,6 +42,7 @@ import dev.gatzka.flowboard.service.BoardChangedEvent;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.CommentService;
+import dev.gatzka.flowboard.service.DependencyService;
 import dev.gatzka.flowboard.service.FlowSnapshotService;
 import dev.gatzka.flowboard.service.InsightsService;
 import dev.gatzka.flowboard.service.NotFoundException;
@@ -81,6 +83,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final ChecklistService checklistService;
     private final CommentService commentService;
     private final VoteService voteService;
+    private final DependencyService dependencyService;
     private final InsightsService insightsService;
     private final FlowSnapshotService flowSnapshots;
     private final AssistantService assistant;
@@ -110,13 +113,14 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private Registration profileSubscription;
 
     public BoardView(BoardService boardService, ChecklistService checklistService, CommentService commentService,
-            VoteService voteService, InsightsService insightsService, FlowSnapshotService flowSnapshots, AssistantService assistant,
+            VoteService voteService, DependencyService dependencyService, InsightsService insightsService, FlowSnapshotService flowSnapshots, AssistantService assistant,
             ExecutorService executor, ActivityLog activityLog,
             BoardChangeBroadcaster broadcaster, PresenceTracker presence, UserSession session, Clock clock) {
         this.boardService = boardService;
         this.checklistService = checklistService;
         this.commentService = commentService;
         this.voteService = voteService;
+        this.dependencyService = dependencyService;
         this.insightsService = insightsService;
         this.flowSnapshots = flowSnapshots;
         this.assistant = assistant;
@@ -420,10 +424,28 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Override
     public void moveCard(long cardId, long targetLaneId, int targetIndex) {
         boolean completing = isCompletingMove(cardId, targetLaneId);
+        Optional<CardSnapshot> blocked = findCard(cardId).filter(CardSnapshot::isBlocked).filter(card -> completing);
+        if (blocked.isPresent()) {
+            confirmMovingBlockedCard(blocked.get(), () -> completeMove(cardId, targetLaneId, targetIndex, true));
+            return;
+        }
+        completeMove(cardId, targetLaneId, targetIndex, completing);
+    }
+
+    private void completeMove(long cardId, long targetLaneId, int targetIndex, boolean completing) {
         perform(() -> boardService.moveCard(cardId, targetLaneId, targetIndex, actor()));
         if (completing) {
             findCard(cardId).ifPresent(card -> celebrate(card.title()));
         }
+    }
+
+    private void confirmMovingBlockedCard(CardSnapshot card, Runnable proceed) {
+        String waitingFor = card.blockers().stream().filter(blocker -> !blocker.resolved())
+                .map(blocker -> "\"" + blocker.title() + "\"").collect(java.util.stream.Collectors.joining(", "));
+        ConfirmDialog confirm = new ConfirmDialog("Still blocked", "\"%s\" is waiting for %s. Mark it done anyway?".formatted(card.title(), waitingFor),
+                "Move anyway", event -> proceed.run());
+        confirm.setCancelable(true);
+        confirm.open();
     }
 
     /** True when the move takes the card from a lane that is not done into one that is. */
@@ -489,6 +511,21 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Override
     public List<ActivityEntry> history(long cardId) {
         return activityLog.recentForCard(cardId);
+    }
+
+    @Override
+    public CardSnapshot addBlocker(long cardId, long blockerId) {
+        try {
+            return changeCard(() -> dependencyService.addBlocker(cardId, blockerId, actor()));
+        } catch (IllegalArgumentException rejected) {
+            Toasts.error(rejected.getMessage());
+            return findCard(cardId).orElseThrow();
+        }
+    }
+
+    @Override
+    public CardSnapshot removeBlocker(long cardId, long blockerId) {
+        return changeCard(() -> dependencyService.removeBlocker(cardId, blockerId, actor()));
     }
 
     @Override

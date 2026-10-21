@@ -90,6 +90,7 @@ public class BoardService {
 
     public void deleteBoard(long boardId, String actor) {
         Board board = requireBoard(boardId);
+        cards.clearBlockersOfBoard(boardId);
         cards.deleteAllByLaneBoardId(boardId);
         lanes.deleteAllByBoardId(boardId);
         activityLog.forget(boardId);
@@ -122,6 +123,7 @@ public class BoardService {
     public void deleteLane(long laneId, String actor) {
         Lane lane = requireLane(laneId);
         long boardId = boardIdOf(lane);
+        unlinkBlockersInLane(laneId);
         cards.deleteAllByLaneId(laneId);
         removeLane(lane);
         activityLog.record(BoardChangedEvent.content(boardId, actor, "removed lane \"%s\"".formatted(lane.getName())));
@@ -187,6 +189,8 @@ public class BoardService {
     public void deleteCard(long cardId, String actor) {
         Card card = requireCard(cardId);
         Lane lane = card.getLane();
+        Instant now = clock.instant();
+        cards.findAllBlockedBy(cardId).forEach(blocked -> blocked.removeBlocker(card, now));
         cards.delete(card);
         renumberCards(cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(lane.getId()));
         activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
@@ -323,6 +327,13 @@ public class BoardService {
 
     private Card requireCard(long cardId) {
         return cards.findById(cardId).orElseThrow(() -> new NotFoundException("Card", cardId));
+    }
+
+    private void unlinkBlockersInLane(long laneId) {
+        Instant now = clock.instant();
+        for (Card card : cards.findAllByLaneId(laneId)) {
+            cards.findAllBlockedBy(card.getId()).forEach(blocked -> blocked.removeBlocker(card, now));
+        }
     }
 
     private void removeLane(Lane lane) {

@@ -80,6 +80,14 @@ final class CardComponent extends Div {
             meta.add(aging);
         }
 
+        if (card.isBlocked()) {
+            Badge blocked = new Badge("Blocked", VaadinIcon.BAN.create());
+            blocked.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.ERROR);
+            blocked.addClassName("task-card__blocked");
+            blocked.getElement().setAttribute("title", "Waiting for: " + card.blockers().stream()
+                    .filter(blocker -> !blocker.resolved()).map(blocker -> blocker.title()).collect(java.util.stream.Collectors.joining(", ")));
+            meta.add(blocked);
+        }
         if (card.priority() == Priority.URGENT || card.priority() == Priority.HIGH) {
             Badge priority = new Badge(card.priority().label());
             priority.addThemeVariants(BadgeVariant.SMALL, card.priority() == Priority.URGENT ? BadgeVariant.ERROR : BadgeVariant.WARNING);

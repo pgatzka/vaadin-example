@@ -20,6 +20,7 @@ public record CardSnapshot(
         Set<String> tags,
         Integer estimate,
         Set<String> voters,
+        List<BlockerSnapshot> blockers,
         List<ChecklistItemSnapshot> checklist,
         List<CommentSnapshot> comments,
         int position,
@@ -28,8 +29,14 @@ public record CardSnapshot(
         Instant laneEnteredAt) {
 
     public CardSnapshot {
+        blockers = List.copyOf(blockers);
         checklist = List.copyOf(checklist);
         comments = List.copyOf(comments);
+    }
+
+    /** True while at least one blocker is neither done nor archived. */
+    public boolean isBlocked() {
+        return blockers.stream().anyMatch(blocker -> !blocker.resolved());
     }
 
     /** Cards due within this many days (inclusive) are flagged as due soon. */
@@ -49,6 +56,8 @@ public record CardSnapshot(
                 Collections.unmodifiableSet(sortedTags),
                 card.getEstimate(),
                 Set.copyOf(card.getVoters()),
+                card.getBlockers().stream().map(BlockerSnapshot::of)
+                        .sorted(java.util.Comparator.comparing(BlockerSnapshot::title, String.CASE_INSENSITIVE_ORDER)).toList(),
                 card.getChecklist().stream().map(ChecklistItemSnapshot::of).toList(),
                 card.getComments().stream().map(CommentSnapshot::of).toList(),
                 card.getPosition(),

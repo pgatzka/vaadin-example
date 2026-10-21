@@ -8,6 +8,8 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.badge.Badge;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.messages.MessageInput;
 import com.vaadin.flow.component.messages.MessageList;
@@ -24,6 +26,7 @@ import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.CommentService;
+import dev.gatzka.flowboard.service.DependencyService;
 import dev.gatzka.flowboard.ui.UserSession;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
 import java.time.Duration;
@@ -49,6 +52,9 @@ class BoardViewTest extends SpringBrowserlessTest {
 
     @Autowired
     private CommentService commentService;
+
+    @Autowired
+    private DependencyService dependencyService;
 
     @Autowired
     private ApplicationContext context;
@@ -366,6 +372,38 @@ class BoardViewTest extends SpringBrowserlessTest {
 
         assertThat($(Notification.class).all()).anySatisfy(notification ->
                 assertThat(test(notification).getText()).contains("Done: Almost there"));
+    }
+
+    @Test
+    void dependenciesAreEditedInTheDialogAndShownOnTheCard() {
+        CardSnapshot design = createCard("Design");
+        CardSnapshot build = createCard("Build");
+        openBoard();
+        test($(CardComponent.class).withCondition(c -> c.card().id() == build.id()).single()).click();
+        CardEditorDialog dialog = $(CardEditorDialog.class).single();
+        test($(TabSheet.class, dialog).withClassName("card-tabs").single()).select("Dependencies");
+
+        test($(ComboBox.class, $(DependenciesSection.class).single()).single(), CardSnapshot.class).selectItem("Design");
+
+        assertThat($(CardComponent.class).withCondition(c -> c.card().id() == build.id()).single().card().isBlocked()).isTrue();
+        assertThat($(Badge.class, $(CardComponent.class).withCondition(c -> c.card().id() == build.id()).single())
+                .withClassName("task-card__blocked").all()).hasSize(1);
+        assertThat(design.id()).isNotEqualTo(build.id());
+    }
+
+    @Test
+    void movingABlockedCardToDoneAsksFirst() {
+        CardSnapshot design = createCard("Design");
+        CardSnapshot build = createCard("Build");
+        dependencyService.addBlocker(build.id(), design.id(), SEEDER);
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+
+        view.moveCard(build.id(), board.lanes().get(3).id(), 0);
+
+        ConfirmDialog confirm = $(ConfirmDialog.class).single();
+        assertThat(service.findBoard(board.id()).orElseThrow().lanes().get(3).cards()).as("nothing moves before confirming").isEmpty();
+        test(confirm).confirm();
+        assertThat(service.findBoard(board.id()).orElseThrow().lanes().get(3).cards()).extracting(CardSnapshot::title).containsExactly("Build");
     }
 
     @Test

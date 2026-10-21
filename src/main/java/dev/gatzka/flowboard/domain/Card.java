@@ -14,6 +14,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -58,6 +60,13 @@ public class Card {
 
     /** Story points, or {@code null} when not estimated. */
     private Integer estimate;
+
+    /** Cards this one waits for. Same board only, acyclic; enforced by the service. */
+    @ManyToMany
+    @JoinTable(name = "card_blockers",
+            joinColumns = @JoinColumn(name = "card_id"),
+            inverseJoinColumns = @JoinColumn(name = "blocker_id"))
+    private Set<Card> blockers = new HashSet<>();
 
     @ElementCollection
     @CollectionTable(name = "card_votes", joinColumns = @JoinColumn(name = "card_id"))
@@ -170,6 +179,35 @@ public class Card {
         comments.add(comment);
         updatedAt = requireNonNull(now);
         return comment;
+    }
+
+    public boolean addBlocker(Card blocker, Instant now) {
+        boolean added = blockers.add(blocker);
+        if (added) {
+            updatedAt = requireNonNull(now);
+        }
+        return added;
+    }
+
+    public boolean removeBlocker(Card blocker, Instant now) {
+        boolean removed = blockers.remove(blocker);
+        if (removed) {
+            updatedAt = requireNonNull(now);
+        }
+        return removed;
+    }
+
+    /** Blockers in a done lane, or archived, no longer block. */
+    public boolean isResolvedAsBlocker() {
+        return isArchived() || lane.isDone();
+    }
+
+    public boolean isBlocked() {
+        return blockers.stream().anyMatch(blocker -> !blocker.isResolvedAsBlocker());
+    }
+
+    public Set<Card> getBlockers() {
+        return Collections.unmodifiableSet(blockers);
     }
 
     /** @return true when the vote was added, false when it was withdrawn */
