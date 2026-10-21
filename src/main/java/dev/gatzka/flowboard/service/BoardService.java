@@ -165,7 +165,7 @@ public class BoardService {
         int position = (int) cards.countByLaneId(laneId);
         Card card = cards.save(new Card(lane, draft, position, clock.instant()));
         activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
-                "added \"%s\" to %s".formatted(card.getTitle(), lane.getName())));
+                "added \"%s\" to %s".formatted(card.getTitle(), lane.getName())).forCard(card.getId()));
         return CardSnapshot.of(card);
     }
 
@@ -173,7 +173,7 @@ public class BoardService {
         Card card = requireCard(cardId);
         card.update(draft, clock.instant());
         activityLog.record(BoardChangedEvent.content(boardIdOf(card.getLane()), actor,
-                "updated \"%s\"".formatted(card.getTitle())));
+                "updated \"%s\"".formatted(card.getTitle())).forCard(cardId));
         return CardSnapshot.of(card);
     }
 
@@ -183,7 +183,7 @@ public class BoardService {
         cards.delete(card);
         renumberCards(cards.findAllByLaneIdOrderByPositionAsc(lane.getId()));
         activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
-                "deleted \"%s\"".formatted(card.getTitle())));
+                "deleted \"%s\"".formatted(card.getTitle())).forCard(cardId));
     }
 
     /**
@@ -221,7 +221,7 @@ public class BoardService {
         String message = sameLane
                 ? "reordered \"%s\" in %s".formatted(card.getTitle(), target.getName())
                 : "moved \"%s\" to %s".formatted(card.getTitle(), target.getName());
-        activityLog.record(BoardChangedEvent.content(boardIdOf(target), actor, message));
+        activityLog.record(BoardChangedEvent.content(boardIdOf(target), actor, message).forCard(cardId));
     }
 
     // -------------------------------------------------------------- internals

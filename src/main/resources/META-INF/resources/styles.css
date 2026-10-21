@@ -505,6 +505,27 @@ html {
   gap: var(--lumo-space-xs);
 }
 
+.card-tabs {
+  margin-top: var(--lumo-space-m);
+}
+
+.comments,
+.history {
+  max-height: 22em;
+  overflow: auto;
+}
+
+.comments__empty {
+  display: block;
+  padding: var(--lumo-space-m);
+  font-size: var(--lumo-font-size-s);
+  color: var(--lumo-secondary-text-color);
+}
+
+.comments__input {
+  padding-inline: 0;
+}
+
 .dialog-footer__start {
   margin-inline-end: auto;
 }

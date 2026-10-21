@@ -9,7 +9,11 @@ import com.vaadin.flow.component.badge.Badge;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.messages.MessageInput;
+import com.vaadin.flow.component.messages.MessageList;
+import com.vaadin.flow.component.messages.MessageListItem;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.TextField;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
@@ -17,6 +21,8 @@ import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.service.BoardService;
+import dev.gatzka.flowboard.service.CommentService;
+import dev.gatzka.flowboard.ui.UserSession;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -27,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -37,6 +44,12 @@ class BoardViewTest extends SpringBrowserlessTest {
 
     @Autowired
     private BoardService service;
+
+    @Autowired
+    private CommentService commentService;
+
+    @Autowired
+    private ApplicationContext context;
 
     private BoardSnapshot board;
 
@@ -194,6 +207,54 @@ class BoardViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void commentsAreAddedFromTheEditorAndCountedOnTheCard() {
+        CardSnapshot created = createCard("Talk about it");
+        openBoard();
+        test($(CardComponent.class).single()).click();
+        CardEditorDialog dialog = $(CardEditorDialog.class).single();
+
+        test($(MessageInput.class, dialog).single()).send("Looks good to me");
+
+        assertThat(test($(MessageList.class, $(CommentsSection.class).single()).single()).getMessages())
+                .extracting(MessageListItem::getText).containsExactly("Looks good to me");
+        assertThat($(Badge.class, $(CardComponent.class).single()).withClassName("task-card__comments").single().getText()).isEqualTo("1");
+        assertThat(service.findBoard(board.id()).orElseThrow().lane(created.laneId()).orElseThrow().cards().getFirst().comments())
+                .extracting(c -> c.author()).containsExactly(context.getBean(UserSession.class).getDisplayName());
+    }
+
+    @Test
+    void historyTabListsWhatHappenedToTheCard() {
+        CardSnapshot created = createCard("Tracked");
+        service.updateCard(created.id(), new CardDraft("Tracked closely", null, Priority.HIGH, null, null, Set.of()), SEEDER);
+        openBoard();
+        test($(CardComponent.class).single()).click();
+        CardEditorDialog dialog = $(CardEditorDialog.class).single();
+        test($(TabSheet.class, dialog).withClassName("card-tabs").single()).select("History");
+
+        List<MessageListItem> history = test($(MessageList.class, $(HistorySection.class).single()).single()).getMessages();
+
+        assertThat(history).extracting(MessageListItem::getText)
+                .containsExactly("added \"Tracked\" to Backlog", "updated \"Tracked closely\"");
+    }
+
+    @Test
+    void openEditorPicksUpCommentsMadeElsewhere() {
+        CardSnapshot created = createCard("Shared");
+        openBoard();
+        test($(CardComponent.class).single()).click();
+        CardEditorDialog dialog = $(CardEditorDialog.class).single();
+
+        service.updateCard(created.id(), created.toDraft(), SEEDER); // any change by somebody else
+        comment(created.id(), "Priya", "Drive-by remark");
+
+        await().pollInSameThread().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            roundTrip();
+            assertThat(test($(MessageList.class, $(CommentsSection.class, dialog).single()).single()).getMessages())
+                    .extracting(MessageListItem::getText).containsExactly("Drive-by remark");
+        });
+    }
+
+    @Test
     void changesMadeElsewhereArePushedIntoTheView() {
         openBoard();
         assertThat(visibleCardTitles()).isEmpty();
@@ -212,6 +273,10 @@ class BoardViewTest extends SpringBrowserlessTest {
         navigate("board/987654321", BoardsView.class);
 
         assertThat(getCurrentView()).isInstanceOf(BoardsView.class);
+    }
+
+    private void comment(long cardId, String author, String text) {
+        commentService.add(cardId, author, text);
     }
 
     private void openBoard() {

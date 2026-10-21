@@ -19,11 +19,13 @@ public record CardSnapshot(
         String assignee,
         Set<String> tags,
         List<ChecklistItemSnapshot> checklist,
+        List<CommentSnapshot> comments,
         int position,
         Instant updatedAt) {
 
     public CardSnapshot {
         checklist = List.copyOf(checklist);
+        comments = List.copyOf(comments);
     }
 
     /** Cards due within this many days (inclusive) are flagged as due soon. */
@@ -42,6 +44,7 @@ public record CardSnapshot(
                 card.getAssignee(),
                 Collections.unmodifiableSet(sortedTags),
                 card.getChecklist().stream().map(ChecklistItemSnapshot::of).toList(),
+                card.getComments().stream().map(CommentSnapshot::of).toList(),
                 card.getPosition(),
                 card.getUpdatedAt());
     }
@@ -56,6 +59,10 @@ public record CardSnapshot(
 
     public boolean isChecklistComplete() {
         return hasChecklist() && checklistDone() == checklist.size();
+    }
+
+    public boolean hasComments() {
+        return !comments.isEmpty();
     }
 
     public boolean hasDescription() {

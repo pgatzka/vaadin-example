@@ -14,6 +14,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.markdown.Markdown;
 import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -47,6 +49,12 @@ final class CardEditorDialog extends Dialog {
     private final List<String> assigneeOptions;
     private final List<String> tagOptions;
     private final Consumer<CardDraft> onSave;
+    private Long cardId;
+    private ChecklistSection checklistSection;
+    private CommentsSection commentsSection;
+    private HistorySection historySection;
+    private Tab commentsTab;
+    private CardEditorActions actions;
 
     static CardEditorDialog forNewCard(LaneSnapshot lane, BoardSnapshot board, String initialTitle,
             Consumer<CardDraft> onSave) {
@@ -58,13 +66,52 @@ final class CardEditorDialog extends Dialog {
         return dialog;
     }
 
-    static CardEditorDialog forCard(CardSnapshot card, BoardSnapshot board, ChecklistActions checklist,
+    static CardEditorDialog forCard(CardSnapshot card, BoardSnapshot board, CardEditorActions actions,
             Consumer<CardDraft> onSave, Runnable onDelete) {
         CardEditorDialog dialog = new CardEditorDialog("Edit card", "Save", board, onSave);
         dialog.binder.readRecord(card.toDraft());
-        dialog.add(new ChecklistSection(card, checklist, refreshed -> { }));
+        dialog.addCardSections(card, actions);
         dialog.addDeleteButton(card, onDelete);
         return dialog;
+    }
+
+    /** The id of the card being edited, or empty for a new card. */
+    Optional<Long> cardId() {
+        return Optional.ofNullable(cardId);
+    }
+
+    /**
+     * Updates checklist, comments and history from a fresh snapshot, e.g. after somebody else
+     * changed the card. The form fields are left alone so nothing typed is lost.
+     */
+    void refresh(CardSnapshot card) {
+        if (cardId == null || card.id() != cardId) {
+            return;
+        }
+        checklistSection.show(card);
+        commentsSection.show(card);
+        commentsTab.setLabel(commentsLabel(card));
+        historySection.show(actions.history(card.id()));
+    }
+
+    private void addCardSections(CardSnapshot card, CardEditorActions actions) {
+        this.cardId = card.id();
+        this.actions = actions;
+        checklistSection = new ChecklistSection(card, actions, this::refresh);
+        commentsSection = new CommentsSection(card, actions, this::refresh);
+        historySection = new HistorySection(actions.history(card.id()));
+
+        TabSheet tabs = new TabSheet();
+        tabs.addClassName("card-tabs");
+        commentsTab = new Tab(commentsLabel(card));
+        tabs.add(commentsTab, commentsSection);
+        tabs.add("History", historySection);
+        tabs.setWidthFull();
+        add(checklistSection, tabs);
+    }
+
+    private static String commentsLabel(CardSnapshot card) {
+        return card.hasComments() ? "Comments (" + card.comments().size() + ")" : "Comments";
     }
 
     private CardEditorDialog(String heading, String saveLabel, BoardSnapshot board, Consumer<CardDraft> onSave) {

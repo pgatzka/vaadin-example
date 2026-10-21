@@ -70,16 +70,16 @@ class CardFilterTest {
         assertThat(filter.withoutToggles()).isEqualTo(CardFilter.none().withText("x"));
         assertThat(filter.withoutToggles().toggleCount()).isZero();
 
-        CardSnapshot match = new CardSnapshot(1, 1, "x marks", null, Priority.HIGH, TODAY.minusDays(3), "Me", Set.of(), List.of(), 0, Instant.EPOCH);
+        CardSnapshot match = new CardSnapshot(1, 1, "x marks", null, Priority.HIGH, TODAY.minusDays(3), "Me", Set.of(), List.of(), List.of(), 0, Instant.EPOCH);
         assertThat(filter.matches(match, OPEN_LANE, TODAY, "me")).isTrue();
         assertThat(filter.matches(match, DONE_LANE, TODAY, "me")).isFalse();
     }
 
     private static CardSnapshot card(String title, String description, String assignee, Priority priority, String... tags) {
-        return new CardSnapshot(1, 1, title, description, priority, null, assignee, Set.of(tags), List.of(), 0, Instant.EPOCH);
+        return new CardSnapshot(1, 1, title, description, priority, null, assignee, Set.of(tags), List.of(), List.of(), 0, Instant.EPOCH);
     }
 
     private static CardSnapshot card(String title, LocalDate dueDate) {
-        return new CardSnapshot(1, 1, title, null, Priority.MEDIUM, dueDate, null, Set.of(), List.of(), 0, Instant.EPOCH);
+        return new CardSnapshot(1, 1, title, null, Priority.MEDIUM, dueDate, null, Set.of(), List.of(), List.of(), 0, Instant.EPOCH);
     }
 }

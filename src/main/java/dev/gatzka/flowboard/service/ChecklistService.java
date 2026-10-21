@@ -58,6 +58,6 @@ public class ChecklistService {
     }
 
     private void record(Card card, String actor, String message) {
-        activityLog.record(BoardChangedEvent.content(card.getLane().getBoard().getId(), actor, message));
+        activityLog.record(BoardChangedEvent.content(card.getLane().getBoard().getId(), actor, message).forCard(card.getId()));
     }
 }

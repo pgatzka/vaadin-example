@@ -9,6 +9,7 @@ import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.ChecklistService;
+import dev.gatzka.flowboard.service.CommentService;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Set;
@@ -30,12 +31,15 @@ class SampleDataInitializer implements ApplicationRunner {
     private final BoardRepository boards;
     private final BoardService boardService;
     private final ChecklistService checklistService;
+    private final CommentService commentService;
     private final Clock clock;
 
-    SampleDataInitializer(BoardRepository boards, BoardService boardService, ChecklistService checklistService, Clock clock) {
+    SampleDataInitializer(BoardRepository boards, BoardService boardService, ChecklistService checklistService,
+            CommentService commentService, Clock clock) {
         this.boards = boards;
         this.boardService = boardService;
         this.checklistService = checklistService;
+        this.commentService = commentService;
         this.clock = clock;
     }
 
@@ -79,6 +83,8 @@ class SampleDataInitializer implements ApplicationRunner {
         checklist(dragAndDrop, "Cards are drag sources", true);
         checklist(dragAndDrop, "Lanes accept drops", true);
         checklist(dragAndDrop, "Keyboard alternative", false);
+        commentService.add(dragAndDrop.id(), "Jonas", "Should dropping on a card insert *before* or *after* it?");
+        commentService.add(dragAndDrop.id(), "Mara", "Before. That matches how the insertion line is drawn.");
 
         card(review, "Card editor with Markdown preview", "Uses the Vaadin `Markdown` component in a preview tab.",
                 Priority.MEDIUM, today.minusDays(1), "Jonas", "ui");

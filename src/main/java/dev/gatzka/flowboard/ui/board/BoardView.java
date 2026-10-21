@@ -23,6 +23,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.shared.Registration;
+import dev.gatzka.flowboard.domain.ActivityEntry;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
@@ -32,6 +33,7 @@ import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardChangedEvent;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.ChecklistService;
+import dev.gatzka.flowboard.service.CommentService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.service.PresenceTracker;
@@ -45,18 +47,20 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * The Kanban board. Renders a {@link BoardSnapshot} and re-renders whenever the board changes,
  * whether through this user or through anybody else (via server push).
  */
 @Route("board/:boardId")
-public class BoardView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle, BoardActions, ChecklistActions {
+public class BoardView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle, BoardActions, CardEditorActions {
 
     public static final String BOARD_ID = "boardId";
 
     private final BoardService boardService;
     private final ChecklistService checklistService;
+    private final CommentService commentService;
     private final ActivityLog activityLog;
     private final BoardChangeBroadcaster broadcaster;
     private final PresenceTracker presence;
@@ -73,15 +77,18 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final List<LaneComponent> laneComponents = new ArrayList<>();
 
     private BoardSnapshot board;
+    private CardEditorDialog openEditor;
     private Long openComposerLaneId;
     private Registration changeSubscription;
     private Registration presenceSubscription;
     private Registration profileSubscription;
 
-    public BoardView(BoardService boardService, ChecklistService checklistService, ActivityLog activityLog,
-            BoardChangeBroadcaster broadcaster, PresenceTracker presence, UserSession session, Clock clock) {
+    public BoardView(BoardService boardService, ChecklistService checklistService, CommentService commentService,
+            ActivityLog activityLog, BoardChangeBroadcaster broadcaster, PresenceTracker presence, UserSession session,
+            Clock clock) {
         this.boardService = boardService;
         this.checklistService = checklistService;
+        this.commentService = commentService;
         this.activityLog = activityLog;
         this.broadcaster = broadcaster;
         this.presence = presence;
@@ -224,6 +231,16 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         if (activityDialog.isOpened()) {
             activityDialog.show(activityLog.recent(board.id()));
         }
+        if (openEditor != null) {
+            openEditor.cardId().flatMap(this::findCard).ifPresent(openEditor::refresh);
+        }
+    }
+
+    private Optional<CardSnapshot> findCard(long cardId) {
+        return board.lanes().stream()
+                .flatMap(lane -> lane.cards().stream())
+                .filter(card -> card.id() == cardId)
+                .findFirst();
     }
 
     private void applyFilter() {
@@ -250,9 +267,16 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     @Override
     public void openCard(CardSnapshot card) {
-        CardEditorDialog.forCard(card, board, this,
+        CardEditorDialog editor = CardEditorDialog.forCard(card, board, this,
                 draft -> perform(() -> boardService.updateCard(card.id(), draft, actor())),
-                () -> perform(() -> boardService.deleteCard(card.id(), actor()))).open();
+                () -> perform(() -> boardService.deleteCard(card.id(), actor())));
+        editor.addOpenedChangeListener(event -> {
+            if (!event.isOpened() && openEditor == editor) {
+                openEditor = null;
+            }
+        });
+        openEditor = editor;
+        editor.open();
     }
 
     @Override
@@ -304,24 +328,34 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         })).open();
     }
 
-    // ----------------------------------------------------- ChecklistActions
+    // ---------------------------------------------------- CardEditorActions
 
     @Override
-    public CardSnapshot addItem(long cardId, String text) {
-        return checklist(() -> checklistService.addItem(cardId, text, actor()));
+    public CardSnapshot addChecklistItem(long cardId, String text) {
+        return changeCard(() -> checklistService.addItem(cardId, text, actor()));
     }
 
     @Override
-    public CardSnapshot setDone(long itemId, boolean done) {
-        return checklist(() -> checklistService.setDone(itemId, done, actor()));
+    public CardSnapshot setChecklistItemDone(long itemId, boolean done) {
+        return changeCard(() -> checklistService.setDone(itemId, done, actor()));
     }
 
     @Override
-    public CardSnapshot removeItem(long itemId) {
-        return checklist(() -> checklistService.removeItem(itemId, actor()));
+    public CardSnapshot removeChecklistItem(long itemId) {
+        return changeCard(() -> checklistService.removeItem(itemId, actor()));
     }
 
-    private CardSnapshot checklist(java.util.function.Supplier<CardSnapshot> change) {
+    @Override
+    public CardSnapshot addComment(long cardId, String text) {
+        return changeCard(() -> commentService.add(cardId, actor(), text));
+    }
+
+    @Override
+    public List<ActivityEntry> history(long cardId) {
+        return activityLog.recentForCard(cardId);
+    }
+
+    private CardSnapshot changeCard(Supplier<CardSnapshot> change) {
         CardSnapshot refreshed = change.get();
         reload();
         return refreshed;

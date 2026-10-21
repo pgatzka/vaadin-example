@@ -21,11 +21,11 @@ final class ChecklistSection extends Div {
     private final ProgressBar progress = new ProgressBar();
     private final Div items = new Div();
     private final TextField newItem = new TextField();
-    private final ChecklistActions actions;
+    private final CardEditorActions actions;
     private final Consumer<CardSnapshot> onChanged;
     private CardSnapshot card;
 
-    ChecklistSection(CardSnapshot card, ChecklistActions actions, Consumer<CardSnapshot> onChanged) {
+    ChecklistSection(CardSnapshot card, CardEditorActions actions, Consumer<CardSnapshot> onChanged) {
         this.actions = actions;
         this.onChanged = onChanged;
         addClassName("checklist");
@@ -70,10 +70,10 @@ final class ChecklistSection extends Div {
         Checkbox checkbox = new Checkbox(item.text(), item.done());
         checkbox.addValueChangeListener(event -> {
             if (event.isFromClient()) {
-                update(actions.setDone(item.id(), event.getValue()));
+                update(actions.setChecklistItemDone(item.id(), event.getValue()));
             }
         });
-        Button remove = new Button(VaadinIcon.TRASH.create(), event -> update(actions.removeItem(item.id())));
+        Button remove = new Button(VaadinIcon.TRASH.create(), event -> update(actions.removeChecklistItem(item.id())));
         remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
         remove.setAriaLabel("Remove \"" + item.text() + "\"");
         Div row = new Div(checkbox, remove);
@@ -90,7 +90,7 @@ final class ChecklistSection extends Div {
             return;
         }
         newItem.clear();
-        update(actions.addItem(card.id(), text));
+        update(actions.addChecklistItem(card.id(), text));
         newItem.focus();
     }
 

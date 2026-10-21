@@ -4,7 +4,7 @@ package dev.gatzka.flowboard.service;
  * Published after a board changed. Carries a human readable description of the change so that
  * other users can be told what happened, e.g. {@code Mara} + {@code moved "Dark mode" to Done}.
  */
-public record BoardChangedEvent(long boardId, Kind kind, String actor, String message) {
+public record BoardChangedEvent(long boardId, Kind kind, String actor, String message, Long cardId) {
 
     public enum Kind {
         /** A new board exists. */
@@ -18,19 +18,24 @@ public record BoardChangedEvent(long boardId, Kind kind, String actor, String me
     }
 
     public static BoardChangedEvent created(long boardId, String actor, String message) {
-        return new BoardChangedEvent(boardId, Kind.CREATED, actor, message);
+        return new BoardChangedEvent(boardId, Kind.CREATED, actor, message, null);
     }
 
     public static BoardChangedEvent updated(long boardId, String actor, String message) {
-        return new BoardChangedEvent(boardId, Kind.UPDATED, actor, message);
+        return new BoardChangedEvent(boardId, Kind.UPDATED, actor, message, null);
     }
 
     public static BoardChangedEvent deleted(long boardId, String actor, String message) {
-        return new BoardChangedEvent(boardId, Kind.DELETED, actor, message);
+        return new BoardChangedEvent(boardId, Kind.DELETED, actor, message, null);
     }
 
     public static BoardChangedEvent content(long boardId, String actor, String message) {
-        return new BoardChangedEvent(boardId, Kind.CONTENT, actor, message);
+        return new BoardChangedEvent(boardId, Kind.CONTENT, actor, message, null);
+    }
+
+    /** Attributes the change to a specific card so it shows up in that card's history. */
+    public BoardChangedEvent forCard(long cardId) {
+        return new BoardChangedEvent(boardId, kind, actor, message, cardId);
     }
 
     /** Whether the list of boards (names, existence) is affected, as opposed to a board's content. */

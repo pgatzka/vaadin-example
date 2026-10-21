@@ -6,9 +6,11 @@ import com.vaadin.browserless.SpringBrowserlessTest;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.textfield.TextField;
 import dev.gatzka.flowboard.domain.BoardDraft;
+import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.BoardSummary;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.ui.board.BoardView;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,9 +45,11 @@ class BoardsViewTest extends SpringBrowserlessTest {
 
     @Test
     void showsOneTilePerBoard() {
-        service.createBoard(new BoardDraft("Alpha", null), "Seeder");
+        BoardSnapshot alpha = service.createBoard(new BoardDraft("Alpha", null), "Seeder");
         service.createBoard(new BoardDraft("Beta", "Second board"), "Seeder");
 
+        // The list is already open from environment setup; leave and come back for a fresh render.
+        navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(alpha.id())));
         navigate(BoardsView.class);
 
         assertThat($(BoardTile.class).all()).hasSize(2);

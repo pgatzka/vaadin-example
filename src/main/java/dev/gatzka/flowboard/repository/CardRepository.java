@@ -8,8 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CardRepository extends JpaRepository<Card, Long> {
 
-    /** All cards of a board with tags and checklists loaded in the same query. */
-    @EntityGraph(attributePaths = {"tags", "checklist"})
+    /** All cards of a board with tags, checklists and comments loaded in the same query. */
+    @EntityGraph(attributePaths = {"tags", "checklist", "comments"})
     List<Card> findAllByLaneBoardIdOrderByPositionAsc(long boardId);
 
     List<Card> findAllByLaneIdOrderByPositionAsc(long laneId);

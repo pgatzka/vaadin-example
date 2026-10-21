@@ -8,5 +8,7 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     List<Activity> findTop50ByBoardIdOrderByOccurredAtDesc(long boardId);
 
+    List<Activity> findTop50ByCardIdOrderByOccurredAtDesc(long cardId);
+
     void deleteAllByBoardId(long boardId);
 }

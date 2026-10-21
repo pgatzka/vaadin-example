@@ -30,7 +30,7 @@ public class ActivityLog {
 
     public void record(BoardChangedEvent event) {
         if (event.kind() != BoardChangedEvent.Kind.DELETED) {
-            activities.save(new Activity(event.boardId(), event.actor(), event.message(), clock.instant()));
+            activities.save(new Activity(event.boardId(), event.cardId(), event.actor(), event.message(), clock.instant()));
         }
         events.publishEvent(event);
     }
@@ -38,6 +38,11 @@ public class ActivityLog {
     @Transactional(readOnly = true)
     public List<ActivityEntry> recent(long boardId) {
         return activities.findTop50ByBoardIdOrderByOccurredAtDesc(boardId).stream().map(ActivityEntry::of).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActivityEntry> recentForCard(long cardId) {
+        return activities.findTop50ByCardIdOrderByOccurredAtDesc(cardId).stream().map(ActivityEntry::of).toList();
     }
 
     void forget(long boardId) {

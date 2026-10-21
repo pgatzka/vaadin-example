@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -61,6 +62,10 @@ public class Card {
     @OneToMany(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position ASC")
     private List<ChecklistItem> checklist = new ArrayList<>();
+
+    @OneToMany(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC, id ASC")
+    private Set<Comment> comments = new LinkedHashSet<>();
 
     @Column(name = "sort_order", nullable = false)
     private int position;
@@ -118,6 +123,13 @@ public class Card {
         }
     }
 
+    public Comment addComment(String author, String text, Instant now) {
+        Comment comment = new Comment(this, author, text, now);
+        comments.add(comment);
+        updatedAt = requireNonNull(now);
+        return comment;
+    }
+
     public void touch(Instant now) {
         updatedAt = requireNonNull(now);
     }
@@ -152,6 +164,11 @@ public class Card {
 
     public Set<String> getTags() {
         return tags;
+    }
+
+    /** Comments oldest first; read-only, modify through the card. */
+    public List<Comment> getComments() {
+        return List.copyOf(comments);
     }
 
     /** The checklist in order; read-only, modify through the card. */

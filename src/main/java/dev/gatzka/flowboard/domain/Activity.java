@@ -13,7 +13,9 @@ import java.time.Instant;
 
 /** One line in a board's activity feed, e.g. "Mara moved "Dark mode" to Done". */
 @Entity
-@Table(name = "activities", indexes = @Index(columnList = "board_id, occurred_at"))
+@Table(name = "activities", indexes = {
+        @Index(columnList = "board_id, occurred_at"),
+        @Index(columnList = "card_id, occurred_at")})
 public class Activity {
 
     @Id
@@ -22,6 +24,9 @@ public class Activity {
 
     @Column(nullable = false)
     private Long boardId;
+
+    /** The card this entry is about, if any. Kept after the card is deleted. */
+    private Long cardId;
 
     @Column(nullable = false, length = 60)
     private String actor;
@@ -36,8 +41,9 @@ public class Activity {
         // JPA
     }
 
-    public Activity(long boardId, String actor, String message, Instant occurredAt) {
+    public Activity(long boardId, Long cardId, String actor, String message, Instant occurredAt) {
         this.boardId = boardId;
+        this.cardId = cardId;
         this.actor = requireNonNull(actor);
         this.message = requireNonNull(message);
         this.occurredAt = requireNonNull(occurredAt);
@@ -45,6 +51,10 @@ public class Activity {
 
     public Long getBoardId() {
         return boardId;
+    }
+
+    public Long getCardId() {
+        return cardId;
     }
 
     public String getActor() {
