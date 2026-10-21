@@ -23,6 +23,7 @@ final class CommentsSection extends Div {
         empty.addClassName("comments__empty");
 
         MessageInput input = new MessageInput(event -> {
+            // Mention people with @name; they get a notification.
             String text = event.getValue().strip();
             if (!text.isEmpty()) {
                 onChanged.accept(actions.addComment(card.id(), text));

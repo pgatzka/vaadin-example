@@ -429,6 +429,39 @@ class BoardViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void mentionsLightUpTheInboxBell() {
+        UserSession me = context.getBean(UserSession.class);
+        me.setDisplayName("Priya");
+        CardSnapshot card = createCard("Ping me");
+        openBoard();
+        // The layout subscribed under the generated name; renaming announces itself like the profile dialog does.
+        com.vaadin.flow.component.ComponentUtil.fireEvent(com.vaadin.flow.component.UI.getCurrent(),
+                new dev.gatzka.flowboard.ui.ProfileChangedEvent(com.vaadin.flow.component.UI.getCurrent()));
+        assertThat(unreadBadge().isVisible()).isFalse();
+
+        comment(card.id(), "Jonas", "@Priya please check");
+
+        await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            roundTrip();
+            assertThat(unreadBadge().isVisible()).isTrue();
+            assertThat(unreadBadge().getText()).isEqualTo("1");
+        });
+
+        test(inboxButton()).click();
+        assertThat($(com.vaadin.flow.component.html.Div.class).withClassName("inbox__row--unread").all()).hasSize(1);
+        test($(Button.class).withText("Mark all read").single()).click();
+        assertThat(unreadBadge().isVisible()).isFalse();
+    }
+
+    private Button inboxButton() {
+        return $(Button.class).withClassName("inbox-button").single();
+    }
+
+    private Badge unreadBadge() {
+        return (Badge) inboxButton().getSuffixComponent();
+    }
+
+    @Test
     void changesMadeElsewhereArePushedIntoTheView() {
         openBoard();
         assertThat(visibleCardTitles()).isEmpty();

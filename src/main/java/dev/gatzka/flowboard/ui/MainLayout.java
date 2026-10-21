@@ -11,6 +11,8 @@ import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.avatar.AvatarVariant;
+import com.vaadin.flow.component.badge.Badge;
+import com.vaadin.flow.component.badge.BadgeVariant;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -28,6 +30,8 @@ import com.vaadin.flow.theme.lumo.Lumo;
 import dev.gatzka.flowboard.domain.BoardSummary;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardService;
+import dev.gatzka.flowboard.service.InboxBroadcaster;
+import dev.gatzka.flowboard.service.NotificationService;
 import dev.gatzka.flowboard.service.WorkService;
 import dev.gatzka.flowboard.ui.board.BoardView;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
@@ -45,17 +49,27 @@ public class MainLayout extends AppLayout {
     private final BoardChangeBroadcaster broadcaster;
     private final UserSession session;
     private final SearchDialog searchDialog;
+    private final NotificationService notificationService;
+    private final InboxBroadcaster inboxBroadcaster;
+    private final InboxDialog inboxDialog;
+    private final Button inboxButton = new Button();
+    private final Badge unread = new Badge();
+    private Registration inboxSubscription;
+    private Registration profileSubscription;
 
     private final SideNav boardsNav = new SideNav("Boards");
     private final Button themeToggle = new Button();
     private final Button userButton = new Button();
     private Registration changeSubscription;
 
-    public MainLayout(BoardService boardService, WorkService workService, BoardChangeBroadcaster broadcaster,
-            UserSession session, Clock clock) {
+    public MainLayout(BoardService boardService, WorkService workService, NotificationService notificationService,
+            BoardChangeBroadcaster broadcaster, InboxBroadcaster inboxBroadcaster, UserSession session, Clock clock) {
         this.boardService = boardService;
         this.broadcaster = broadcaster;
         this.session = session;
+        this.notificationService = notificationService;
+        this.inboxBroadcaster = inboxBroadcaster;
+        this.inboxDialog = new InboxDialog(notificationService, session, this::refreshInbox);
         this.searchDialog = new SearchDialog(workService, this::commands, clock);
         Shortcuts.addShortcutListener(this, event -> searchDialog.open(), Key.KEY_K, KeyModifier.CONTROL);
         Shortcuts.addShortcutListener(this, event -> new ShortcutsDialog().open(), Key.SLASH, KeyModifier.CONTROL);
@@ -125,12 +139,25 @@ public class MainLayout extends AppLayout {
         search.setAriaLabel("Search all boards");
         search.setTooltipText("Search (Ctrl+K)");
 
+        inboxButton.setIcon(VaadinIcon.BELL_O.create());
+        inboxButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        inboxButton.setAriaLabel("Inbox");
+        inboxButton.setTooltipText("Inbox");
+        inboxButton.addClassName("inbox-button");
+        inboxButton.setSuffixComponent(unread);
+        unread.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.ERROR, BadgeVariant.FILLED);
+        unread.addClassName("inbox-button__count");
+        inboxButton.addClickListener(event -> {
+            inboxDialog.refresh();
+            inboxDialog.open();
+        });
+
         Button help = new Button(VaadinIcon.QUESTION_CIRCLE_O.create(), event -> new ShortcutsDialog().open());
         help.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
         help.setAriaLabel("Keyboard shortcuts");
         help.setTooltipText("Keyboard shortcuts (Ctrl+/)");
 
-        Div header = new Div(new DrawerToggle(), title, new Span(), search, help, themeToggle, userButton);
+        Div header = new Div(new DrawerToggle(), title, new Span(), search, inboxButton, help, themeToggle, userButton);
         header.addClassName("app-header");
         return header;
     }
@@ -153,6 +180,12 @@ public class MainLayout extends AppLayout {
                 UiAccess.run(ui, this::refreshBoards);
             }
         });
+        subscribeInbox(ui);
+        profileSubscription = ComponentUtil.addListener(ui, ProfileChangedEvent.class, event -> {
+            unsubscribeInbox();
+            subscribeInbox(ui);
+        });
+        refreshInbox();
     }
 
     @Override
@@ -161,6 +194,35 @@ public class MainLayout extends AppLayout {
             changeSubscription.remove();
             changeSubscription = null;
         }
+        if (profileSubscription != null) {
+            profileSubscription.remove();
+            profileSubscription = null;
+        }
+        unsubscribeInbox();
+    }
+
+    private void subscribeInbox(UI ui) {
+        inboxSubscription = inboxBroadcaster.subscribe(session.getDisplayName(), () -> UiAccess.run(ui, () -> {
+            refreshInbox();
+            if (inboxDialog.isOpened()) {
+                inboxDialog.refresh();
+            }
+        }));
+    }
+
+    private void unsubscribeInbox() {
+        if (inboxSubscription != null) {
+            inboxSubscription.remove();
+            inboxSubscription = null;
+        }
+    }
+
+    /** Updates the unread counter on the bell. */
+    void refreshInbox() {
+        long count = notificationService.unreadCount(session.getDisplayName());
+        unread.setText(Long.toString(count));
+        unread.setVisible(count > 0);
+        inboxButton.setAriaLabel(count == 0 ? "Inbox" : "Inbox, " + count + " unread");
     }
 
     private void refreshBoards() {

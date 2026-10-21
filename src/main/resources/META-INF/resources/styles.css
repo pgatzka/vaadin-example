@@ -73,6 +73,37 @@ html {
   max-width: 14rem;
 }
 
+.inbox-button__count {
+  margin-inline-start: -0.6em;
+  margin-top: -1em;
+}
+
+.inbox__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.inbox__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--lumo-space-s) var(--lumo-space-s);
+  border-bottom: 1px solid var(--lumo-contrast-10pct);
+}
+
+.inbox__row--unread {
+  background: var(--lumo-primary-color-10pct);
+}
+
+.inbox__when {
+  font-size: var(--lumo-font-size-xs);
+  color: var(--lumo-tertiary-text-color);
+}
+
+.inbox__link {
+  font-size: var(--lumo-font-size-s);
+}
+
 .drawer-content {
   display: flex;
   flex-direction: column;

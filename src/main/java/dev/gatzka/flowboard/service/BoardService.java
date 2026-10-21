@@ -41,13 +41,16 @@ public class BoardService {
     private final LaneRepository lanes;
     private final CardRepository cards;
     private final ActivityLog activityLog;
+    private final NotificationService notifications;
     private final Clock clock;
 
-    BoardService(BoardRepository boards, LaneRepository lanes, CardRepository cards, ActivityLog activityLog, Clock clock) {
+    BoardService(BoardRepository boards, LaneRepository lanes, CardRepository cards, ActivityLog activityLog,
+            NotificationService notifications, Clock clock) {
         this.boards = boards;
         this.lanes = lanes;
         this.cards = cards;
         this.activityLog = activityLog;
+        this.notifications = notifications;
         this.clock = clock;
     }
 
@@ -94,6 +97,7 @@ public class BoardService {
         cards.deleteAllByLaneBoardId(boardId);
         lanes.deleteAllByBoardId(boardId);
         activityLog.forget(boardId);
+        notifications.forgetBoard(boardId);
         boards.delete(board);
         activityLog.record(BoardChangedEvent.deleted(boardId, actor, "deleted board \"%s\"".formatted(board.getName())));
     }
@@ -175,12 +179,15 @@ public class BoardService {
         Card card = cards.save(new Card(lane, draft, position, clock.instant()));
         activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
                 "added \"%s\" to %s".formatted(card.getTitle(), lane.getName())).forCard(card.getId()));
+        notifyAssignment(card, null, actor);
         return CardSnapshot.of(card);
     }
 
     public CardSnapshot updateCard(long cardId, CardDraft draft, String actor) {
         Card card = requireCard(cardId);
+        String previousAssignee = card.getAssignee();
         card.update(draft, clock.instant());
+        notifyAssignment(card, previousAssignee, actor);
         activityLog.record(BoardChangedEvent.content(boardIdOf(card.getLane()), actor,
                 "updated \"%s\"".formatted(card.getTitle())).forCard(cardId));
         return CardSnapshot.of(card);
@@ -327,6 +334,14 @@ public class BoardService {
 
     private Card requireCard(long cardId) {
         return cards.findById(cardId).orElseThrow(() -> new NotFoundException("Card", cardId));
+    }
+
+    /** Tells somebody that a card landed on their plate. */
+    private void notifyAssignment(Card card, String previousAssignee, String actor) {
+        String assignee = card.getAssignee();
+        if (assignee != null && (previousAssignee == null || !previousAssignee.equalsIgnoreCase(assignee))) {
+            notifications.notify(assignee, actor, "assigned \"%s\" to you".formatted(card.getTitle()), boardIdOf(card.getLane()), card.getId());
+        }
     }
 
     private void unlinkBlockersInLane(long laneId) {

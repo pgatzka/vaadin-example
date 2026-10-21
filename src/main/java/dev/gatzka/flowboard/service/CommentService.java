@@ -20,12 +20,15 @@ public class CommentService {
     private final CardRepository cards;
     private final CommentRepository comments;
     private final ActivityLog activityLog;
+    private final NotificationService notifications;
     private final Clock clock;
 
-    CommentService(CardRepository cards, CommentRepository comments, ActivityLog activityLog, Clock clock) {
+    CommentService(CardRepository cards, CommentRepository comments, ActivityLog activityLog, NotificationService notifications,
+            Clock clock) {
         this.cards = cards;
         this.comments = comments;
         this.activityLog = activityLog;
+        this.notifications = notifications;
         this.clock = clock;
     }
 
@@ -33,8 +36,16 @@ public class CommentService {
         Card card = cards.findById(cardId).orElseThrow(() -> new NotFoundException("Card", cardId));
         Comment comment = card.addComment(author, text, clock.instant());
         comments.saveAndFlush(comment);
-        activityLog.record(BoardChangedEvent.content(card.getLane().getBoard().getId(), author,
-                "commented on \"%s\": %s".formatted(card.getTitle(), excerpt(comment.getText()))).forCard(cardId));
+        long boardId = card.getLane().getBoard().getId();
+        String excerpt = excerpt(comment.getText());
+        activityLog.record(BoardChangedEvent.content(boardId, author,
+                "commented on \"%s\": %s".formatted(card.getTitle(), excerpt)).forCard(cardId));
+        for (String mentioned : Mentions.in(comment.getText())) {
+            notifications.notify(mentioned, author, "mentioned you on \"%s\": %s".formatted(card.getTitle(), excerpt), boardId, cardId);
+        }
+        if (card.getAssignee() != null && !Mentions.in(comment.getText()).stream().anyMatch(name -> name.equalsIgnoreCase(card.getAssignee()))) {
+            notifications.notify(card.getAssignee(), author, "commented on your card \"%s\": %s".formatted(card.getTitle(), excerpt), boardId, cardId);
+        }
         return CardSnapshot.of(card);
     }
 
