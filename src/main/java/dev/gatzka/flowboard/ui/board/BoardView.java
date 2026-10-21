@@ -65,6 +65,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final H2 heading = new H2();
     private final Span description = new Span();
     private final TextField search = new TextField();
+    private final FilterMenu filters = new FilterMenu(filter -> applyFilter());
     private final AvatarGroup participants = new AvatarGroup();
     private final Div lanes = new Div();
     private final ActivityDialog activityDialog = new ActivityDialog();
@@ -108,7 +109,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         search.setValueChangeMode(ValueChangeMode.LAZY);
         search.setTooltipText("Press / to focus");
         search.addClassName("board-toolbar__search");
-        search.addValueChangeListener(event -> laneComponents.forEach(lane -> lane.filter(event.getValue())));
+        search.addValueChangeListener(event -> filters.setQuery(event.getValue()));
 
         participants.addThemeVariants(AvatarGroupVariant.LUMO_SMALL);
         participants.setMaxItemsVisible(5);
@@ -122,7 +123,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         Button addLane = new Button("Add lane", VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        Div toolbar = new Div(titles, search, participants, activity, addLane);
+        Div toolbar = new Div(titles, search, filters, participants, activity, addLane);
         toolbar.addClassName("board-toolbar");
         return toolbar;
     }
@@ -211,16 +212,21 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         laneComponents.clear();
         for (LaneSnapshot lane : snapshot.lanes()) {
             LaneComponent component = new LaneComponent(lane, snapshot.lanes().size(), today, this);
-            component.filter(search.getValue());
             laneComponents.add(component);
             lanes.add(component);
             if (openComposerLaneId != null && openComposerLaneId == lane.id()) {
                 component.openComposer();
             }
         }
+        applyFilter();
         if (activityDialog.isOpened()) {
             activityDialog.show(activityLog.recent(board.id()));
         }
+    }
+
+    private void applyFilter() {
+        LocalDate today = LocalDate.now(clock);
+        laneComponents.forEach(lane -> lane.filter(filters.filter(), today, session.getDisplayName()));
     }
 
     private void showParticipants(List<Participant> people) {

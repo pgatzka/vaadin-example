@@ -14,6 +14,7 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
+import dev.gatzka.flowboard.domain.CardFilter;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import java.time.LocalDate;
@@ -61,10 +62,10 @@ final class LaneComponent extends Div {
         return lane;
     }
 
-    /** Hides cards that do not match the query; the lane itself stays visible as a drop target. */
-    void filter(String query) {
+    /** Hides cards that do not match; the lane itself stays visible as a drop target. */
+    void filter(CardFilter filter, LocalDate today, String me) {
         for (CardComponent component : cardComponents) {
-            component.setVisible(component.card().matches(query));
+            component.setVisible(filter.matches(component.card(), lane, today, me));
         }
     }
 

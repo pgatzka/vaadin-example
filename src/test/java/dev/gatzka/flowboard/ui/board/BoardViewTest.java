@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 import com.vaadin.browserless.SpringBrowserlessTest;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.textfield.TextField;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
@@ -15,6 +16,7 @@ import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -138,6 +140,21 @@ class BoardViewTest extends SpringBrowserlessTest {
         test($(TextField.class).withPlaceholder("Filter cards").single()).setValue("beta");
 
         assertThat(visibleCardTitles()).containsExactly("Beta feedback");
+    }
+
+    @Test
+    void structuredFiltersNarrowTheBoard() {
+        long backlog = board.lanes().get(0).id();
+        service.createCard(backlog, new CardDraft("Late and mine", null, Priority.HIGH, LocalDate.now().minusDays(2), null, Set.of()), SEEDER);
+        service.createCard(backlog, new CardDraft("On time", null, Priority.LOW, LocalDate.now().plusDays(2), null, Set.of()), SEEDER);
+        openBoard();
+
+        test($(Checkbox.class).withLabel("Overdue only").single()).click();
+        assertThat(visibleCardTitles()).containsExactly("Late and mine");
+        assertThat($(FilterMenu.class).single().filter().toggleCount()).isEqualTo(1);
+
+        test($(Button.class).withText("Clear filters").single()).click();
+        assertThat(visibleCardTitles()).containsExactly("Late and mine", "On time");
     }
 
     @Test

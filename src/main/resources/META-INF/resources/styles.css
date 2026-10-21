@@ -198,6 +198,19 @@ html {
   max-width: 100%;
 }
 
+.filter-menu__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-xs);
+  min-width: 14rem;
+  padding: var(--lumo-space-xs);
+}
+
+.filter-menu__content vaadin-button {
+  align-self: flex-start;
+  margin-top: var(--lumo-space-xs);
+}
+
 .board-toolbar__presence {
   width: auto;
   flex: 0 0 auto;
