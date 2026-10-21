@@ -56,6 +56,7 @@ public class MainLayout extends AppLayout {
         this.session = session;
         this.searchDialog = new SearchDialog(workService, clock);
         Shortcuts.addShortcutListener(this, event -> searchDialog.open(), Key.KEY_K, KeyModifier.CONTROL);
+        Shortcuts.addShortcutListener(this, event -> new ShortcutsDialog().open(), Key.SLASH, KeyModifier.CONTROL);
 
         setPrimarySection(Section.DRAWER);
         addToNavbar(true, header());
@@ -100,7 +101,12 @@ public class MainLayout extends AppLayout {
         search.setAriaLabel("Search all boards");
         search.setTooltipText("Search (Ctrl+K)");
 
-        Div header = new Div(new DrawerToggle(), title, new Span(), search, themeToggle, userButton);
+        Button help = new Button(VaadinIcon.QUESTION_CIRCLE_O.create(), event -> new ShortcutsDialog().open());
+        help.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        help.setAriaLabel("Keyboard shortcuts");
+        help.setTooltipText("Keyboard shortcuts (Ctrl+/)");
+
+        Div header = new Div(new DrawerToggle(), title, new Span(), search, help, themeToggle, userButton);
         header.addClassName("app-header");
         return header;
     }

@@ -27,6 +27,9 @@ interface BoardActions {
     /** Moves the lane by {@code delta} positions (negative is left). */
     void moveLane(LaneSnapshot lane, int delta);
 
+    /** Moves the lane so that it takes {@code targetIndex} among the board's lanes. */
+    void moveLaneTo(long laneId, int targetIndex);
+
     void deleteLane(LaneSnapshot lane);
 
     /** Archives every card in the lane. */

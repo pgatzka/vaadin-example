@@ -380,6 +380,11 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     @Override
+    public void moveLaneTo(long laneId, int targetIndex) {
+        perform(() -> boardService.moveLane(laneId, targetIndex, actor()));
+    }
+
+    @Override
     public void deleteLane(LaneSnapshot lane) {
         new DeleteLaneDialog(lane, board, target -> perform(() -> {
             if (target == null) {

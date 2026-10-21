@@ -51,6 +51,21 @@ final class LaneComponent extends Div {
         composer.addClassName("lane__add");
 
         add(header(laneCount, actions), cards(today, actions), composer);
+        makeReorderable(actions);
+    }
+
+    /** The header drags the lane; dropping anything on the lane outside its card list lands here. */
+    private void makeReorderable(BoardActions actions) {
+        DropTarget<LaneComponent> target = DropTarget.create(this);
+        target.setDropEffect(DropEffect.MOVE);
+        target.addDropListener(event -> {
+            Object data = event.getDragData().orElse(null);
+            if (data instanceof LaneDrag dragged && dragged.laneId() != lane.id()) {
+                actions.moveLaneTo(dragged.laneId(), lane.position());
+            } else if (data instanceof Long cardId) {
+                actions.moveCard(cardId, lane.id(), lane.cards().size());
+            }
+        });
     }
 
     /** Expands the quick-add composer, e.g. to restore it after the lane was re-rendered. */
@@ -75,6 +90,11 @@ final class LaneComponent extends Div {
 
         Div header = new Div(name, countBadge(), menu(laneCount, actions));
         header.addClassName("lane__header");
+        DragSource<Div> handle = DragSource.create(header);
+        handle.setEffectAllowed(EffectAllowed.MOVE);
+        handle.setDragData(new LaneDrag(lane.id()));
+        handle.addDragStartListener(event -> addClassName("lane--dragging"));
+        handle.addDragEndListener(event -> removeClassName("lane--dragging"));
         return header;
     }
 

@@ -286,6 +286,26 @@ class BoardViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void lanesCanBeReorderedByDroppingOnAnotherLane() {
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        long backlog = board.lanes().get(0).id();
+        int reviewPosition = board.lanes().get(2).position();
+
+        view.moveLaneTo(backlog, reviewPosition);
+
+        assertThat($(LaneComponent.class).all()).extracting(lane -> lane.lane().name())
+                .containsExactly("In progress", "Review", "Backlog", "Done");
+    }
+
+    @Test
+    void helpButtonListsShortcuts() {
+        openBoard();
+        test($(Button.class).withCondition(b -> "Keyboard shortcuts".equals(b.getAriaLabel().orElse(null))).single()).click();
+
+        assertThat($(com.vaadin.flow.component.dialog.Dialog.class).withCondition(d -> "Keyboard shortcuts".equals(d.getHeaderTitle())).all()).hasSize(1);
+    }
+
+    @Test
     void changesMadeElsewhereArePushedIntoTheView() {
         openBoard();
         assertThat(visibleCardTitles()).isEmpty();
