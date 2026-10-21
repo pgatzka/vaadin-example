@@ -314,6 +314,40 @@ html {
   margin-bottom: var(--lumo-space-s);
 }
 
+.rules__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-xs);
+  margin-bottom: var(--lumo-space-s);
+}
+
+.rules__row {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  font-size: var(--lumo-font-size-s);
+}
+
+.rules__row vaadin-icon {
+  width: var(--lumo-icon-size-s);
+  height: var(--lumo-icon-size-s);
+  color: var(--lumo-warning-text-color);
+}
+
+.rules__text {
+  flex: 1;
+}
+
+.rules__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-xs);
+}
+
+.lane__rules {
+  color: var(--lumo-warning-text-color);
+}
+
 .members__list {
   display: flex;
   flex-direction: column;

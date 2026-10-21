@@ -2,6 +2,8 @@ package dev.gatzka.flowboard.ui.board;
 
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
+import dev.gatzka.flowboard.domain.LaneRuleSnapshot;
+import java.util.List;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 
 /** What lane and card components can ask the board to do. Implemented by {@link BoardView}. */
@@ -16,7 +18,7 @@ interface BoardActions {
     void quickAddCard(LaneSnapshot lane, String title);
 
     /** Creates several title-only cards at once, in the given order. */
-    void quickAddCards(LaneSnapshot lane, java.util.List<String> titles);
+    void quickAddCards(LaneSnapshot lane, List<String> titles);
 
     /** Remembers which lane has its quick-add composer open so it survives a re-render. */
     void composerOpened(LaneSnapshot lane);
@@ -27,6 +29,9 @@ interface BoardActions {
     void moveCard(long cardId, long targetLaneId, int targetIndex);
 
     void editLane(LaneSnapshot lane);
+
+    /** The automation rules of a lane, for the lightning badge and the lane dialog. */
+    List<LaneRuleSnapshot> rulesFor(LaneSnapshot lane);
 
     /** Moves the lane by {@code delta} positions (negative is left). */
     void moveLane(LaneSnapshot lane, int delta);

@@ -55,11 +55,14 @@ public class BoardService {
     private final SavedViewRepository savedViews;
     private final CardTemplateRepository cardTemplates;
     private final BoardMemberRepository boardMembers;
+    private final AutomationService automations;
     private final Clock clock;
 
     BoardService(BoardRepository boards, LaneRepository lanes, CardRepository cards, ActivityLog activityLog,
             NotificationService notifications, VisitService visits, WebhookRepository webhooks,
-            SavedViewRepository savedViews, CardTemplateRepository cardTemplates, BoardMemberRepository boardMembers, Clock clock) {
+            SavedViewRepository savedViews, CardTemplateRepository cardTemplates, BoardMemberRepository boardMembers,
+            AutomationService automations, Clock clock) {
+        this.automations = automations;
         this.cardTemplates = cardTemplates;
         this.boardMembers = boardMembers;
         this.visits = visits;
@@ -204,6 +207,7 @@ public class BoardService {
         activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
                 "added \"%s\" to %s".formatted(card.getTitle(), lane.getName())).forCard(card.getId()));
         notifyAssignment(card, null, actor);
+        runAutomations(card, lane, actor);
         return CardSnapshot.of(card);
     }
 
@@ -268,6 +272,7 @@ public class BoardService {
                 "moved \"%s\" to the board \"%s\"".formatted(card.getTitle(), target.getBoard().getName())));
         activityLog.record(BoardChangedEvent.content(boardIdOf(target), actor,
                 "moved \"%s\" here from the board \"%s\"".formatted(card.getTitle(), source.getBoard().getName())).forCard(cardId));
+        runAutomations(card, target, actor);
         return CardSnapshot.of(card);
     }
 
@@ -401,6 +406,18 @@ public class BoardService {
                 ? "reordered \"%s\" in %s".formatted(card.getTitle(), target.getName())
                 : "moved \"%s\" to %s".formatted(card.getTitle(), target.getName());
         activityLog.record(BoardChangedEvent.content(boardIdOf(target), actor, message).forCard(cardId));
+        if (!sameLane) {
+            runAutomations(card, target, actor);
+        }
+    }
+
+    /** Applies the lane's rules to a card that just entered it and records what they did. */
+    private void runAutomations(Card card, Lane lane, String actor) {
+        List<String> done = automations.applyOnEnter(card, lane, actor);
+        if (!done.isEmpty()) {
+            activityLog.record(BoardChangedEvent.content(boardIdOf(lane), ActivityLog.SYSTEM_ACTOR,
+                    "applied the rules of %s to \"%s\": %s".formatted(lane.getName(), card.getTitle(), String.join(", ", done))).forCard(card.getId()));
+        }
     }
 
     /**

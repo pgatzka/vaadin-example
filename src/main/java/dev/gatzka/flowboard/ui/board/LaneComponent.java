@@ -17,6 +17,7 @@ import com.vaadin.flow.component.menubar.MenuBarVariant;
 import dev.gatzka.flowboard.domain.CardFilter;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
+import dev.gatzka.flowboard.domain.LaneRuleSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -105,6 +106,14 @@ final class LaneComponent extends Div {
             points.addClassName("lane__points");
             points.getElement().setAttribute("title", "Story points in this lane");
             header.add(points);
+        }
+        List<LaneRuleSnapshot> rules = actions.rulesFor(lane);
+        if (!rules.isEmpty()) {
+            Badge automation = new Badge(VaadinIcon.BOLT.create());
+            automation.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.ICON_ONLY, BadgeVariant.CONTRAST);
+            automation.addClassName("lane__rules");
+            automation.getElement().setAttribute("title", rules.stream().map(LaneRuleSnapshot::describe).collect(java.util.stream.Collectors.joining("\n")));
+            header.add(automation);
         }
         header.add(countBadge(), menu(laneCount, actions));
         header.addClassName("lane__header");

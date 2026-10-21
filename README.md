@@ -60,6 +60,9 @@ Java on top of Vaadin Flow's server push.
   and **file attachments** on cards (up to 5 MB each, stored in the database).
 - **Votes** on cards with "sort by votes" for backlogs, multi-line paste into a lane to create several
   cards, and a little confetti when a card lands in a done lane.
+- **Lane automations.** Give a lane rules that run when a card arrives: assign it, tag it, set its
+  priority or due date, notify somebody; and a nightly rule that archives cards that sat in the
+  lane too long. Lanes with rules show a lightning badge.
 - **Move or copy cards across boards** from the editor, checklist and repetition included.
 - **Desktop alerts.** Turn on browser notifications from the inbox and hear about mentions and
   reminders while the tab is in the background.

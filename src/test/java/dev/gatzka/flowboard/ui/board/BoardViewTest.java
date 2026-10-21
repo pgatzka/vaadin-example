@@ -12,6 +12,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import dev.gatzka.flowboard.domain.Recurrence;
+import dev.gatzka.flowboard.domain.RuleAction;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -194,6 +195,30 @@ class BoardViewTest extends FlowboardUiTest {
 
         test($(Button.class).withText("Clear filters").single()).click();
         assertThat(visibleCardTitles()).containsExactly("Late and mine", "On time");
+    }
+
+    @Test
+    void laneRulesAreManagedInTheLaneDialog() {
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        LaneSnapshot review = board.lanes().get(2);
+        view.editLane(review);
+        LaneDialog dialog = $(LaneDialog.class).single();
+        $(Select.class, dialog).withId("rule-action").single().setValue(RuleAction.ADD_TAG);
+        $(TextField.class, dialog).withId("rule-argument").single().setValue("qa");
+        test($(Button.class, dialog).withId("add-rule").single()).click();
+        assertThat($(Div.class, dialog).withClassName("rules__row").all()).hasSize(1);
+
+        $(Select.class, dialog).withId("rule-action").single().setValue(RuleAction.DUE_IN_DAYS);
+        $(TextField.class, dialog).withId("rule-argument").single().setValue("many");
+        test($(Button.class, dialog).withId("add-rule").single()).click();
+        assertThat($(TextField.class, dialog).withId("rule-argument").single().isInvalid()).isTrue();
+        assertThat($(Div.class, dialog).withClassName("rules__row").all()).hasSize(1);
+        dialog.close();
+
+        assertThat($(Badge.class).withClassName("lane__rules").all()).as("the lane shows a lightning badge").hasSize(1);
+        CardSnapshot card = createCard("Automated");
+        view.moveCard(card.id(), review.id(), 0);
+        assertThat(cardOnBoard(card.id()).tags()).containsExactly("qa");
     }
 
     @Test

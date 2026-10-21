@@ -41,7 +41,9 @@ import dev.gatzka.flowboard.domain.CardFilter;
 import dev.gatzka.flowboard.domain.CardFilterCodec;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
+import dev.gatzka.flowboard.domain.LaneRuleSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
+import dev.gatzka.flowboard.domain.RuleAction;
 import dev.gatzka.flowboard.domain.QuickAdd;
 import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.domain.SavedViewSnapshot;
@@ -50,6 +52,7 @@ import dev.gatzka.flowboard.domain.WorkEntrySnapshot;
 import dev.gatzka.flowboard.security.AccountService;
 import dev.gatzka.flowboard.service.AccessService;
 import dev.gatzka.flowboard.service.ActivityLog;
+import dev.gatzka.flowboard.service.AutomationService;
 import dev.gatzka.flowboard.service.AttachmentService;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardChangedEvent;
@@ -128,6 +131,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final CardTemplateService templateService;
     private final AccessService access;
     private final AccountService accounts;
+    private final AutomationService automations;
     private final UserSession session;
     private final Clock clock;
 
@@ -186,8 +190,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             BoardChangeBroadcaster broadcaster, PresenceTracker presence, SharingService sharing, VisitService visits,
             WebhookService webhookService, WebhookDispatcher webhookDispatcher, SavedViewService savedViews,
             TimeService timeService, CardTemplateService templateService, AccessService access, AccountService accounts,
-            UserSession session, Clock clock) {
+            AutomationService automations, UserSession session, Clock clock) {
         this.access = access;
+        this.automations = automations;
         this.accounts = accounts;
         this.savedViews = savedViews;
         this.timeService = timeService;
@@ -751,7 +756,29 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     @Override
     public void editLane(LaneSnapshot lane) {
-        LaneDialog.forLane(lane.toDraft(), draft -> perform(() -> boardService.updateLane(lane.id(), draft, actor()))).open();
+        LaneDialog.forLane(lane.toDraft(), draft -> perform(() -> boardService.updateLane(lane.id(), draft, actor())), new LaneDialog.Automation() {
+            @Override
+            public List<LaneRuleSnapshot> rules() {
+                return automations.rulesFor(lane.id());
+            }
+
+            @Override
+            public void add(RuleAction action, String argument) {
+                automations.addRule(lane.id(), action, argument, actor());
+                reload();
+            }
+
+            @Override
+            public void remove(LaneRuleSnapshot rule) {
+                automations.removeRule(rule.id(), actor());
+                reload();
+            }
+        }).open();
+    }
+
+    @Override
+    public List<LaneRuleSnapshot> rulesFor(LaneSnapshot lane) {
+        return automations.rulesFor(lane.id());
     }
 
     @Override
