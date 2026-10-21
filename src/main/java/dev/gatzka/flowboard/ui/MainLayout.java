@@ -34,6 +34,7 @@ import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.InboxBroadcaster;
 import dev.gatzka.flowboard.service.NotificationService;
+import dev.gatzka.flowboard.service.VisitService;
 import dev.gatzka.flowboard.service.WorkService;
 import dev.gatzka.flowboard.ui.board.BoardView;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
@@ -42,6 +43,7 @@ import dev.gatzka.flowboard.ui.work.MyWorkView;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /** Application frame: navigation drawer with all boards, theme toggle and the current user. */
 @Layout
@@ -53,6 +55,7 @@ public class MainLayout extends AppLayout {
     private final UserSession session;
     private final SearchDialog searchDialog;
     private final NotificationService notificationService;
+    private final VisitService visits;
     private final InboxBroadcaster inboxBroadcaster;
     private final InboxDialog inboxDialog;
     private final Button inboxButton = new Button();
@@ -64,10 +67,13 @@ public class MainLayout extends AppLayout {
     private final Button themeToggle = new Button();
     private final Button userButton = new Button();
     private Registration changeSubscription;
+    private Registration navigationSubscription;
 
     public MainLayout(BoardService boardService, WorkService workService, NotificationService notificationService,
-            BoardChangeBroadcaster broadcaster, InboxBroadcaster inboxBroadcaster, UserSession session, Clock clock) {
+            BoardChangeBroadcaster broadcaster, InboxBroadcaster inboxBroadcaster, VisitService visits, UserSession session,
+            Clock clock) {
         this.boardService = boardService;
+        this.visits = visits;
         this.broadcaster = broadcaster;
         this.session = session;
         this.notificationService = notificationService;
@@ -182,11 +188,8 @@ public class MainLayout extends AppLayout {
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         UI ui = attachEvent.getUI();
-        changeSubscription = broadcaster.subscribe(event -> {
-            if (event.affectsBoardList()) {
-                UiAccess.run(ui, this::refreshBoards);
-            }
-        });
+        changeSubscription = broadcaster.subscribe(event -> UiAccess.run(ui, this::refreshBoards));
+        navigationSubscription = ui.addAfterNavigationListener(event -> refreshBoards());
         subscribeInbox(ui);
         profileSubscription = ComponentUtil.addListener(ui, ProfileChangedEvent.class, event -> {
             unsubscribeInbox();
@@ -199,6 +202,7 @@ public class MainLayout extends AppLayout {
     protected void onDetach(DetachEvent detachEvent) {
         if (changeSubscription != null) {
             changeSubscription.remove();
+        navigationSubscription.remove();
             changeSubscription = null;
         }
         if (profileSubscription != null) {
@@ -234,9 +238,19 @@ public class MainLayout extends AppLayout {
 
     private void refreshBoards() {
         boardsNav.removeAll();
+        Map<Long, Long> unread = visits.unreadCounts(session.login(), session.getDisplayName());
         for (BoardSummary board : boardService.listBoards()) {
             RouteParameters parameters = new RouteParameters(BoardView.BOARD_ID, Long.toString(board.id()));
-            boardsNav.addItem(new SideNavItem(board.name(), BoardView.class, parameters, VaadinIcon.TASKS.create()));
+            SideNavItem item = new SideNavItem(board.name(), BoardView.class, parameters, VaadinIcon.TASKS.create());
+            Long count = unread.get(board.id());
+            if (count != null) {
+                Badge badge = new Badge(count > 99 ? "99+" : Long.toString(count));
+                badge.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.FILLED);
+                badge.addClassName("nav-unread");
+                badge.getElement().setAttribute("title", count + " change" + (count == 1 ? "" : "s") + " since you last looked");
+                item.setSuffixComponent(badge);
+            }
+            boardsNav.addItem(item);
         }
     }
 

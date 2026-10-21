@@ -853,6 +853,22 @@ html {
   box-shadow: 0 -3px 0 0 var(--lumo-primary-color), var(--lumo-box-shadow-xs);
 }
 
+.task-card--changed::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lumo-primary-color);
+  box-shadow: 0 0 0 2px var(--fb-card-background);
+}
+
+.nav-unread {
+  margin-inline-start: auto;
+}
+
 .task-card--stale {
   background: color-mix(in srgb, var(--fb-card-background) 92%, var(--lumo-warning-color));
   border-style: dashed;

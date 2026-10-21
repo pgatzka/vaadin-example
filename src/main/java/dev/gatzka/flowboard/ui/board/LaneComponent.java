@@ -155,6 +155,9 @@ final class LaneComponent extends Div {
         for (CardSnapshot card : lane.cards()) {
             CardComponent component = new CardComponent(card, today, now, lane.done(), () -> actions.openCard(card),
                     new CardComponent.Voting(card.hasVoteFrom(actions.currentUser()), () -> actions.toggleVote(card)));
+            if (card.changedSince(actions.lastVisit())) {
+                component.markChanged();
+            }
             makeDraggable(component, card);
             makeInsertTarget(component, card, actions);
             cardComponents.add(component);

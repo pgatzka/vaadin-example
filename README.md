@@ -46,6 +46,8 @@ Java on top of Vaadin Flow's server push.
   and **file attachments** on cards (up to 5 MB each, stored in the database).
 - **Votes** on cards with "sort by votes" for backlogs, multi-line paste into a lane to create several
   cards, and a little confetti when a card lands in a done lane.
+- **What's new.** Boards in the sidebar show how much happened since you last opened them, and cards
+  edited since your last visit carry a dot.
 - **Public links.** Share a board read-only with anyone, no account needed. Viewers see every
   change live; turn the link off and it stops working.
 - **Accounts.** Register with a username and password (BCrypt-hashed), sign in, sign out. The

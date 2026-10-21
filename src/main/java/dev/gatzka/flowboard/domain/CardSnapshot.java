@@ -109,6 +109,11 @@ public record CardSnapshot(
         return description != null;
     }
 
+    /** Whether the card was created or edited after the given moment; a {@code null} moment means never. */
+    public boolean changedSince(Instant moment) {
+        return moment != null && updatedAt != null && updatedAt.isAfter(moment);
+    }
+
     public boolean isOverdue(LocalDate today) {
         return dueDate != null && dueDate.isBefore(today);
     }

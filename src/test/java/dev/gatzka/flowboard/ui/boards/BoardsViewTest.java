@@ -89,6 +89,26 @@ class BoardsViewTest extends SpringBrowserlessTest {
     }
 
     @Test
+    void sidebarShowsWhatHappenedSinceTheLastVisit() {
+        BoardSnapshot alpha = service.createBoard(new BoardDraft("Alpha", null), "Jonas");
+        service.createCard(alpha.lanes().get(0).id(), dev.gatzka.flowboard.domain.CardDraft.titled("News"), "Jonas");
+        navigate(BoardsView.class);
+        navigate(dev.gatzka.flowboard.ui.work.MyWorkView.class);
+        assertThat($(com.vaadin.flow.component.badge.Badge.class).withClassName("nav-unread").single().getText()).isEqualTo("2");
+
+        navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(alpha.id())));
+        assertThat($(dev.gatzka.flowboard.ui.board.CardComponent.class).withClassName("task-card--changed").all())
+                .as("a first visit highlights nothing").isEmpty();
+        navigate(BoardsView.class);
+        assertThat($(com.vaadin.flow.component.badge.Badge.class).withClassName("nav-unread").all()).isEmpty();
+
+        service.createCard(alpha.lanes().get(0).id(), dev.gatzka.flowboard.domain.CardDraft.titled("Newer"), "Jonas");
+        navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(alpha.id())));
+        assertThat($(dev.gatzka.flowboard.ui.board.CardComponent.class).withClassName("task-card--changed").all())
+                .extracting(component -> component.card().title()).containsExactly("Newer");
+    }
+
+    @Test
     void creatingBoardOpensIt() {
         navigate(BoardsView.class);
 

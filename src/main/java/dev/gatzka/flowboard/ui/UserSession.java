@@ -45,6 +45,11 @@ public class UserSession implements Serializable {
         authentication.getPrincipalName().ifPresent(login -> accounts.rename(login, cleaned));
     }
 
+    /** The login of the signed-in account, or {@code null} when nobody is signed in. */
+    public String login() {
+        return authentication.getPrincipalName().orElse(null);
+    }
+
     public Participant participant() {
         return Participant.named(getDisplayName());
     }

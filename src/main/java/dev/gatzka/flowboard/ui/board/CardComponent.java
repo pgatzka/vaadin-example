@@ -67,6 +67,12 @@ public final class CardComponent extends Div {
         return card;
     }
 
+    /** Flags the card as changed since the viewer last opened the board. */
+    void markChanged() {
+        addClassName("task-card--changed");
+        getElement().setAttribute("title", "Changed since your last visit");
+    }
+
     private Div meta(LocalDate today, boolean completed, CardAge age, Voting voting) {
         Div meta = new Div();
         meta.addClassName("task-card__meta");

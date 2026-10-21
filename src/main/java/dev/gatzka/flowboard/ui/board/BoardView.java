@@ -51,6 +51,7 @@ import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.service.PresenceTracker;
 import dev.gatzka.flowboard.service.SharingService;
+import dev.gatzka.flowboard.service.VisitService;
 import dev.gatzka.flowboard.service.VoteService;
 import dev.gatzka.flowboard.ui.ProfileChangedEvent;
 import dev.gatzka.flowboard.ui.UserSession;
@@ -97,6 +98,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final BoardChangeBroadcaster broadcaster;
     private final PresenceTracker presence;
     private final SharingService sharing;
+    private final VisitService visits;
     private final UserSession session;
     private final Clock clock;
 
@@ -112,6 +114,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final List<LaneComponent> laneComponents = new ArrayList<>();
 
     private BoardSnapshot board;
+    private Instant lastVisit;
     private CardEditorDialog openEditor;
     private Long openComposerLaneId;
     private Registration changeSubscription;
@@ -122,9 +125,10 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             VoteService voteService, DependencyService dependencyService, AttachmentService attachmentService,
             InsightsService insightsService, FlowSnapshotService flowSnapshots, AssistantService assistant,
             ExecutorService executor, ActivityLog activityLog,
-            BoardChangeBroadcaster broadcaster, PresenceTracker presence, SharingService sharing, UserSession session,
-            Clock clock) {
+            BoardChangeBroadcaster broadcaster, PresenceTracker presence, SharingService sharing, VisitService visits,
+            UserSession session, Clock clock) {
         this.sharing = sharing;
+        this.visits = visits;
         this.boardService = boardService;
         this.checklistService = checklistService;
         this.commentService = commentService;
@@ -242,6 +246,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             event.forwardTo(BoardsView.class);
             return;
         }
+        lastVisit = visits.visit(session.login(), found.get().id()).orElse(null);
         render(found.get());
         event.getRouteParameters().getLong(CARD_ID).ifPresent(cardId -> findCard(cardId).ifPresentOrElse(
                 this::openCard,
@@ -279,6 +284,14 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         changeSubscription.remove();
         profileSubscription.remove();
         leavePresence();
+        if (board != null) {
+            visits.visit(session.login(), board.id());
+        }
+    }
+
+    @Override
+    public Instant lastVisit() {
+        return lastVisit;
     }
 
     private void joinPresence(UI ui) {

@@ -42,10 +42,12 @@ public class BoardService {
     private final CardRepository cards;
     private final ActivityLog activityLog;
     private final NotificationService notifications;
+    private final VisitService visits;
     private final Clock clock;
 
     BoardService(BoardRepository boards, LaneRepository lanes, CardRepository cards, ActivityLog activityLog,
-            NotificationService notifications, Clock clock) {
+            NotificationService notifications, VisitService visits, Clock clock) {
+        this.visits = visits;
         this.boards = boards;
         this.lanes = lanes;
         this.cards = cards;
@@ -98,6 +100,7 @@ public class BoardService {
         lanes.deleteAllByBoardId(boardId);
         activityLog.forget(boardId);
         notifications.forgetBoard(boardId);
+        visits.forgetBoard(boardId);
         boards.delete(board);
         activityLog.record(BoardChangedEvent.deleted(boardId, actor, "deleted board \"%s\"".formatted(board.getName())));
     }
