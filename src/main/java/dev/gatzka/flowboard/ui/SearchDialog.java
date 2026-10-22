@@ -23,7 +23,7 @@ import java.util.function.Supplier;
  */
 final class SearchDialog extends Dialog {
 
-    static final int MAX_COMMANDS = 8;
+    static final int MAX_COMMANDS = 10;
 
     private final WorkService workService;
     private final Supplier<List<Command>> commands;

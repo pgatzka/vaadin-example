@@ -1984,3 +1984,181 @@ vaadin-dialog.activity-sheet::part(content) {
 .dependencies__swatch--done { border-color: var(--lumo-success-color); border-style: dashed; background: var(--lumo-success-color-10pct); }
 .dependencies__swatch--blocked { border-color: var(--lumo-error-color); background: var(--lumo-error-color-10pct); }
 .dependencies__swatch--critical { border-color: var(--lumo-primary-color); border-width: 2.5px; }
+
+/* ---------------------------------------------------------------- Team workload */
+
+.team__toolbar {
+  display: flex;
+  gap: var(--lumo-space-m);
+  align-items: flex-end;
+}
+
+.team__toolbar vaadin-integer-field {
+  width: 16rem;
+}
+
+.team__table {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--lumo-contrast-10pct);
+  border-radius: var(--lumo-border-radius-m);
+  background: var(--fb-card-background);
+}
+
+.team__row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.4fr) repeat(4, minmax(7.5rem, 1fr)) repeat(2, minmax(6rem, 0.8fr)) minmax(5rem, 0.6fr);
+  min-width: 60rem;
+  border-top: 1px solid var(--lumo-contrast-10pct);
+}
+
+.team__row--head {
+  border-top: none;
+  background: var(--lumo-contrast-5pct);
+  font-size: var(--lumo-font-size-s);
+  font-weight: 600;
+}
+
+.team__head,
+.team__corner {
+  display: flex;
+  flex-direction: column;
+  padding: var(--lumo-space-s) var(--lumo-space-m);
+}
+
+.team__range {
+  font-weight: 400;
+  font-size: var(--lumo-font-size-xs);
+  color: var(--lumo-secondary-text-color);
+}
+
+.team__person {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  padding: var(--lumo-space-s) var(--lumo-space-m);
+  min-width: 0;
+}
+
+.team__person vaadin-icon {
+  color: var(--lumo-tertiary-text-color);
+  width: var(--lumo-icon-size-s);
+  height: var(--lumo-icon-size-s);
+}
+
+.team__name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team__cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: var(--lumo-space-xs) var(--lumo-space-s);
+  border-inline-start: 1px solid var(--lumo-contrast-5pct);
+  min-height: 3rem;
+}
+
+.team__cell--empty {
+  color: var(--lumo-tertiary-text-color);
+  justify-content: center;
+}
+
+.team__cell--total {
+  justify-content: flex-end;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.team__bar {
+  position: absolute;
+  inset: var(--lumo-space-xs) var(--lumo-space-s);
+  border-radius: var(--lumo-border-radius-s);
+  background: linear-gradient(to right, var(--lumo-primary-color-10pct) var(--team-fill, 0%), transparent var(--team-fill, 0%));
+  pointer-events: none;
+}
+
+.team__cell--over .team__bar {
+  background: linear-gradient(to right, var(--lumo-error-color-10pct) 100%, transparent 100%);
+}
+
+.team__cell--over .team__amount {
+  color: var(--lumo-error-text-color);
+}
+
+.team__open {
+  position: relative;
+  margin: 0;
+  padding: 0 var(--lumo-space-xs);
+  height: auto;
+  min-height: 2.25rem;
+  width: 100%;
+  justify-content: flex-start;
+  color: inherit;
+}
+
+.team__load {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.team__amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.team__count {
+  font-size: var(--lumo-font-size-xs);
+  color: var(--lumo-secondary-text-color);
+}
+
+.team__suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-xs);
+  width: 100%;
+}
+
+.team__suggestions-heading {
+  margin: var(--lumo-space-s) 0 var(--lumo-space-xs);
+  font-size: var(--lumo-font-size-m);
+}
+
+.team__suggestion {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  padding: var(--lumo-space-s) var(--lumo-space-m);
+  border: 1px solid var(--lumo-contrast-10pct);
+  border-radius: var(--lumo-border-radius-m);
+  background: var(--fb-card-background);
+  font-size: var(--lumo-font-size-s);
+}
+
+.team__suggestion > vaadin-icon {
+  color: var(--lumo-primary-text-color);
+  flex: none;
+}
+
+.team__suggestion-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.team__suggestion-card {
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .team__suggestion {
+    flex-wrap: wrap;
+  }
+}

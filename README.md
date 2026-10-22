@@ -25,8 +25,8 @@ Java on top of Vaadin Flow's server push.
 | ![Members](docs/members.png) | ![Move](docs/move.png) | ![Share](docs/share.png) |
 | Bulk actions | Lane automations | Quick-add shorthand |
 | ![Bulk](docs/bulk.png) | ![Rules](docs/rules.png) | ![Quick add](docs/quick-add.png) |
-| Dependency graph | | |
-| ![Dependencies](docs/dependencies.png) | | |
+| Dependency graph | Team workload | |
+| ![Dependencies](docs/dependencies.png) | ![Team](docs/team.png) | |
 
 ## Features
 
@@ -63,6 +63,7 @@ Java on top of Vaadin Flow's server push.
 - **Inbox.** Mention somebody with `@name` in a comment, assign them a card or comment on their card
   and they get a notification, live, with a link to the card.
 - **Dependencies** between cards ("blocked by", acyclic, with a nudge before finishing a blocked card)
+- **Team workload** page: every open card across your boards bucketed by person and week, in story points (or cards when nobody estimates); cells go red above a capacity you set, and an "Even it out" list proposes concrete reassignments (largest card that fits, to whoever has the most room) that apply with one click
 - **Dependency graph** per board (More → Dependencies): blockers to the left, the cards they hold up to the right, the longest open chain highlighted and the one card whose completion unblocks the most work; click any node to open it
   and **file attachments** on cards (up to 5 MB each, stored in the database).
 - **Votes** on cards with "sort by votes" for backlogs, multi-line paste into a lane to create several

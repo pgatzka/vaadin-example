@@ -46,6 +46,7 @@ import dev.gatzka.flowboard.service.WorkService;
 import dev.gatzka.flowboard.ui.board.BoardView;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
 import dev.gatzka.flowboard.ui.support.UiAccess;
+import dev.gatzka.flowboard.ui.team.TeamView;
 import dev.gatzka.flowboard.ui.work.MyWorkView;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -129,6 +130,7 @@ public class MainLayout extends AppLayout {
         })));
         list.add(new Command("Home", VaadinIcon.HOME_O, () -> getUI().ifPresent(ui -> ui.navigate(BoardsView.class))));
         list.add(new Command("My work", VaadinIcon.USER_CHECK, () -> getUI().ifPresent(ui -> ui.navigate(MyWorkView.class))));
+        list.add(new Command("Team", VaadinIcon.GROUP, () -> getUI().ifPresent(ui -> ui.navigate(TeamView.class))));
         list.add(new Command(session.isDarkMode() ? "Switch to light theme" : "Switch to dark theme", VaadinIcon.ADJUST, () -> {
             session.setDarkMode(!session.isDarkMode());
             applyTheme(session.isDarkMode());
@@ -198,6 +200,7 @@ public class MainLayout extends AppLayout {
         SideNav mainNav = new SideNav();
         mainNav.addItem(new SideNavItem("Home", BoardsView.class, VaadinIcon.HOME_O.create()));
         mainNav.addItem(new SideNavItem("My work", MyWorkView.class, VaadinIcon.USER_CHECK.create()));
+        mainNav.addItem(new SideNavItem("Team", TeamView.class, VaadinIcon.GROUP.create()));
 
         Div content = new Div(mainNav, boardsNav);
         content.addClassName("drawer-content");
