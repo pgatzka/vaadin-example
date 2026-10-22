@@ -1,6 +1,8 @@
 package dev.gatzka.flowboard.domain;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -29,6 +31,10 @@ public class Webhook {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private WebhookFormat format = WebhookFormat.FLOWBOARD;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -36,10 +42,19 @@ public class Webhook {
     }
 
     public Webhook(long boardId, String url, String secret, Instant createdAt) {
+        this(boardId, url, secret, WebhookFormat.FLOWBOARD, createdAt);
+    }
+
+    public Webhook(long boardId, String url, String secret, WebhookFormat format, Instant createdAt) {
         this.boardId = boardId;
         this.url = url;
         this.secret = secret;
+        this.format = format == null ? WebhookFormat.FLOWBOARD : format;
         this.createdAt = createdAt;
+    }
+
+    public WebhookFormat getFormat() {
+        return format;
     }
 
     public Long getId() {

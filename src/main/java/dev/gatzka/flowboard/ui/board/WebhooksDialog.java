@@ -10,7 +10,9 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.textfield.PasswordField;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextField;
+import dev.gatzka.flowboard.domain.WebhookFormat;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.ui.support.Durations;
 import dev.gatzka.flowboard.ui.support.Toasts;
@@ -31,6 +33,7 @@ final class WebhooksDialog extends Dialog {
     private final Div list = new Div();
     private final TextField url = new TextField("Endpoint URL");
     private final PasswordField secret = new PasswordField("Secret (optional)");
+    private final Select<WebhookFormat> format = new Select<>();
 
     WebhooksDialog(BoardSnapshot board, WebhookService webhooks, WebhookDispatcher dispatcher, Supplier<String> actor, Clock clock) {
         this.board = board;
@@ -42,7 +45,8 @@ final class WebhooksDialog extends Dialog {
         setWidth("min(640px, 95vw)");
         addClassName("webhooks-dialog");
 
-        Span hint = new Span("Every change on this board is posted as JSON to each endpoint. "
+        Span hint = new Span("Every change on this board is posted to each endpoint: as Flowboard JSON for your own "
+                + "integrations, or as a ready-made message for a Slack or Discord incoming webhook. "
                 + "Set a secret and the request carries an HMAC-SHA256 signature you can verify.");
         hint.addClassName("share-dialog__hint");
 
@@ -53,10 +57,17 @@ final class WebhooksDialog extends Dialog {
         url.setClearButtonVisible(true);
         secret.setWidthFull();
         secret.setClearButtonVisible(true);
+        format.setLabel("Format");
+        format.setId("webhook-format");
+        format.setItems(WebhookFormat.values());
+        format.setItemLabelGenerator(WebhookFormat::label);
+        format.setValue(WebhookFormat.FLOWBOARD);
+        format.setWidthFull();
+        url.addValueChangeListener(event -> guessFormat(event.getValue()));
         Button add = new Button("Add webhook", VaadinIcon.PLUS.create(), event -> add());
         add.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         add.setId("add-webhook");
-        Div form = new Div(url, secret, add);
+        Div form = new Div(url, format, secret, add);
         form.addClassName("webhooks__form");
 
         add(hint, list, form);
@@ -80,6 +91,9 @@ final class WebhooksDialog extends Dialog {
         Span address = new Span(hook.url());
         address.addClassName("webhooks__url");
         Badge status = statusBadge(hook);
+        Badge kind = new Badge(hook.format().label());
+        kind.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
+        kind.addClassName("webhooks__format");
 
         Checkbox enabled = new Checkbox("Enabled", hook.enabled());
         enabled.addValueChangeListener(event -> {
@@ -106,7 +120,7 @@ final class WebhooksDialog extends Dialog {
         Div actions = new Div(enabled, test, deliveries, remove);
         actions.addClassName("webhooks__actions");
 
-        Div row = new Div(new Div(address, status), actions);
+        Div row = new Div(new Div(address, kind, status), actions);
         row.addClassName("webhooks__row");
         row.getElement().setAttribute("data-webhook-id", Long.toString(hook.id()));
         return row;
@@ -133,7 +147,7 @@ final class WebhooksDialog extends Dialog {
 
     private void add() {
         try {
-            webhooks.add(board.id(), url.getValue(), secret.getValue(), actor.get());
+            webhooks.add(board.id(), url.getValue(), secret.getValue(), format.getValue(), actor.get());
         } catch (IllegalArgumentException e) {
             url.setErrorMessage(e.getMessage());
             url.setInvalid(true);
@@ -141,9 +155,29 @@ final class WebhooksDialog extends Dialog {
         }
         url.clear();
         secret.clear();
+        format.setValue(WebhookFormat.FLOWBOARD);
         url.setInvalid(false);
         Toasts.success("Webhook added");
         refresh();
+    }
+
+    /** Slack and Discord incoming-webhook URLs give their format away. */
+    static WebhookFormat guess(String url) {
+        String lower = url == null ? "" : url.toLowerCase(java.util.Locale.ROOT);
+        if (lower.contains("hooks.slack.com")) {
+            return WebhookFormat.SLACK;
+        }
+        if (lower.contains("discord.com/api/webhooks") || lower.contains("discordapp.com/api/webhooks")) {
+            return WebhookFormat.DISCORD;
+        }
+        return null;
+    }
+
+    private void guessFormat(String value) {
+        WebhookFormat guessed = guess(value);
+        if (guessed != null) {
+            format.setValue(guessed);
+        }
     }
 
     /** The recent delivery attempts of one webhook. */

@@ -99,7 +99,9 @@ Java on top of Vaadin Flow's server push.
   menu, then move, assign, tag, prioritise or archive them all at once from a floating bar.
 - **Keyboard first.** Arrow keys walk the cards, Shift+arrows move them, Enter opens, N adds.
 - **Webhooks.** Register endpoints per board; every change is posted as JSON, optionally signed
-  with HMAC-SHA256. A delivery log shows what the other side answered.
+  with HMAC-SHA256. A delivery log shows what the other side answered. Pick the **Slack** or
+  **Discord** format (guessed from the URL) and a Slack or Discord incoming webhook receives a
+  ready-made one-line message instead.
 - **Recurring cards.** Set a card to repeat daily, weekly, every two weeks or monthly; finishing it
   puts a fresh copy back in its lane with the due date moved on.
 - **Undo.** Moving, finishing or archiving cards shows a toast with an Undo button.
@@ -211,7 +213,9 @@ body to each enabled endpoint, from a background thread so the user never waits 
 ```
 
 `event` is `created`, `updated`, `deleted`, `content` or `test`, and is repeated in the
-`X-Flowboard-Event` header. With a secret set, `X-Flowboard-Signature` carries
+`X-Flowboard-Event` header. A webhook created with the Slack or Discord format instead posts
+`{"text": "Mara moved \"Dark mode\" to Done · Launch"}` (Slack) or the same line as `content`
+(Discord), which those services' incoming webhooks display as is. With a secret set, `X-Flowboard-Signature` carries
 `sha256=<hex HMAC-SHA256 of the raw body>`; verify it with the same secret before trusting the
 payload. The last 20 deliveries per webhook are kept with status codes, so a misbehaving endpoint
 is easy to spot. Anything other than a 2xx response counts as a failure.

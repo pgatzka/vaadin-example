@@ -8,6 +8,7 @@ import com.sun.net.httpserver.HttpServer;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
+import dev.gatzka.flowboard.domain.WebhookFormat;
 import dev.gatzka.flowboard.service.BoardService;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -111,6 +112,31 @@ class WebhookServiceTest {
                     assertThat(delivery.summary()).isEqualTo("HTTP 204");
                 }));
         assertThat(webhooks.forBoard(board.id()).getFirst().lastDelivery()).isPresent();
+    }
+
+    @Test
+    void chatFormatsPostAOneLineMessage() {
+        WebhookSnapshot slack = webhooks.add(board.id(), endpoint("/slack"), null, WebhookFormat.SLACK, "Mara");
+        WebhookSnapshot discord = webhooks.add(board.id(), endpoint("/discord"), "shh", WebhookFormat.DISCORD, "Mara");
+        assertThat(slack.format()).isEqualTo(WebhookFormat.SLACK);
+        assertThat(webhooks.forBoard(board.id())).extracting(WebhookSnapshot::format).contains(WebhookFormat.SLACK, WebhookFormat.DISCORD);
+        received.clear();
+
+        boardService.createCard(board.lanes().get(0).id(), CardDraft.titled("Shout"), "Mara");
+
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThat(received)
+                .filteredOn(call -> call.headers().get("event").equals("content"))
+                .extracting(Received::path).containsExactlyInAnyOrder("/slack", "/discord"));
+        Received toSlack = received.stream().filter(c -> c.path().equals("/slack") && c.headers().get("event").equals("content")).findFirst().orElseThrow();
+        assertThat(json.readTree(toSlack.body()).get("text").asString()).isEqualTo("Mara added \"Shout\" to Backlog · Hooked");
+        assertThat(json.readTree(toSlack.body()).has("boardId")).isFalse();
+        Received toDiscord = received.stream().filter(c -> c.path().equals("/discord") && c.headers().get("event").equals("content")).findFirst().orElseThrow();
+        assertThat(json.readTree(toDiscord.body()).get("content").asString()).isEqualTo("Mara added \"Shout\" to Backlog · Hooked");
+        assertThat(toDiscord.headers().get("signature")).as("the signature covers the chat body too")
+                .isEqualTo(Signatures.sign("shh", toDiscord.body().getBytes(StandardCharsets.UTF_8)));
+        assertThat(new WebhookPayload("test", 1, "Hooked", "Mara", "sent a test event", null, java.time.Instant.EPOCH).chatLine())
+                .isEqualTo("Flowboard test event from Mara · Hooked");
+        assertThat(discord.id()).isNotEqualTo(slack.id());
     }
 
     @Test

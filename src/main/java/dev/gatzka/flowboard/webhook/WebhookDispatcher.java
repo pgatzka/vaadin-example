@@ -1,6 +1,7 @@
 package dev.gatzka.flowboard.webhook;
 
 import dev.gatzka.flowboard.domain.Webhook;
+import dev.gatzka.flowboard.domain.WebhookFormat;
 import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.repository.WebhookRepository;
 import dev.gatzka.flowboard.service.BoardChangedEvent;
@@ -13,6 +14,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,7 +78,7 @@ public class WebhookDispatcher {
     }
 
     void deliver(Webhook webhook, WebhookPayload payload) {
-        byte[] body = json.writeValueAsBytes(payload);
+        byte[] body = body(webhook.getFormat(), payload);
         HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(webhook.getUrl()))
                 .timeout(TIMEOUT)
                 .header("Content-Type", "application/json")
@@ -96,5 +98,14 @@ public class WebhookDispatcher {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    /** The request body in the shape the endpoint expects. */
+    byte[] body(WebhookFormat format, WebhookPayload payload) {
+        return switch (format) {
+            case SLACK -> json.writeValueAsBytes(Map.of("text", payload.chatLine()));
+            case DISCORD -> json.writeValueAsBytes(Map.of("content", payload.chatLine()));
+            case FLOWBOARD -> json.writeValueAsBytes(payload);
+        };
     }
 }

@@ -643,7 +643,17 @@ class BoardViewTest extends FlowboardUiTest {
         test($(Button.class, dialog).withId("add-webhook").single()).click();
         assertThat($(Div.class, dialog).withClassName("webhooks__row").all()).hasSize(1);
         assertThat($(Badge.class, dialog).withClassName("webhooks__status").single().getText()).isEqualTo("Not called yet");
+        assertThat($(Badge.class, dialog).withClassName("webhooks__format").single().getText()).isEqualTo("Flowboard JSON");
 
+        test($(TextField.class, dialog).withLabel("Endpoint URL").single()).setValue("https://hooks.slack.com/services/T0/B0/xyz");
+        assertThat($(Select.class, dialog).withId("webhook-format").single().getValue()).as("guessed from the URL").isEqualTo(dev.gatzka.flowboard.domain.WebhookFormat.SLACK);
+        test($(Button.class, dialog).withId("add-webhook").single()).click();
+        assertThat($(Badge.class, dialog).withClassName("webhooks__format").all()).extracting(Badge::getText).containsExactlyInAnyOrder("Flowboard JSON", "Slack message");
+        assertThat(WebhooksDialog.guess("https://discord.com/api/webhooks/1/abc")).isEqualTo(dev.gatzka.flowboard.domain.WebhookFormat.DISCORD);
+        assertThat(WebhooksDialog.guess("https://example.com/hook")).isNull();
+
+        test($(Button.class, dialog).withClassName("remove-webhook").first()).click();
+        assertThat($(Div.class, dialog).withClassName("webhooks__row").all()).hasSize(1);
         test($(Button.class, dialog).withClassName("remove-webhook").single()).click();
         assertThat($(Div.class, dialog).withClassName("webhooks__row").all()).isEmpty();
     }

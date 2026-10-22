@@ -2,6 +2,7 @@ package dev.gatzka.flowboard.webhook;
 
 import dev.gatzka.flowboard.domain.Webhook;
 import dev.gatzka.flowboard.domain.WebhookDelivery;
+import dev.gatzka.flowboard.domain.WebhookFormat;
 import dev.gatzka.flowboard.repository.WebhookDeliveryRepository;
 import dev.gatzka.flowboard.repository.WebhookRepository;
 import dev.gatzka.flowboard.service.ActivityLog;
@@ -38,12 +39,16 @@ public class WebhookService {
     }
 
     public WebhookSnapshot add(long boardId, String url, String secret, String actor) {
+        return add(boardId, url, secret, WebhookFormat.FLOWBOARD, actor);
+    }
+
+    public WebhookSnapshot add(long boardId, String url, String secret, WebhookFormat format, String actor) {
         String cleanedUrl = validUrl(url);
         String cleanedSecret = secret == null || secret.isBlank() ? null : secret.strip();
         if (cleanedSecret != null && cleanedSecret.length() > MAX_SECRET_LENGTH) {
             throw new IllegalArgumentException("Keep the secret under " + MAX_SECRET_LENGTH + " characters");
         }
-        Webhook webhook = webhooks.save(new Webhook(boardId, cleanedUrl, cleanedSecret, clock.instant()));
+        Webhook webhook = webhooks.save(new Webhook(boardId, cleanedUrl, cleanedSecret, format, clock.instant()));
         activityLog.record(BoardChangedEvent.updated(boardId, actor, "added a webhook for " + hostOf(cleanedUrl)));
         return snapshot(webhook);
     }
