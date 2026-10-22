@@ -78,6 +78,25 @@ class AutomationServiceTest {
     }
 
     @Test
+    void requireRulesChangeNothingWhenCardsEnter() {
+        boardService.listBoards().forEach(existing -> boardService.deleteBoard(existing.id(), "Mara"));
+        BoardSnapshot board = boardService.createBoard(new BoardDraft("Policies", null), "Mara");
+        long backlog = board.lanes().get(0).id();
+        long review = board.lanes().get(2).id();
+        LaneRuleSnapshot rule = automations.addRule(review, RuleAction.REQUIRE, "Due date", "Mara");
+        assertThat(rule.argument()).isEqualTo("DUE_DATE");
+        assertThat(rule.describe()).isEqualTo("Requires a due date");
+        assertThatThrownBy(() -> automations.addRule(review, RuleAction.REQUIRE, "vibes", "Mara")).isInstanceOf(IllegalArgumentException.class);
+
+        CardSnapshot card = boardService.createCard(backlog, CardDraft.titled("Undated"), "Mara");
+        boardService.moveCard(card.id(), review, 0, "Mara");
+
+        CardSnapshot moved = boardService.findBoard(board.id()).orElseThrow().lane(review).orElseThrow().cards().getFirst();
+        assertThat(moved.dueDate()).isNull();
+        assertThat(activityLog.recent(board.id()).getFirst().message()).startsWith("moved");
+    }
+
+    @Test
     void validatesRulesAndArchivesStaleCards() {
         BoardSnapshot board = boardService.createBoard(new BoardDraft("Tidy", null), "Mara");
         long done = board.lanes().get(3).id();

@@ -35,8 +35,8 @@ Java on top of Vaadin Flow's server push.
 | ![German](docs/german.png) | ![Context menu](docs/context-menu.png) | ![Collapsed lane](docs/collapsed-lane.png) |
 | Delivery forecast | Milestones | Who is editing |
 | ![Forecast](docs/forecast.png) | ![Milestones](docs/milestones.png) | ![Live editing](docs/live-editing.png) |
-| Board health | | |
-| ![Health](docs/health.png) | | |
+| Board health | Lane policies | |
+| ![Health](docs/health.png) | ![Policies](docs/policies.png) | |
 
 ## Features
 
@@ -111,6 +111,9 @@ Java on top of Vaadin Flow's server push.
 - **Lane automations.** Give a lane rules that run when a card arrives: assign it, tag it, set its
   priority or due date, notify somebody; and a nightly rule that archives cards that sat in the
   lane too long. Lanes with rules show a lightning badge.
+- **Lane policies.** A "Require" rule on a lane (an assignee, an estimate, a due date, a description
+  or a completed checklist) does not change the card: it asks before a card that lacks it is moved in,
+  with "Open card" right there to fix it. Explicit policies, the Kanban way.
 - **Move or copy cards across boards** from the editor, checklist and repetition included.
 - **Desktop alerts.** Turn on browser notifications from the inbox and hear about mentions and
   reminders while the tab is in the background.

@@ -1141,6 +1141,39 @@ class BoardViewTest extends FlowboardUiTest {
                 .extracting(c -> c.card().title()).containsExactly("Late");
     }
 
+    @Test
+    void lanePoliciesAskBeforeAnUnpreparedCardMovesIn() {
+        LaneSnapshot review = board.lanes().get(2);
+        context.getBean(dev.gatzka.flowboard.service.AutomationService.class).addRule(review.id(), RuleAction.REQUIRE, "estimate", SEEDER);
+        context.getBean(dev.gatzka.flowboard.service.AutomationService.class).addRule(review.id(), RuleAction.REQUIRE, "assignee", SEEDER);
+        CardSnapshot unprepared = createCard("Rough idea");
+        CardSnapshot ready = service.createCard(board.lanes().get(0).id(),
+                new CardDraft("Sized", null, Priority.MEDIUM, null, "Mara", Set.of(), 3), SEEDER);
+        BoardView view = openBoardView();
+
+        view.moveCard(ready.id(), review.id(), 0);
+        assertThat($(ConfirmDialog.class).all()).as("a card that meets the policy just moves").isEmpty();
+        assertThat(cardOnBoard(ready.id()).laneId()).isEqualTo(review.id());
+
+        view.moveCard(unprepared.id(), review.id(), 0);
+        ConfirmDialog confirm = $(ConfirmDialog.class).withClassName("policy-confirm").single();
+        assertThat(confirm.getElement().getProperty("header")).isEqualTo("Not ready for Review");
+        assertThat(confirm.getElement().getProperty("message")).isEqualTo("\"Rough idea\" still needs an estimate, an assignee. Move it anyway?");
+        assertThat(cardOnBoard(unprepared.id()).laneId()).as("nothing moved yet").isEqualTo(board.lanes().get(0).id());
+
+        com.vaadin.flow.component.ComponentUtil.fireEvent(confirm, new ConfirmDialog.RejectEvent(confirm, false));
+        assertThat($(CardEditorDialog.class).single().cardId()).contains(unprepared.id());
+        $(CardEditorDialog.class).single().close();
+        confirm.close();
+
+        view.moveCard(unprepared.id(), review.id(), 0);
+        ConfirmDialog again = $(ConfirmDialog.class).withClassName("policy-confirm").single();
+        com.vaadin.flow.component.ComponentUtil.fireEvent(again, new ConfirmDialog.ConfirmEvent(again, false));
+        assertThat(cardOnBoard(unprepared.id()).laneId()).isEqualTo(review.id());
+        assertThat($(Badge.class).withClassName("lane__rules").single().getElement().getAttribute("title"))
+                .isEqualTo("Requires an estimate\nRequires an assignee");
+    }
+
     private void chooseFromMenu(CardSnapshot card, String menuClass, String choice) {
         MenuItem parent = $(MenuItem.class, cardComponent(card.id()).contextMenu()).withClassName(menuClass).single();
         click(parent.getSubMenu().getItems().stream().filter(item -> choice.equals(item.getText())).findFirst().orElseThrow());
@@ -1161,7 +1194,11 @@ class BoardViewTest extends FlowboardUiTest {
     }
 
     private void openBoard() {
-        navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        openBoardView();
+    }
+
+    private BoardView openBoardView() {
+        return navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
     }
 
     private CardSnapshot createCard(String title) {

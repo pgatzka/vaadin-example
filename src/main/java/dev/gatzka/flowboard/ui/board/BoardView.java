@@ -53,6 +53,8 @@ import dev.gatzka.flowboard.domain.MilestoneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.domain.QuickAdd;
 import dev.gatzka.flowboard.domain.Recurrence;
+import dev.gatzka.flowboard.domain.Requirement;
+import dev.gatzka.flowboard.domain.RuleAction;
 import dev.gatzka.flowboard.domain.SavedViewSnapshot;
 import dev.gatzka.flowboard.domain.TimerSnapshot;
 import dev.gatzka.flowboard.domain.WorkEntrySnapshot;
@@ -950,12 +952,44 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Override
     public void moveCard(long cardId, long targetLaneId, int targetIndex) {
         boolean completing = isCompletingMove(cardId, targetLaneId);
-        Optional<CardSnapshot> blocked = findCard(cardId).filter(CardSnapshot::isBlocked).filter(card -> completing);
-        if (blocked.isPresent()) {
-            confirmMovingBlockedCard(blocked.get(), () -> completeMove(cardId, targetLaneId, targetIndex, true));
+        Optional<CardSnapshot> card = findCard(cardId);
+        Runnable complete = () -> completeMove(cardId, targetLaneId, targetIndex, completing);
+        Runnable checkPolicies = () -> {
+            List<Requirement> unmet = card.filter(c -> c.laneId() != targetLaneId).map(c -> unmetRequirements(c, targetLaneId)).orElse(List.of());
+            if (unmet.isEmpty()) {
+                complete.run();
+            } else {
+                confirmUnmetRequirements(card.get(), targetLaneId, unmet, complete);
+            }
+        };
+        if (completing && card.filter(CardSnapshot::isBlocked).isPresent()) {
+            confirmMovingBlockedCard(card.get(), checkPolicies);
             return;
         }
-        completeMove(cardId, targetLaneId, targetIndex, completing);
+        checkPolicies.run();
+    }
+
+    /** What the target lane's "Require" rules ask for that the card does not have yet. */
+    private List<Requirement> unmetRequirements(CardSnapshot card, long targetLaneId) {
+        return automations.rulesFor(targetLaneId).stream()
+                .filter(rule -> rule.action() == RuleAction.REQUIRE)
+                .map(rule -> Requirement.valueOf(rule.argument()))
+                .distinct()
+                .filter(requirement -> !requirement.isMetBy(card))
+                .toList();
+    }
+
+    private void confirmUnmetRequirements(CardSnapshot card, long targetLaneId, List<Requirement> unmet, Runnable proceed) {
+        String laneName = board.lane(targetLaneId).map(LaneSnapshot::name).orElse(getTranslation("board.anotherLane"));
+        String needs = unmet.stream().map(Labels::requirement).collect(java.util.stream.Collectors.joining(", "));
+        ConfirmDialog confirm = new ConfirmDialog(getTranslation("board.notReady", laneName), getTranslation("board.notReadyText", card.title(), needs),
+                getTranslation("board.moveAnyway"), event -> proceed.run());
+        confirm.addClassName("policy-confirm");
+        confirm.setCancelable(true);
+        confirm.setRejectable(true);
+        confirm.setRejectText(getTranslation("board.openCard"));
+        confirm.addRejectListener(event -> openCard(card));
+        confirm.open();
     }
 
     private void completeMove(long cardId, long targetLaneId, int targetIndex, boolean completing) {

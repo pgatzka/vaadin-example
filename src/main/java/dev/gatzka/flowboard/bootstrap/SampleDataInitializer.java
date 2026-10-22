@@ -8,10 +8,12 @@ import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.MilestoneDraft;
 import dev.gatzka.flowboard.domain.MilestoneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
+import dev.gatzka.flowboard.domain.RuleAction;
 import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.security.AccountService;
 import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.AttachmentService;
+import dev.gatzka.flowboard.service.AutomationService;
 import java.awt.Color;
 import java.awt.GradientPaint;
 import java.awt.Graphics2D;
@@ -81,6 +83,7 @@ class SampleDataInitializer implements ApplicationRunner {
     private final BoardRepository boards;
     private final CardRepository cards;
     private final MilestoneService milestones;
+    private final AutomationService automations;
     private final BoardService boardService;
     private final ChecklistService checklistService;
     private final CommentService commentService;
@@ -91,8 +94,9 @@ class SampleDataInitializer implements ApplicationRunner {
 
     SampleDataInitializer(BoardRepository boards, CardRepository cards, BoardService boardService, ChecklistService checklistService,
             CommentService commentService, DependencyService dependencies, AttachmentService attachments, AccountService accounts,
-            MilestoneService milestones, Clock clock) {
+            MilestoneService milestones, AutomationService automations, Clock clock) {
         this.boards = boards;
+        this.automations = automations;
         this.cards = cards;
         this.milestones = milestones;
         this.attachments = attachments;
@@ -166,6 +170,9 @@ class SampleDataInitializer implements ApplicationRunner {
             boardService.archiveCard(finished.id(), ACTOR);
             finishedDaysAgo(finished, earlier.getValue(), 2 + i % 6);
         }
+
+        automations.addRule(review, RuleAction.REQUIRE, "assignee", ACTOR);
+        automations.addRule(review, RuleAction.REQUIRE, "estimate", ACTOR);
 
         MilestoneSnapshot publicBeta = milestones.create(board.id(), new MilestoneDraft("Public beta", today.plusDays(18)), ACTOR);
         MilestoneSnapshot foundation = milestones.create(board.id(), new MilestoneDraft("Foundation", today.minusDays(2)), ACTOR);

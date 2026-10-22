@@ -10,7 +10,8 @@ public enum RuleAction {
     DUE_IN_DAYS("Set the due date to today plus", "a number of days", true),
     CLEAR_DUE("Clear the due date", null, false),
     NOTIFY("Notify", "a name", true),
-    ARCHIVE_AFTER_DAYS("Archive cards that have been here for more than", "a number of days (checked nightly)", true);
+    ARCHIVE_AFTER_DAYS("Archive cards that have been here for more than", "a number of days (checked nightly)", true),
+    REQUIRE("Require", "assignee, estimate, due date, description or checklist", true);
 
     private final String label;
     private final String argumentHint;
@@ -34,9 +35,14 @@ public enum RuleAction {
         return needsArgument;
     }
 
-    /** Whether the action fires when a card enters the lane (as opposed to nightly). */
+    /** Whether the action fires when a card enters the lane (as opposed to nightly, or not at all for a policy). */
     public boolean runsOnEnter() {
-        return this != ARCHIVE_AFTER_DAYS;
+        return this != ARCHIVE_AFTER_DAYS && !isPolicy();
+    }
+
+    /** A policy changes nothing; it asks before a card that lacks something is moved into the lane. */
+    public boolean isPolicy() {
+        return this == REQUIRE;
     }
 
     /** Returns the normalised argument, or throws when it is not usable for this action. */
@@ -56,6 +62,7 @@ public enum RuleAction {
                     throw new IllegalArgumentException("Priority must be low, medium, high or urgent");
                 }
             }
+            case REQUIRE -> Requirement.parse(cleaned).name();
             case DUE_IN_DAYS, ARCHIVE_AFTER_DAYS -> {
                 try {
                     int days = Integer.parseInt(cleaned);
@@ -82,6 +89,7 @@ public enum RuleAction {
             case DUE_IN_DAYS -> "Due " + (argument.equals("0") ? "today" : "in " + argument + (argument.equals("1") ? " day" : " days"));
             case ARCHIVE_AFTER_DAYS -> "Archive after " + argument + (argument.equals("1") ? " day" : " days") + " here";
             case SET_PRIORITY -> "Priority " + Priority.valueOf(argument).label();
+            case REQUIRE -> "Requires " + Requirement.valueOf(argument).phrase();
             case CLEAR_DUE -> label;
             default -> label + " " + argument;
         };

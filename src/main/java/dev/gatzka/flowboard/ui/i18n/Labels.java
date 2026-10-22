@@ -4,6 +4,7 @@ import dev.gatzka.flowboard.domain.BoardTemplate;
 import dev.gatzka.flowboard.domain.Grouping;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.domain.Recurrence;
+import dev.gatzka.flowboard.domain.Requirement;
 import dev.gatzka.flowboard.domain.RuleAction;
 import dev.gatzka.flowboard.domain.Timeline;
 import dev.gatzka.flowboard.domain.WebhookFormat;
@@ -48,9 +49,15 @@ public final class Labels {
             case DUE_IN_DAYS -> "0".equals(argument) ? I18n.t("rule.describe.dueToday") : I18n.t("rule.describe.dueIn", Integer.parseInt(argument));
             case ARCHIVE_AFTER_DAYS -> I18n.t("rule.describe.archiveAfter", Integer.parseInt(argument));
             case SET_PRIORITY -> I18n.t("rule.describe.priority", priority(Priority.valueOf(argument)));
+            case REQUIRE -> I18n.t("rule.describe.require", requirement(Requirement.valueOf(argument)));
             case CLEAR_DUE -> ruleAction(action);
             default -> ruleAction(action) + " " + argument;
         };
+    }
+
+    /** A requirement as a noun phrase, e.g. "an estimate". */
+    public static String requirement(Requirement requirement) {
+        return I18n.t("requirement." + requirement.name());
     }
 
     public static String boardTemplate(BoardTemplate template) {
