@@ -251,6 +251,7 @@ public class MainLayout extends AppLayout {
     private void subscribeInbox(UI ui) {
         inboxSubscription = inboxBroadcaster.subscribe(session.getDisplayName(), () -> UiAccess.run(ui, () -> {
             refreshInbox();
+            showTimer(); // a finished focus session announces itself through the inbox
             if (inboxDialog.isOpened()) {
                 inboxDialog.refresh();
             }
@@ -304,10 +305,32 @@ public class MainLayout extends AppLayout {
     private void showTimer() {
         Optional<TimerSnapshot> running = timeService.running(session.getDisplayName());
         timerChip.setVisible(running.isPresent());
+        timerChip.removeClassName("timer-chip--focus");
         running.ifPresent(timer -> {
-            timerChip.setText(timer.cardTitle());
-            timerChip.setTooltipText("Timer running since " + Durations.ago(timer.startedAt(), java.time.Instant.now()).replace(" ago", ""));
             timerChip.getElement().setAttribute("data-card-id", Long.toString(timer.cardId()));
+            if (timer.isFocusSession()) {
+                timerChip.addClassName("timer-chip--focus");
+                timerChip.setText(timer.cardTitle());
+                long today = timeService.focusSessionsToday(session.getDisplayName());
+                timerChip.setTooltipText("Focus session · " + today + (today == 1 ? " session" : " sessions") + " finished today");
+                timerChip.getElement().executeJs("""
+                        const chip = this; const endsAt = $0;
+                        if (chip._countdown) clearInterval(chip._countdown);
+                        const label = chip.querySelector('.timer-chip__countdown') || document.createElement('span');
+                        label.className = 'timer-chip__countdown';
+                        chip.prepend(label);
+                        const tick = () => {
+                          const left = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+                          label.textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') + ' · ';
+                          if (left === 0) clearInterval(chip._countdown);
+                        };
+                        tick(); chip._countdown = setInterval(tick, 1000);
+                        """, timer.endsAt().toEpochMilli());
+            } else {
+                timerChip.setText(timer.cardTitle());
+                timerChip.setTooltipText("Timer running since " + Durations.ago(timer.startedAt(), java.time.Instant.now()).replace(" ago", ""));
+                timerChip.getElement().executeJs("if (this._countdown) clearInterval(this._countdown);");
+            }
         });
     }
 

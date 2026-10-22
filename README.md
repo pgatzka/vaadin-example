@@ -88,6 +88,9 @@ Java on top of Vaadin Flow's server push.
   lane's menu, or turn any existing card into a template from its editor.
 - **Time tracking.** Start a timer on a card (one per person, shown pulsing in the header while it
   runs), or log minutes by hand with a note. Cards show the time spent; the editor keeps the log.
+- **Focus sessions.** "Focus 25 min" on a card starts a timer that counts down in the header, stops
+  itself when the time is up, logs the session on the card and drops a note in your inbox (and on
+  your desktop) that it is time for a break; the chip's tooltip counts the sessions finished today.
 - **Weekly digest.** A printable one-page report per board and week: done, new, overdue, blocked,
   due next week and who did the most, with a copy-as-Markdown button for the team chat.
 - **Bulk actions.** Ctrl-click (or Shift-click) several cards, or select a whole lane from its

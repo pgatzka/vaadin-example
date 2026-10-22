@@ -46,6 +46,9 @@ interface CardEditorActions {
     /** Starts the current user's timer on the card (stopping any other timer of theirs). */
     void startTimer(long cardId);
 
+    /** Starts a focus session of the given length on the card; it stops and logs itself when the time is up. */
+    void startFocus(long cardId, int minutes);
+
     /** Stops the current user's timer and logs the time; the refreshed card, if one was running. */
     java.util.Optional<CardSnapshot> stopTimer();
 

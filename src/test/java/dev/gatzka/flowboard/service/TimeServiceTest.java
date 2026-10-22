@@ -7,6 +7,7 @@ import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.domain.NotificationSnapshot;
 import dev.gatzka.flowboard.domain.TimerSnapshot;
 import dev.gatzka.flowboard.domain.WorkEntrySnapshot;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,9 @@ class TimeServiceTest {
 
     @Autowired
     private ActivityLog activityLog;
+
+    @Autowired
+    private NotificationService notifications;
 
     @Test
     void logsRemovesAndSumsWork() {
@@ -86,5 +90,33 @@ class TimeServiceTest {
         assertThat(TimeService.humanize(45)).isEqualTo("45 min");
         assertThat(TimeService.humanize(120)).isEqualTo("2 h");
         assertThat(TimeService.humanize(150)).isEqualTo("2 h 30 min");
+    }
+
+    @Test
+    void focusSessionsStopThemselvesLogTheTimeAndNotifyTheirOwner() {
+        BoardSnapshot board = boardService.createBoard(new BoardDraft("Focus", null), "Mara");
+        CardSnapshot card = boardService.createCard(board.lanes().get(0).id(), CardDraft.titled("Deep work"), "Mara");
+
+        TimerSnapshot session = time.startFocus(card.id(), "Mara", 25);
+
+        assertThat(session.isFocusSession()).isTrue();
+        assertThat(session.endsAt()).isEqualTo(session.startedAt().plusSeconds(25 * 60));
+        assertThat(time.running("Mara")).map(TimerSnapshot::endsAt).hasValue(session.endsAt());
+        assertThat(time.finishFocusSessions(session.endsAt().minusSeconds(1))).as("not due yet").isZero();
+        assertThat(time.running("Mara")).isPresent();
+
+        assertThat(time.finishFocusSessions(session.endsAt())).isEqualTo(1);
+
+        assertThat(time.running("Mara")).isEmpty();
+        assertThat(time.entries(card.id())).singleElement().satisfies(entry -> {
+            assertThat(entry.minutes()).isEqualTo(25);
+            assertThat(entry.note()).isEqualTo(TimeService.FOCUS_NOTE);
+        });
+        assertThat(time.focusSessionsToday("Mara")).isEqualTo(1);
+        assertThat(notifications.recent("Mara")).extracting(NotificationSnapshot::message)
+                .anyMatch(message -> message.startsWith("Focus session on \"Deep work\" done: 25 min logged, 1 session today"));
+
+        assertThatThrownBy(() -> time.startFocus(card.id(), "Mara", 0)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> time.startFocus(card.id(), "Mara", TimeService.MAX_FOCUS_MINUTES + 1)).isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -40,6 +40,7 @@ import dev.gatzka.flowboard.service.AttachmentService;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.CommentService;
 import dev.gatzka.flowboard.service.DependencyService;
+import dev.gatzka.flowboard.service.TimeService;
 import dev.gatzka.flowboard.ui.UserSession;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
 import java.time.Duration;
@@ -806,6 +807,31 @@ class BoardViewTest extends FlowboardUiTest {
         test($(Button.class).withId("watch-card").single()).click();
         assertThat($(Button.class).withId("watch-card").single().getText()).isEqualTo("Watch");
         assertThat($(CardComponent.class).single().getClassNames()).doesNotContain("task-card--watching");
+    }
+
+    @Test
+    void focusButtonStartsACountdownTimerShownInTheHeader() {
+        CardSnapshot card = createCard("Deep work");
+        openBoard();
+        test($(CardComponent.class).single()).click();
+        CardEditorDialog dialog = $(CardEditorDialog.class).single();
+        test($(TabSheet.class, dialog).withClassName("card-tabs").single()).select("Time");
+
+        test($(Button.class).withId("focus-start").single()).click();
+
+        TimeService timeService = context.getBean(TimeService.class);
+        assertThat(timeService.running(context.getBean(UserSession.class).getDisplayName())).hasValueSatisfying(timer -> {
+            assertThat(timer.cardId()).isEqualTo(card.id());
+            assertThat(timer.isFocusSession()).isTrue();
+        });
+        assertThat($(Button.class, $(TimeSection.class).single()).withClassName("time__timer").single().getText()).startsWith("Stop focus · ");
+        assertThat($(Button.class).withId("focus-start").all()).as("hidden while a timer runs").isEmpty();
+        Button chip = $(Button.class).withClassName("timer-chip").single();
+        assertThat(chip.isVisible()).isTrue();
+        assertThat(chip.getClassNames()).contains("timer-chip--focus");
+
+        test($(Button.class, $(TimeSection.class).single()).withClassName("time__timer").single()).click();
+        assertThat(timeService.running(context.getBean(UserSession.class).getDisplayName())).isEmpty();
     }
 
     @Test

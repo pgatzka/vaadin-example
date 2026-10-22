@@ -30,13 +30,35 @@ public class RunningTimer {
     @Column(name = "started_at", nullable = false)
     private Instant startedAt;
 
+    /** Set for a focus session: the timer stops itself after this many minutes. */
+    @Column(name = "focus_minutes")
+    private Integer focusMinutes;
+
     protected RunningTimer() {
     }
 
     public RunningTimer(String person, Card card, Instant startedAt) {
+        this(person, card, startedAt, null);
+    }
+
+    public RunningTimer(String person, Card card, Instant startedAt, Integer focusMinutes) {
         this.person = person;
         this.card = card;
         this.startedAt = startedAt;
+        this.focusMinutes = focusMinutes;
+    }
+
+    public Integer getFocusMinutes() {
+        return focusMinutes;
+    }
+
+    public boolean isFocusSession() {
+        return focusMinutes != null;
+    }
+
+    /** When a focus session ends; null for an open-ended timer. */
+    public Instant getEndsAt() {
+        return focusMinutes == null ? null : startedAt.plusSeconds(focusMinutes * 60L);
     }
 
     public Long getId() {

@@ -1021,6 +1021,12 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     @Override
+    public void startFocus(long cardId, int minutes) {
+        timeService.startFocus(cardId, actor(), minutes);
+        getUI().ifPresent(ui -> ComponentUtil.fireEvent(ui, new TimerChangedEvent(ui)));
+    }
+
+    @Override
     public Optional<CardSnapshot> stopTimer() {
         Optional<CardSnapshot> stopped = timeService.stop(session.getDisplayName(), null);
         if (stopped.isPresent()) {

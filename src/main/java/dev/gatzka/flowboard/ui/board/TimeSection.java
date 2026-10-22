@@ -29,6 +29,7 @@ final class TimeSection extends Div {
     private final IntegerField minutes = new IntegerField();
     private final TextField note = new TextField();
     private final Div list = new Div();
+    private final Button focus = new Button();
     private final Span empty = new Span("Nothing logged yet.");
     private CardSnapshot card;
 
@@ -43,7 +44,17 @@ final class TimeSection extends Div {
         timer.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
         timer.addClassName("time__timer");
         timer.addClickListener(event -> toggleTimer());
-        Div top = new Div(total, timer);
+        focus.setId("focus-start");
+        focus.setText("Focus " + TimeService.FOCUS_MINUTES + " min");
+        focus.setIcon(VaadinIcon.BULLSEYE.create());
+        focus.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        focus.setTooltipText("A timer that stops itself after " + TimeService.FOCUS_MINUTES + " minutes and logs the time");
+        focus.addClickListener(event -> {
+            actions.startFocus(card.id(), TimeService.FOCUS_MINUTES);
+            Toasts.info("Focus on \"" + card.title() + "\" for " + TimeService.FOCUS_MINUTES + " minutes. You will be told when the time is up.");
+            show(card);
+        });
+        Div top = new Div(total, focus, timer);
         top.addClassName("time__top");
 
         minutes.setPlaceholder("Minutes");
@@ -72,7 +83,13 @@ final class TimeSection extends Div {
         this.card = card;
         total.setText(card.hasWork() ? TimeService.humanize(card.workedMinutes()) + " logged" : "No time logged");
         Optional<TimerSnapshot> running = actions.runningTimer().filter(t -> t.cardId() == card.id());
-        if (running.isPresent()) {
+        focus.setVisible(running.isEmpty());
+        if (running.isPresent() && running.get().isFocusSession()) {
+            long left = Math.max(0, running.get().remaining(now.get()).toMinutes());
+            timer.setText("Stop focus · " + left + " min left");
+            timer.setIcon(VaadinIcon.STOP.create());
+            timer.addClassName("time__timer--running");
+        } else if (running.isPresent()) {
             long elapsed = Math.max(1, running.get().elapsed(now.get()).toMinutes());
             timer.setText("Stop timer · " + elapsed + " min");
             timer.setIcon(VaadinIcon.STOP.create());
