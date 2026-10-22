@@ -314,6 +314,40 @@ html {
   margin-bottom: var(--lumo-space-s);
 }
 
+.task-card--selected {
+  outline: 2px solid var(--lumo-primary-color);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--fb-card-background) 90%, var(--lumo-primary-color));
+}
+
+.selection-bar {
+  position: sticky;
+  bottom: var(--lumo-space-m);
+  align-self: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--lumo-space-xs);
+  padding: var(--lumo-space-xs) var(--lumo-space-m);
+  border-radius: 999px;
+  background: var(--lumo-base-color);
+  border: 1px solid var(--lumo-primary-color-50pct);
+  box-shadow: var(--lumo-box-shadow-l);
+  z-index: 2;
+  margin: 0 auto var(--lumo-space-m);
+}
+
+.selection-bar__count {
+  font-weight: 600;
+  margin-inline-end: var(--lumo-space-s);
+  white-space: nowrap;
+}
+
+.selection-bar vaadin-select,
+.selection-bar vaadin-combo-box {
+  width: 9.5rem;
+}
+
 .rules__list {
   display: flex;
   flex-direction: column;

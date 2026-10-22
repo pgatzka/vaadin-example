@@ -62,6 +62,14 @@ interface BoardActions {
     /** Opens the quick-add composer of the lane holding the card, e.g. after pressing {@code n} on it. */
     void addCardNear(CardSnapshot card);
 
+    /** Adds the card to or removes it from the multi-selection. */
+    void toggleSelection(CardSnapshot card);
+
+    boolean isSelected(CardSnapshot card);
+
+    /** Adds every card of the lane to the selection. */
+    void selectAll(LaneSnapshot lane);
+
     /** The current user's display name, to show their own vote as such. */
     String currentUser();
 

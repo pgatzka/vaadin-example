@@ -76,6 +76,8 @@ Java on top of Vaadin Flow's server push.
   runs), or log minutes by hand with a note. Cards show the time spent; the editor keeps the log.
 - **Weekly digest.** A printable one-page report per board and week: done, new, overdue, blocked,
   due next week and who did the most, with a copy-as-Markdown button for the team chat.
+- **Bulk actions.** Ctrl-click (or Shift-click) several cards, or select a whole lane from its
+  menu, then move, assign, tag, prioritise or archive them all at once from a floating bar.
 - **Keyboard first.** Arrow keys walk the cards, Shift+arrows move them, Enter opens, N adds.
 - **Webhooks.** Register endpoints per board; every change is posted as JSON, optionally signed
   with HMAC-SHA256. A delivery log shows what the other side answered.

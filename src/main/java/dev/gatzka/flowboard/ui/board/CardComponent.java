@@ -38,6 +38,11 @@ public final class CardComponent extends Div {
     }
 
     CardComponent(CardSnapshot card, LocalDate today, Instant now, boolean completed, Runnable onOpen, Voting voting) {
+        this(card, today, now, completed, onOpen, voting, null);
+    }
+
+    /** @param onToggleSelect called instead of {@code onOpen} for clicks with Ctrl, Cmd or Shift held; {@code null} disables selection */
+    CardComponent(CardSnapshot card, LocalDate today, Instant now, boolean completed, Runnable onOpen, Voting voting, Runnable onToggleSelect) {
         this.card = card;
         addClassName("task-card");
         boolean readOnly = onOpen == null;
@@ -58,7 +63,13 @@ public final class CardComponent extends Div {
         if (!readOnly) {
             getElement().setAttribute("role", "button");
             getElement().setAttribute("tabindex", "0");
-            addClickListener(event -> onOpen.run());
+            addClickListener(event -> {
+                if (onToggleSelect != null && (event.isCtrlKey() || event.isMetaKey() || event.isShiftKey())) {
+                    onToggleSelect.run();
+                } else {
+                    onOpen.run();
+                }
+            });
             getElement().addEventListener("keydown", event -> onOpen.run())
                     .setFilter("event.key === 'Enter' || event.key === ' '")
                     .preventDefault();
@@ -84,6 +95,15 @@ public final class CardComponent extends Div {
 
     public CardSnapshot card() {
         return card;
+    }
+
+    void setSelected(boolean selected) {
+        if (selected) {
+            addClassName("task-card--selected");
+        } else {
+            removeClassName("task-card--selected");
+        }
+        getElement().setAttribute("aria-selected", Boolean.toString(selected));
     }
 
     /** Flags the card as changed since the viewer last opened the board. */

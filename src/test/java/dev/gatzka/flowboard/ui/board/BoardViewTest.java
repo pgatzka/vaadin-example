@@ -198,6 +198,43 @@ class BoardViewTest extends FlowboardUiTest {
     }
 
     @Test
+    void selectedCardsChangeTogether() {
+        CardSnapshot a = createCard("Alpha");
+        CardSnapshot b = createCard("Beta");
+        CardSnapshot c = createCard("Gamma");
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        assertThat($(SelectionBar.class).all()).as("hidden while nothing is selected").isEmpty();
+
+        view.toggleSelection(a);
+        view.toggleSelection(b);
+        SelectionBar bar = $(SelectionBar.class).single();
+        assertThat($(Span.class, bar).withClassName("selection-bar__count").single().getText()).isEqualTo("2 cards selected");
+        assertThat($(CardComponent.class).withClassName("task-card--selected").all()).hasSize(2);
+        view.toggleSelection(b);
+        assertThat($(Span.class, bar).withClassName("selection-bar__count").single().getText()).isEqualTo("1 card selected");
+        view.selectAll(service.findBoard(board.id()).orElseThrow().lanes().get(0));
+        assertThat($(CardComponent.class).withClassName("task-card--selected").all()).hasSize(3);
+
+        test($(Select.class, bar).withClassName("selection-bar__priority").single()).selectItem("Urgent");
+        assertThat(cardOnBoard(a.id()).priority()).isEqualTo(Priority.URGENT);
+        assertThat(cardOnBoard(c.id()).priority()).isEqualTo(Priority.URGENT);
+        assertThat($(CardComponent.class).withClassName("task-card--selected").all()).as("selection survives the re-render").hasSize(3);
+
+        view.toggleSelection(cardOnBoard(c.id()));
+        LaneSnapshot review = service.findBoard(board.id()).orElseThrow().lanes().get(2);
+        test($(Select.class, bar).withClassName("selection-bar__lane").single()).selectItem("Review");
+        assertThat(cardOnBoard(a.id()).laneId()).isEqualTo(review.id());
+        assertThat(cardOnBoard(b.id()).laneId()).isEqualTo(review.id());
+        assertThat(cardOnBoard(c.id()).laneId()).isEqualTo(board.lanes().get(0).id());
+
+        test($(Button.class, bar).withId("archive-selected").single()).click();
+        assertThat(service.archivedCards(board.id())).extracting(CardSnapshot::title).containsExactlyInAnyOrder("Alpha", "Beta");
+        assertThat($(SelectionBar.class).all()).isEmpty();
+        clickUndo();
+        assertThat(service.archivedCards(board.id())).isEmpty();
+    }
+
+    @Test
     void laneRulesAreManagedInTheLaneDialog() {
         BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
         LaneSnapshot review = board.lanes().get(2);

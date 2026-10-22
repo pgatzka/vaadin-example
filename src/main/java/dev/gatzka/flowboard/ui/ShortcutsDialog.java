@@ -23,6 +23,7 @@ final class ShortcutsDialog extends Dialog {
             {"Enter / Space", "Open the focused card"},
             {"Shift + ↑ ↓ ← →", "Move the focused card within its lane or to the next lane"},
             {"N", "Add a card to the focused card's lane"},
+            {"Ctrl + click", "Select several cards, then move, assign, tag, prioritise or archive them together"},
     };
 
     ShortcutsDialog() {

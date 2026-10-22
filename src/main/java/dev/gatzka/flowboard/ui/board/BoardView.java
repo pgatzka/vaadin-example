@@ -44,6 +44,7 @@ import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.LaneRuleSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.RuleAction;
+import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.domain.QuickAdd;
 import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.domain.SavedViewSnapshot;
@@ -90,6 +91,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.concurrent.ExecutorService;
@@ -169,6 +172,51 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final InsightsDialog insightsDialog;
     private final ArchiveDialog archiveDialog;
     private final List<LaneComponent> laneComponents = new ArrayList<>();
+    private final Set<Long> selection = new LinkedHashSet<>();
+    private final SelectionBar selectionBar = new SelectionBar(new SelectionBar.Actions() {
+        @Override
+        public void moveSelected(LaneSnapshot lane) {
+            List<Long> ids = List.copyOf(selection);
+            perform(() -> ids.forEach(id -> boardService.moveCard(id, lane.id(), Integer.MAX_VALUE, actor())));
+            Toasts.success(ids.size() + (ids.size() == 1 ? " card moved to " : " cards moved to ") + lane.name());
+        }
+
+        @Override
+        public void assignSelected(String assignee) {
+            changeSelected(draft -> new CardDraft(draft.title(), draft.description(), draft.priority(), draft.dueDate(), assignee, draft.tags(), draft.estimate()),
+                    "assigned to " + assignee.strip());
+        }
+
+        @Override
+        public void prioritiseSelected(Priority priority) {
+            changeSelected(draft -> new CardDraft(draft.title(), draft.description(), priority, draft.dueDate(), draft.assignee(), draft.tags(), draft.estimate()),
+                    "set to " + priority.label().toLowerCase(java.util.Locale.ROOT));
+        }
+
+        @Override
+        public void tagSelected(String tag) {
+            changeSelected(draft -> {
+                Set<String> tags = new LinkedHashSet<>(draft.tags());
+                tags.add(tag.strip());
+                return new CardDraft(draft.title(), draft.description(), draft.priority(), draft.dueDate(), draft.assignee(), tags, draft.estimate());
+            }, "tagged " + tag.strip());
+        }
+
+        @Override
+        public void archiveSelected() {
+            List<Long> ids = List.copyOf(selection);
+            selection.clear();
+            perform(() -> ids.forEach(id -> boardService.archiveCard(id, actor())));
+            Toasts.undoable(ids.size() + (ids.size() == 1 ? " card archived" : " cards archived"),
+                    () -> perform(() -> boardService.restoreCards(ids, actor())));
+        }
+
+        @Override
+        public void clearSelection() {
+            selection.clear();
+            showSelection();
+        }
+    });
 
     private BoardSnapshot board;
     private List<CardTemplateSnapshot> boardTemplates = List.of();
@@ -225,7 +273,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         setSizeFull();
         setPadding(false);
         setSpacing(false);
-        add(toolbar(), viewsBar, lanes);
+        add(toolbar(), viewsBar, lanes, selectionBar);
         lanes.addClassName("lanes");
         setFlexGrow(1, lanes);
 
@@ -467,6 +515,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         filters.setOptions(snapshot.tags(), snapshot.assignees());
         applyFilter();
         showViews();
+        showSelection();
         if (focusCardId != null) {
             long wanted = focusCardId;
             laneComponents.stream().flatMap(lane -> lane.cardComponent(wanted).stream()).findFirst().ifPresent(CardComponent::focus);
@@ -686,6 +735,43 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     public void saveAsTemplate(long cardId, String name) {
         templateService.saveFromCard(cardId, name, actor());
         reload();
+    }
+
+    @Override
+    public void toggleSelection(CardSnapshot card) {
+        if (!selection.remove(card.id())) {
+            selection.add(card.id());
+        }
+        showSelection();
+    }
+
+    @Override
+    public boolean isSelected(CardSnapshot card) {
+        return selection.contains(card.id());
+    }
+
+    @Override
+    public void selectAll(LaneSnapshot lane) {
+        lane.cards().forEach(card -> selection.add(card.id()));
+        showSelection();
+    }
+
+    /** Applies a draft change to every selected card, one activity per card. */
+    private void changeSelected(java.util.function.UnaryOperator<CardDraft> change, String what) {
+        List<CardSnapshot> cards = selection.stream().map(this::findCard).flatMap(Optional::stream).toList();
+        perform(() -> cards.forEach(card -> boardService.updateCard(card.id(), change.apply(card.toDraft()), actor())));
+        Toasts.success(cards.size() + (cards.size() == 1 ? " card " : " cards ") + what);
+    }
+
+    /** Keeps the selection in step with the board: drops cards that left, marks the rest, shows the bar. */
+    private void showSelection() {
+        if (board == null) {
+            return;
+        }
+        selection.removeIf(id -> findCard(id).isEmpty());
+        laneComponents.forEach(lane -> lane.lane().cards().forEach(card ->
+                lane.cardComponent(card.id()).ifPresent(component -> component.setSelected(selection.contains(card.id())))));
+        selectionBar.show(selection.size(), board, board.assignees(), board.tags());
     }
 
     @Override

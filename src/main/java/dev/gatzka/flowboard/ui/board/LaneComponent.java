@@ -151,6 +151,8 @@ final class LaneComponent extends Div {
             SubMenu choices = fromTemplate.getSubMenu();
             templates.forEach(template -> choices.addItem(template.name(), event -> actions.newCardFromTemplate(lane, template)));
         }
+        MenuItem selectAll = items.addItem("Select all cards", event -> actions.selectAll(lane));
+        selectAll.setEnabled(!lane.cards().isEmpty());
         items.addItem("Edit lane", event -> actions.editLane(lane));
         MenuItem left = items.addItem("Move left", event -> actions.moveLane(lane, -1));
         left.setEnabled(lane.position() > 0);
@@ -176,7 +178,9 @@ final class LaneComponent extends Div {
 
         for (CardSnapshot card : lane.cards()) {
             CardComponent component = new CardComponent(card, today, now, lane.done(), () -> actions.openCard(card),
-                    new CardComponent.Voting(card.hasVoteFrom(actions.currentUser()), () -> actions.toggleVote(card)));
+                    new CardComponent.Voting(card.hasVoteFrom(actions.currentUser()), () -> actions.toggleVote(card)),
+                    () -> actions.toggleSelection(card));
+            component.setSelected(actions.isSelected(card));
             if (card.changedSince(actions.lastVisit())) {
                 component.markChanged();
             }
