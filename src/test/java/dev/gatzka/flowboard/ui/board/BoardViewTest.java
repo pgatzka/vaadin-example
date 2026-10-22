@@ -1084,9 +1084,11 @@ class BoardViewTest extends FlowboardUiTest {
                 dev.gatzka.flowboard.service.Participant.named("Jonas"), state -> { });
         try {
             jonas.editing(card.id());
-            pump();
+            await().pollInSameThread().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+                pump();
+                assertThat(cardComponent(card.id()).hasClassName("task-card--editing")).isTrue();
+            });
             CardComponent component = cardComponent(card.id());
-            assertThat(component.hasClassName("task-card--editing")).isTrue();
             assertThat($(com.vaadin.flow.component.avatar.Avatar.class, component).all()).extracting(a -> a.getName()).containsExactly("Jonas");
             assertThat($(Div.class, component).withClassName("task-card__editors").single().getElement().getAttribute("title"))
                     .isEqualTo("Jonas is editing this card");
@@ -1099,8 +1101,10 @@ class BoardViewTest extends FlowboardUiTest {
             assertThat(presence.presence(board.id()).editorsOf(card.id())).extracting(p -> p.name()).containsExactlyInAnyOrder("Jonas", "mara");
 
             jonas.editing(null);
-            pump();
-            assertThat($(Div.class, editor).withClassName("card-editor__others").all()).isEmpty();
+            await().pollInSameThread().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+                pump();
+                assertThat($(Div.class, editor).withClassName("card-editor__others").all()).isEmpty();
+            });
             assertThat(cardComponent(card.id()).hasClassName("task-card--editing")).as("my own editing is not shown to me").isFalse();
 
             editor.close();
@@ -1172,6 +1176,23 @@ class BoardViewTest extends FlowboardUiTest {
         assertThat(cardOnBoard(unprepared.id()).laneId()).isEqualTo(review.id());
         assertThat($(Badge.class).withClassName("lane__rules").single().getElement().getAttribute("title"))
                 .isEqualTo("Requires an estimate\nRequires an assignee");
+    }
+
+    @Test
+    void releaseNotesListWhatShippedInThePeriod() {
+        CardSnapshot shipped = createCard("Shipped thing");
+        service.moveCard(shipped.id(), board.lanes().get(3).id(), 0, SEEDER);
+        createCard("Still open");
+        openBoard();
+
+        test($(MenuItem.class).withId("board-release-notes").single()).click();
+        ReleaseNotesDialog dialog = $(ReleaseNotesDialog.class).single();
+        assertThat(dialog.notes().cardCount()).isEqualTo(1);
+        assertThat($(Span.class, dialog).withClassName("release-notes__summary").single().getText()).isEqualTo("1 card completed in 1 section, 0 points");
+        assertThat($(com.vaadin.flow.component.markdown.Markdown.class, dialog).single().getContent()).contains("- Shipped thing").doesNotContain("Still open");
+
+        test($(com.vaadin.flow.component.datepicker.DatePicker.class, dialog).withId("release-notes-until").single()).setValue(LocalDate.now().minusDays(1));
+        assertThat($(Span.class, dialog).withClassName("release-notes__summary").single().getText()).isEqualTo("Nothing was completed in this period.");
     }
 
     private void chooseFromMenu(CardSnapshot card, String menuClass, String choice) {

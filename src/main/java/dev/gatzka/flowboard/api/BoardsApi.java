@@ -12,6 +12,7 @@ import dev.gatzka.flowboard.domain.Health;
 import dev.gatzka.flowboard.domain.MilestoneDraft;
 import dev.gatzka.flowboard.domain.MilestoneProgress;
 import dev.gatzka.flowboard.domain.MilestoneSnapshot;
+import dev.gatzka.flowboard.domain.ReleaseNotes;
 import dev.gatzka.flowboard.domain.WeeklyDigest;
 import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.exchange.BoardExport;
@@ -26,6 +27,7 @@ import dev.gatzka.flowboard.service.DigestService;
 import dev.gatzka.flowboard.service.HealthService;
 import dev.gatzka.flowboard.service.InsightsService;
 import dev.gatzka.flowboard.service.MilestoneService;
+import dev.gatzka.flowboard.service.ReleaseNotesService;
 import dev.gatzka.flowboard.service.TimeService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.SharingService;
@@ -63,6 +65,7 @@ public class BoardsApi {
     private final InsightsService insights;
     private final MilestoneService milestoneService;
     private final HealthService healthService;
+    private final ReleaseNotesService releaseNotesService;
     private final TimeService time;
     private final CardTemplateService templates;
     private final ActivityLog activityLog;
@@ -71,9 +74,10 @@ public class BoardsApi {
     private final Clock clock;
 
     BoardsApi(BoardService boardService, BoardExchangeService exchange, AccountService accounts, DigestService digests,
-            InsightsService insights, MilestoneService milestoneService, HealthService healthService, TimeService time,
-            CardTemplateService templates, ActivityLog activityLog, AccessService access, SharingService sharing, Clock clock) {
+            InsightsService insights, MilestoneService milestoneService, HealthService healthService, ReleaseNotesService releaseNotesService,
+            TimeService time, CardTemplateService templates, ActivityLog activityLog, AccessService access, SharingService sharing, Clock clock) {
         this.access = access;
+        this.releaseNotesService = releaseNotesService;
         this.healthService = healthService;
         this.milestoneService = milestoneService;
         this.insights = insights;
@@ -173,6 +177,21 @@ public class BoardsApi {
     public Forecast forecast(@PathVariable long boardId, Principal caller) {
         requireAccess(boardId, caller);
         return insights.forecast(boardId);
+    }
+
+    /** The cards completed between {@code since} and {@code until} (inclusive, default the last two weeks), grouped for a changelog. */
+    @GetMapping("/boards/{boardId}/release-notes")
+    public ReleaseNotes releaseNotes(@PathVariable long boardId, @RequestParam(required = false) LocalDate since,
+            @RequestParam(required = false) LocalDate until, Principal caller) {
+        requireAccess(boardId, caller);
+        return releaseNotesService.between(boardId, since, until);
+    }
+
+    /** The same notes as Markdown. */
+    @GetMapping(path = "/boards/{boardId}/release-notes.md", produces = "text/markdown;charset=UTF-8")
+    public String releaseNotesMarkdown(@PathVariable long boardId, @RequestParam(required = false) LocalDate since,
+            @RequestParam(required = false) LocalDate until, Principal caller) {
+        return releaseNotes(boardId, since, until, caller).toMarkdown();
     }
 
     /** What needs attention on the board, with a score out of 100. */

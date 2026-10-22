@@ -3185,3 +3185,36 @@ vaadin-dialog.activity-sheet::part(content) {
   color: var(--lumo-success-text-color);
   font-size: var(--lumo-font-size-s);
 }
+
+/* ---------------------------------------------------------------- release notes */
+
+.release-notes__period {
+  display: flex;
+  gap: var(--lumo-space-m);
+  flex-wrap: wrap;
+}
+
+.release-notes__summary {
+  display: block;
+  margin: var(--lumo-space-s) 0;
+  font-size: var(--lumo-font-size-s);
+  color: var(--lumo-secondary-text-color);
+}
+
+.release-notes__preview {
+  max-height: 55vh;
+  overflow: auto;
+  padding: var(--lumo-space-s) var(--lumo-space-m);
+  border: 1px solid var(--lumo-contrast-10pct);
+  border-radius: var(--lumo-border-radius-m);
+  background: var(--lumo-contrast-5pct);
+}
+
+.release-notes__preview h1 {
+  font-size: var(--lumo-font-size-l);
+  margin-top: 0;
+}
+
+.release-notes__preview h2 {
+  font-size: var(--lumo-font-size-m);
+}

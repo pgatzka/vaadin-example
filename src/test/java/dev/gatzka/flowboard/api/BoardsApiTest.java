@@ -248,6 +248,18 @@ class BoardsApiTest {
         assertThat(health.get("score").asInt()).isBetween(0, 100);
         assertThat(health.get("findings").isArray()).isTrue();
         assertThat(send("GET", "/api/boards/999999/health", null).statusCode()).isEqualTo(404);
+
+        long done = board.lanes().get(3).id();
+        send("POST", "/api/cards/" + cardId + "/move", "{\"targetLaneId\": " + done + ", \"targetIndex\": 0}");
+        JsonNode notes = json.readTree(send("GET", "/api/boards/" + board.id() + "/release-notes", null).body());
+        assertThat(notes.get("boardName").asString()).isEqualTo("Api board");
+        assertThat(notes.get("sections").size()).isEqualTo(1);
+        assertThat(notes.get("sections").get(0).get("cards").get(0).get("title").asString()).isEqualTo("Incident");
+        HttpResponse<String> notesMarkdown = send("GET", "/api/boards/" + board.id() + "/release-notes.md?since=2026-01-01", null, "Accept", "text/markdown");
+        assertThat(notesMarkdown.statusCode()).isEqualTo(200);
+        assertThat(notesMarkdown.body()).startsWith("# Api board \u00b7 Release notes \u00b7 Jan 1, 2026").contains("- Incident");
+        assertThat(send("GET", "/api/boards/" + board.id() + "/release-notes?since=2030-01-01&until=2029-01-01", null).statusCode()).isEqualTo(400);
+        assertThat(json.readTree(send("GET", "/api/boards/" + board.id() + "/release-notes?until=2000-01-01", null).body()).get("sections").size()).isZero();
     }
 
     @Test

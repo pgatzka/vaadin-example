@@ -76,6 +76,7 @@ import dev.gatzka.flowboard.service.InsightsService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.service.PresenceTracker;
+import dev.gatzka.flowboard.service.ReleaseNotesService;
 import dev.gatzka.flowboard.service.SavedViewService;
 import dev.gatzka.flowboard.service.SharingService;
 import dev.gatzka.flowboard.service.TimeService;
@@ -191,6 +192,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final WatchService watchService;
     private final MilestoneService milestoneService;
     private final HealthService healthService;
+    private final ReleaseNotesService releaseNotes;
     private final DependenciesDialog dependenciesDialog = new DependenciesDialog(
             cardId -> findCard(cardId).ifPresent(this::openCard));
     private final ArchiveDialog archiveDialog;
@@ -265,8 +267,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             WebhookService webhookService, WebhookDispatcher webhookDispatcher, SavedViewService savedViews,
             TimeService timeService, CardTemplateService templateService, AccessService access, AccountService accounts,
             AutomationService automations, UserSession session, Clock clock,
-            WatchService watchService, MilestoneService milestoneService, HealthService healthService) {
+            WatchService watchService, MilestoneService milestoneService, HealthService healthService, ReleaseNotesService releaseNotes) {
         this.access = access;
+        this.releaseNotes = releaseNotes;
         this.healthService = healthService;
         this.milestoneService = milestoneService;
         this.automations = automations;
@@ -386,6 +389,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
                 TimelineView.class, new RouteParameters(BOARD_ID, Long.toString(board.id()))))).setId("board-timeline");
         items.addItem(entry(VaadinIcon.NEWSPAPER, getTranslation("board.menu.digest")), event -> getUI().ifPresent(ui -> ui.navigate(
                 DigestView.class, new RouteParameters(BOARD_ID, Long.toString(board.id()))))).setId("board-digest");
+        items.addItem(entry(VaadinIcon.ROCKET, getTranslation("board.menu.releaseNotes")), event ->
+                new ReleaseNotesDialog(board, releaseNotes, clock).open()).setId("board-release-notes");
         items.addItem(entry(VaadinIcon.ARCHIVE, getTranslation("board.menu.archive")), event -> openArchive()).setId("board-archive");
         items.addItem(entry(VaadinIcon.CLUSTER, getTranslation("board.menu.dependencies")), event -> openDependencies()).setId("board-dependencies");
         items.addItem(entry(VaadinIcon.FLAG_O, getTranslation("board.menu.milestones")), event -> openMilestones()).setId("board-milestones");
@@ -988,6 +993,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         confirm.setCancelable(true);
         confirm.setRejectable(true);
         confirm.setRejectText(getTranslation("board.openCard"));
+        confirm.setRejectButtonTheme("tertiary");
         confirm.addRejectListener(event -> openCard(card));
         confirm.open();
     }

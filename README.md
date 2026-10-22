@@ -35,8 +35,8 @@ Java on top of Vaadin Flow's server push.
 | ![German](docs/german.png) | ![Context menu](docs/context-menu.png) | ![Collapsed lane](docs/collapsed-lane.png) |
 | Delivery forecast | Milestones | Who is editing |
 | ![Forecast](docs/forecast.png) | ![Milestones](docs/milestones.png) | ![Live editing](docs/live-editing.png) |
-| Board health | Lane policies | |
-| ![Health](docs/health.png) | ![Policies](docs/policies.png) | |
+| Board health | Lane policies | Release notes |
+| ![Health](docs/health.png) | ![Policies](docs/policies.png) | ![Release notes](docs/release-notes.png) |
 
 ## Features
 
@@ -92,6 +92,9 @@ Java on top of Vaadin Flow's server push.
   simulation fed by the board's own completions of the last 60 days: the dates by which 50, 85 and
   95 percent of 5,000 replays had finished, the spread behind them, and the chance of clearing the
   board by its latest due date. No estimates needed; quiet days count as part of the pace.
+- **Release notes** (More → Release notes): everything completed between two dates, archived cards
+  included, grouped by milestone and then by tag, as Markdown to copy into a changelog or an
+  announcement. Also at `GET /api/boards/{id}/release-notes.md?since=…&until=…`.
 - **Board health.** A heart in the toolbar counts what the board's own numbers say needs attention:
   overdue cards, a lane over its limit, the card holding up the most others, a milestone in
   trouble, a forecast that misses the latest due date, urgent work nobody owns, cards that have not
@@ -221,6 +224,8 @@ account's display name is what the activity feed shows.
 | `POST /api/boards/{id}/milestones` | Create a milestone (`name`, optional `targetDate`) |
 | `DELETE /api/milestones/{id}` | Remove a milestone; its cards stay |
 | `POST /api/cards/{id}/milestone` | Put a card into a milestone (`{"milestoneId": 7}`) or into none (`null`) |
+| `GET /api/boards/{id}/release-notes` | Cards completed in a period grouped by milestone and tag; `?since=2026-10-01&until=2026-10-22`, default the last two weeks |
+| `GET /api/boards/{id}/release-notes.md` | The same as Markdown |
 | `GET /api/boards/{id}/health` | Findings that need attention and a score out of 100 |
 | `GET /api/boards/{id}/forecast` | The delivery forecast: confidence dates, the finishing-day distribution and the daily throughput it was built from |
 | `GET /api/boards/{id}/digest` | The weekly digest as JSON; `?week=2026-10-21` picks the week ending that day |
