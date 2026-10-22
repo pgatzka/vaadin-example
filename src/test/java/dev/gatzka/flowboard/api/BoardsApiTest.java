@@ -243,6 +243,11 @@ class BoardsApiTest {
         assertThat(forecast.get("throughput").size()).isEqualTo(60);
         assertThat(forecast.get("outcomes").size()).as("one completion is too little history").isZero();
         assertThat(send("GET", "/api/boards/999999/forecast", null).statusCode()).isEqualTo(404);
+
+        JsonNode health = json.readTree(send("GET", "/api/boards/" + board.id() + "/health", null).body());
+        assertThat(health.get("score").asInt()).isBetween(0, 100);
+        assertThat(health.get("findings").isArray()).isTrue();
+        assertThat(send("GET", "/api/boards/999999/health", null).statusCode()).isEqualTo(404);
     }
 
     @Test

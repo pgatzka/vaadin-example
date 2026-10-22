@@ -1111,6 +1111,36 @@ class BoardViewTest extends FlowboardUiTest {
         }
     }
 
+    @Test
+    void healthListsFindingsAndSelectsTheirCards() {
+        openBoard();
+        Button button = $(Button.class).withId("board-health").single();
+        assertThat(button.getText()).as("nothing to report on an empty board").isEmpty();
+        test(button).click();
+        assertThat($(Span.class, $(HealthDialog.class).single()).withClassName("health__clear").all()).hasSize(1);
+        $(HealthDialog.class).single().close();
+
+        long backlog = board.lanes().get(0).id();
+        service.createCard(backlog, new CardDraft("Late", null, Priority.MEDIUM, LocalDate.now().minusDays(2), null, Set.of(), null), SEEDER);
+        service.createCard(backlog, new CardDraft("Nobody's fire", null, Priority.URGENT, null, null, Set.of(), null), SEEDER);
+        openBoard();
+        button = $(Button.class).withId("board-health").single();
+        assertThat(button.getText()).isEqualTo("2");
+        assertThat(button.getElement().getAttribute("data-state")).isEqualTo("maybe");
+
+        test(button).click();
+        HealthDialog dialog = $(HealthDialog.class).single();
+        assertThat($(Span.class, dialog).withClassName("health__text").all()).extracting(Span::getText)
+                .containsExactly("1 card is overdue", "1 urgent card has nobody assigned");
+        assertThat($(Badge.class, dialog).withClassName("health__score").single().getText()).isEqualTo("70 / 100");
+
+        test($(Button.class, dialog).withClassName("health__select").first()).click();
+        assertThat($(HealthDialog.class).all()).isEmpty();
+        assertThat($(SelectionBar.class).single().isVisible()).isTrue();
+        assertThat($(CardComponent.class).withCondition(c -> c.hasClassName("task-card--selected")).all())
+                .extracting(c -> c.card().title()).containsExactly("Late");
+    }
+
     private void chooseFromMenu(CardSnapshot card, String menuClass, String choice) {
         MenuItem parent = $(MenuItem.class, cardComponent(card.id()).contextMenu()).withClassName(menuClass).single();
         click(parent.getSubMenu().getItems().stream().filter(item -> choice.equals(item.getText())).findFirst().orElseThrow());

@@ -3103,3 +3103,85 @@ vaadin-dialog.activity-sheet::part(content) {
   height: 1.1em;
   flex: none;
 }
+
+/* ---------------------------------------------------------------- board health */
+
+.board-toolbar__health {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-toolbar__health[data-state="warn"] {
+  color: var(--lumo-error-text-color);
+}
+
+.board-toolbar__health[data-state="maybe"] {
+  color: var(--lumo-warning-text-color);
+}
+
+.board-toolbar__health[data-state="ok"] {
+  color: var(--lumo-success-text-color);
+}
+
+.health__score {
+  margin-inline-start: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.health__score[data-state="ok"] {
+  --vaadin-badge-background: var(--lumo-success-color-10pct);
+  --vaadin-badge-text-color: var(--lumo-success-text-color);
+}
+
+.health__score[data-state="maybe"] {
+  --vaadin-badge-background: var(--lumo-warning-color-10pct);
+  --vaadin-badge-text-color: var(--lumo-warning-text-color);
+}
+
+.health__score[data-state="warn"] {
+  --vaadin-badge-background: var(--lumo-error-color-10pct);
+  --vaadin-badge-text-color: var(--lumo-error-text-color);
+}
+
+.health__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-xs);
+}
+
+.health__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  padding: var(--lumo-space-xs) var(--lumo-space-s);
+  border-radius: var(--lumo-border-radius-m);
+  background: var(--lumo-contrast-5pct);
+}
+
+.health__dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--lumo-contrast-40pct);
+}
+
+.health__row[data-severity="warn"] .health__dot {
+  background: var(--lumo-error-color);
+}
+
+.health__row[data-severity="info"] .health__dot {
+  background: var(--lumo-warning-color);
+}
+
+.health__text {
+  font-size: var(--lumo-font-size-s);
+}
+
+.health__clear {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  color: var(--lumo-success-text-color);
+  font-size: var(--lumo-font-size-s);
+}

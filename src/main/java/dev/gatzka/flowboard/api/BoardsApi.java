@@ -8,6 +8,7 @@ import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.CardTemplateDraft;
 import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.Forecast;
+import dev.gatzka.flowboard.domain.Health;
 import dev.gatzka.flowboard.domain.MilestoneDraft;
 import dev.gatzka.flowboard.domain.MilestoneProgress;
 import dev.gatzka.flowboard.domain.MilestoneSnapshot;
@@ -22,6 +23,7 @@ import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.CardTemplateService;
 import dev.gatzka.flowboard.service.DigestService;
+import dev.gatzka.flowboard.service.HealthService;
 import dev.gatzka.flowboard.service.InsightsService;
 import dev.gatzka.flowboard.service.MilestoneService;
 import dev.gatzka.flowboard.service.TimeService;
@@ -60,6 +62,7 @@ public class BoardsApi {
     private final DigestService digests;
     private final InsightsService insights;
     private final MilestoneService milestoneService;
+    private final HealthService healthService;
     private final TimeService time;
     private final CardTemplateService templates;
     private final ActivityLog activityLog;
@@ -68,9 +71,10 @@ public class BoardsApi {
     private final Clock clock;
 
     BoardsApi(BoardService boardService, BoardExchangeService exchange, AccountService accounts, DigestService digests,
-            InsightsService insights, MilestoneService milestoneService, TimeService time, CardTemplateService templates,
-            ActivityLog activityLog, AccessService access, SharingService sharing, Clock clock) {
+            InsightsService insights, MilestoneService milestoneService, HealthService healthService, TimeService time,
+            CardTemplateService templates, ActivityLog activityLog, AccessService access, SharingService sharing, Clock clock) {
         this.access = access;
+        this.healthService = healthService;
         this.milestoneService = milestoneService;
         this.insights = insights;
         this.sharing = sharing;
@@ -169,6 +173,13 @@ public class BoardsApi {
     public Forecast forecast(@PathVariable long boardId, Principal caller) {
         requireAccess(boardId, caller);
         return insights.forecast(boardId);
+    }
+
+    /** What needs attention on the board, with a score out of 100. */
+    @GetMapping("/boards/{boardId}/health")
+    public Health health(@PathVariable long boardId, Principal caller) {
+        requireAccess(boardId, caller);
+        return healthService.forBoard(boardId);
     }
 
     /** The board's milestones with their progress and the chance of hitting each target. */

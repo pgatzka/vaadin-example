@@ -44,6 +44,7 @@ import dev.gatzka.flowboard.domain.CardFilterCodec;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.DependencyGraph;
 import dev.gatzka.flowboard.domain.Grouping;
+import dev.gatzka.flowboard.domain.Health;
 import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.LaneRuleSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
@@ -68,6 +69,7 @@ import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.CommentService;
 import dev.gatzka.flowboard.service.DependencyService;
 import dev.gatzka.flowboard.service.FlowSnapshotService;
+import dev.gatzka.flowboard.service.HealthService;
 import dev.gatzka.flowboard.service.InsightsService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.Participant;
@@ -179,11 +181,14 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         }
     });
     private final AvatarGroup participants = new AvatarGroup();
+    private final Button healthButton = new Button();
+    private Health health = new Health(List.of(), 100);
     private final Div lanes = new Div();
     private final ActivityDialog activityDialog = new ActivityDialog();
     private final InsightsDialog insightsDialog;
     private final WatchService watchService;
     private final MilestoneService milestoneService;
+    private final HealthService healthService;
     private final DependenciesDialog dependenciesDialog = new DependenciesDialog(
             cardId -> findCard(cardId).ifPresent(this::openCard));
     private final ArchiveDialog archiveDialog;
@@ -258,8 +263,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             WebhookService webhookService, WebhookDispatcher webhookDispatcher, SavedViewService savedViews,
             TimeService timeService, CardTemplateService templateService, AccessService access, AccountService accounts,
             AutomationService automations, UserSession session, Clock clock,
-            WatchService watchService, MilestoneService milestoneService) {
+            WatchService watchService, MilestoneService milestoneService, HealthService healthService) {
         this.access = access;
+        this.healthService = healthService;
         this.milestoneService = milestoneService;
         this.automations = automations;
         this.accounts = accounts;
@@ -330,6 +336,13 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         insights.setAriaLabel(getTranslation("board.insightsAria"));
         insights.setTooltipText(getTranslation("board.insights"));
 
+        healthButton.setIcon(VaadinIcon.HEART_O.create());
+        healthButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        healthButton.setAriaLabel(getTranslation("health.aria"));
+        healthButton.setId("board-health");
+        healthButton.addClassName("board-toolbar__health");
+        healthButton.addClickListener(event -> openHealth());
+
         Button addLane = new Button(getTranslation("board.addLane"), VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
@@ -348,7 +361,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             }
         });
 
-        Div toolbar = new Div(titles, search, filters, grouping, participants, activity, insights, moreMenu());
+        Div toolbar = new Div(titles, search, filters, grouping, participants, healthButton, activity, insights, moreMenu());
         if (assistant.isAvailable()) {
             toolbar.add(assistantMenu());
         }
@@ -583,6 +596,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         }
         layoutSwimlanes(snapshot, swimlanes);
         showEditors();
+        showHealth(healthService.of(snapshot));
         filters.setOptions(snapshot.tags(), snapshot.assignees());
         applyFilter();
         showViews();
@@ -1068,6 +1082,34 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         setMilestone(card.id(), milestoneId);
         String name = milestoneId == null ? null : milestones.stream().filter(m -> m.id() == milestoneId).map(MilestoneSnapshot::name).findFirst().orElse("");
         Toasts.success(name == null ? getTranslation("board.milestoneCleared", card.title()) : getTranslation("board.milestoneSet", card.title(), name));
+    }
+
+    private void showHealth(Health current) {
+        health = current;
+        healthButton.setText(current.isClear() ? "" : Integer.toString(current.findings().size()));
+        healthButton.setTooltipText(getTranslation("health.tooltip", current.score()));
+        healthButton.getElement().setAttribute("data-state", HealthDialog.state(current.score()));
+    }
+
+    private void openHealth() {
+        new HealthDialog(health, new HealthDialog.Actions() {
+            @Override
+            public void selectCards(List<Long> cardIds) {
+                selection.clear();
+                selection.addAll(cardIds);
+                showSelection();
+            }
+
+            @Override
+            public void openMilestones() {
+                BoardView.this.openMilestones();
+            }
+
+            @Override
+            public void openInsights() {
+                BoardView.this.openInsights();
+            }
+        }).open();
     }
 
     private void openMilestones() {
