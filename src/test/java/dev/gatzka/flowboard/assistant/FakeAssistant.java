@@ -14,6 +14,7 @@ public class FakeAssistant {
         public final List<String> prompts = new ArrayList<>();
         public String checklistAnswer = "Here you go:\n```json\n[\"Write the test\", \"Make it pass\", \"Refactor\"]\n```";
         public String standupAnswer = "## Done in the last 24 hours\n- Mara shipped the sync\n\n## At risk\n- nothing";
+        public String digestAnswer = "A quiet week: Mara shipped the sync and nothing is late.";
         public String notesAnswer = """
                 [{"title": "Order tiles", "priority": "URGENT", "assignee": "Mara", "description": "Two boxes."},
                  {"title": "", "priority": "low"},
@@ -33,6 +34,9 @@ public class FakeAssistant {
             }
             if (systemPrompt.contains("standup")) {
                 return standupAnswer;
+            }
+            if (systemPrompt.contains("weekly report")) {
+                return digestAnswer;
             }
             return notesAnswer;
         }

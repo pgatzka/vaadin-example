@@ -4,6 +4,7 @@ import dev.gatzka.flowboard.domain.ActivityEntry;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.domain.WeeklyDigest;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import java.time.Clock;
@@ -136,6 +137,17 @@ public class AssistantService {
     }
 
     /** Turns free text (meeting notes, an email, a brain dump) into card drafts. */
+    /** A short narrative of a week on the board, written from the digest's numbers and lists. */
+    public String digestNarrative(WeeklyDigest digest) {
+        String system = """
+                You write the short narrative paragraph at the top of a team's weekly report about their Kanban board.
+                Write 3 to 5 sentences of plain prose in Markdown, no headings and no lists. Name people and cards,
+                point out what got done, what is late or blocked, and what next week looks like. Be concrete and warm,
+                never invent anything that is not in the data.
+                """;
+        return ask(system, digest.toMarkdown()).strip();
+    }
+
     public List<CardDraft> cardsFromNotes(String notes, BoardSnapshot board) {
         if (notes == null || notes.isBlank()) {
             return List.of();

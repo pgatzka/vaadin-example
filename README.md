@@ -45,7 +45,8 @@ Java on top of Vaadin Flow's server push.
 - **Checklists, comments and history** on every card; **deep links** to cards.
 - **Insights** per board: completion rate, cycle time, velocity, load per lane, completions per day, work per person,
   a 12-week activity heatmap with streaks and the busiest contributors.
-- **AI assistant** (optional, set `ANTHROPIC_API_KEY`): suggests checklist steps for a card, writes a
+- **AI assistant** (optional, set `ANTHROPIC_API_KEY`): writes the narrative paragraph of the weekly
+  digest, suggests checklist steps for a card, writes a
   standup summary of the board, and turns pasted meeting notes into cards for review.
 - **Story points**, lane point totals and velocity; **templates** for new boards; **archive** with
   restore; a **calendar** of due dates; a cross-board **My work** view and a **command palette** (Ctrl+K)

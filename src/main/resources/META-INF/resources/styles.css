@@ -530,6 +530,16 @@ html {
   margin-inline-start: auto;
 }
 
+.digest__narrative {
+  max-width: 48rem;
+  margin: 0 auto var(--lumo-space-m);
+  padding: var(--lumo-space-m) var(--lumo-space-l);
+  border-radius: var(--lumo-border-radius-l);
+  background: color-mix(in srgb, var(--lumo-primary-color) 8%, var(--lumo-base-color));
+  border: 1px solid var(--lumo-primary-color-50pct);
+  font-size: var(--lumo-font-size-m);
+}
+
 .digest__period {
   color: var(--lumo-secondary-text-color);
   font-size: var(--lumo-font-size-s);

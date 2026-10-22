@@ -14,7 +14,10 @@ import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import dev.gatzka.flowboard.domain.WeeklyDigest;
+import dev.gatzka.flowboard.assistant.AssistantService;
 import dev.gatzka.flowboard.service.AccessService;
+import dev.gatzka.flowboard.ui.support.Background;
+import java.util.concurrent.Executor;
 import dev.gatzka.flowboard.service.DigestService;
 import dev.gatzka.flowboard.ui.UserSession;
 import dev.gatzka.flowboard.service.NotFoundException;
@@ -35,7 +38,12 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
     static final String WEEK = "week";
 
     private final DigestService digests;
+    private final AssistantService assistant;
+    private final Executor executor;
     private final Clock clock;
+    private final Markdown narrative = new Markdown();
+    private final Button narrate = new Button("Write a summary", VaadinIcon.MAGIC.create(), event -> narrate());
+    private String narrativeText;
     private final AccessService access;
     private final UserSession session;
     private final H2 heading = new H2();
@@ -44,9 +52,12 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
     private long boardId;
     private WeeklyDigest digest;
 
-    public DigestView(DigestService digests, AccessService access, UserSession session, Clock clock) {
+    public DigestView(DigestService digests, AccessService access, AssistantService assistant, Executor broadcastExecutor,
+            UserSession session, Clock clock) {
         this.access = access;
         this.session = session;
+        this.assistant = assistant;
+        this.executor = broadcastExecutor;
         this.digests = digests;
         this.clock = clock;
         addClassName("digest-view");
@@ -75,7 +86,12 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
         Button backToBoard = new Button("Board", VaadinIcon.TASKS.create(), event -> getUI().ifPresent(
                 ui -> ui.navigate(BoardView.class, new RouteParameters(BoardView.BOARD_ID, Long.toString(boardId)))));
         backToBoard.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        Div actions = new Div(previous, next, thisWeek, copy, print, backToBoard);
+        narrate.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        narrate.setId("narrate-digest");
+        narrate.setVisible(assistant.isAvailable());
+        narrative.addClassName("digest__narrative");
+        narrative.setVisible(false);
+        Div actions = new Div(previous, next, thisWeek, narrate, copy, print, backToBoard);
         actions.addClassName("digest__actions");
 
         Div toolbar = new Div(titles, actions);
@@ -83,7 +99,7 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
 
         markdown.addClassName("markdown-preview");
         markdown.addClassName("digest__body");
-        Div sheet = new Div(markdown);
+        Div sheet = new Div(narrative, markdown);
         sheet.addClassName("digest__sheet");
         add(toolbar, sheet);
         setFlexGrow(1, sheet);
@@ -117,6 +133,9 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
 
     private void show(LocalDate weekEnding) {
         digest = digests.weekly(boardId, weekEnding);
+        narrativeText = null;
+        narrative.setVisible(false);
+        narrate.setEnabled(true);
         heading.setText("Weekly digest · " + digest.boardName());
         period.setText(digest.period());
         markdown.setContent(digest.toMarkdown());
@@ -124,8 +143,33 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
                 pathTo(boardId) + "/" + weekEnding));
     }
 
+    /** Asks the assistant for the week's story and shows it above the numbers once it arrives. */
+    private void narrate() {
+        narrate.setEnabled(false);
+        narrate.setText("Writing…");
+        WeeklyDigest asked = digest;
+        getUI().ifPresent(ui -> Background.run(executor, ui, () -> assistant.digestNarrative(asked), text -> {
+            if (asked == digest) {
+                narrativeText = text;
+                narrative.setContent(text);
+                narrative.setVisible(true);
+            }
+            narrate.setText("Write a summary");
+            narrate.setEnabled(true);
+        }, failure -> {
+            Toasts.error(failure.getMessage());
+            narrate.setText("Write a summary");
+            narrate.setEnabled(true);
+        }));
+    }
+
+    /** The digest as Markdown, with the narrative in front when one was written. */
+    public String markdownToCopy() {
+        return narrativeText == null ? digest.toMarkdown() : digest.toMarkdown().replaceFirst("\n\n", "\n\n" + narrativeText.strip() + "\n\n");
+    }
+
     private void copy() {
-        String text = digest.toMarkdown();
+        String text = markdownToCopy();
         getUI().ifPresent(ui -> ui.getPage().executeJs("navigator.clipboard.writeText($0)", text));
         Toasts.success("Digest copied as Markdown");
     }

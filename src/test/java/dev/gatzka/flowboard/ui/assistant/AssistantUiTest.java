@@ -2,7 +2,9 @@ package dev.gatzka.flowboard.ui.assistant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.gatzka.flowboard.ui.FlowboardUiTest;import static org.awaitility.Awaitility.await;
+import static org.awaitility.Awaitility.await;
+
+import dev.gatzka.flowboard.ui.FlowboardUiTest;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
@@ -108,5 +110,20 @@ class AssistantUiTest extends FlowboardUiTest {
             pump();
             assertThat($(com.vaadin.flow.component.html.Span.class, dialog).withClassName("danger").all()).hasSize(1);
         });
+    }
+    @Test
+    void digestGetsANarrativeFromTheAssistant() {
+        dev.gatzka.flowboard.ui.digest.DigestView view = navigate(dev.gatzka.flowboard.ui.digest.DigestView.class,
+                Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        test($(com.vaadin.flow.component.button.Button.class).withId("narrate-digest").single()).click();
+
+        await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            pump();
+            assertThat(view.markdownToCopy()).contains("A quiet week: Mara shipped the sync");
+        });
+        assertThat($(com.vaadin.flow.component.markdown.Markdown.class).withClassName("digest__narrative").single().getContent())
+                .isEqualTo("A quiet week: Mara shipped the sync and nothing is late.");
+        assertThat(view.markdownToCopy()).startsWith("# Assisted · week of ");
+        assertThat(fake.prompts.getLast()).contains("## Done");
     }
 }
