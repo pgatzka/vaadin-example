@@ -68,6 +68,12 @@ interface CardEditorActions {
     /** Makes the attachment the card's cover image, or clears the choice with {@code null}. */
     CardSnapshot setCover(long cardId, Long attachmentId);
 
+    /** The milestones of the board, for the editor's picker. */
+    java.util.List<dev.gatzka.flowboard.domain.MilestoneSnapshot> milestones();
+
+    /** Puts the card into a milestone, or into none with {@code null}. */
+    void setMilestone(long cardId, Long milestoneId);
+
     CardSnapshot addBlocker(long cardId, long blockerId);
 
     CardSnapshot removeBlocker(long cardId, long blockerId);

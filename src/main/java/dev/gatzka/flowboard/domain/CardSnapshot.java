@@ -31,7 +31,8 @@ public record CardSnapshot(
         Instant updatedAt,
         Instant archivedAt,
         Instant laneEnteredAt,
-        Long coverAttachmentId) {
+        Long coverAttachmentId,
+        Long milestoneId) {
 
     public CardSnapshot {
         blockers = List.copyOf(blockers);
@@ -74,7 +75,8 @@ public record CardSnapshot(
                 card.getUpdatedAt(),
                 card.getArchivedAt(),
                 card.getLaneEnteredAt(),
-                card.getCoverAttachmentId());
+                card.getCoverAttachmentId(),
+                card.getMilestoneId());
     }
 
     public boolean hasChecklist() {

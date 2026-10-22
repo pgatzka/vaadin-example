@@ -48,6 +48,7 @@ import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.LaneRuleSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.RuleAction;
+import dev.gatzka.flowboard.domain.MilestoneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.domain.QuickAdd;
 import dev.gatzka.flowboard.domain.Recurrence;
@@ -76,6 +77,7 @@ import dev.gatzka.flowboard.service.SharingService;
 import dev.gatzka.flowboard.service.TimeService;
 import dev.gatzka.flowboard.service.VisitService;
 import dev.gatzka.flowboard.service.VoteService;
+import dev.gatzka.flowboard.service.MilestoneService;
 import dev.gatzka.flowboard.service.WatchService;
 import dev.gatzka.flowboard.ui.ProfileChangedEvent;
 import dev.gatzka.flowboard.ui.TimerChangedEvent;
@@ -181,6 +183,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final ActivityDialog activityDialog = new ActivityDialog();
     private final InsightsDialog insightsDialog;
     private final WatchService watchService;
+    private final MilestoneService milestoneService;
     private final DependenciesDialog dependenciesDialog = new DependenciesDialog(
             cardId -> findCard(cardId).ifPresent(this::openCard));
     private final ArchiveDialog archiveDialog;
@@ -232,6 +235,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     });
 
     private BoardSnapshot board;
+    private List<MilestoneSnapshot> milestones = List.of();
     private List<CardTemplateSnapshot> boardTemplates = List.of();
     private Instant lastVisit;
     private Set<Long> watchedCards = Set.of();
@@ -253,8 +257,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             WebhookService webhookService, WebhookDispatcher webhookDispatcher, SavedViewService savedViews,
             TimeService timeService, CardTemplateService templateService, AccessService access, AccountService accounts,
             AutomationService automations, UserSession session, Clock clock,
-            WatchService watchService) {
+            WatchService watchService, MilestoneService milestoneService) {
         this.access = access;
+        this.milestoneService = milestoneService;
         this.automations = automations;
         this.accounts = accounts;
         this.savedViews = savedViews;
@@ -367,6 +372,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
                 DigestView.class, new RouteParameters(BOARD_ID, Long.toString(board.id()))))).setId("board-digest");
         items.addItem(entry(VaadinIcon.ARCHIVE, getTranslation("board.menu.archive")), event -> openArchive()).setId("board-archive");
         items.addItem(entry(VaadinIcon.CLUSTER, getTranslation("board.menu.dependencies")), event -> openDependencies()).setId("board-dependencies");
+        items.addItem(entry(VaadinIcon.FLAG_O, getTranslation("board.menu.milestones")), event -> openMilestones()).setId("board-milestones");
         items.addItem(entry(VaadinIcon.MEGAPHONE, getTranslation("board.menu.walk")), event -> getUI().ifPresent(ui -> ui.navigate(
                 WalkView.class, new RouteParameters(WalkView.BOARD_ID, Long.toString(board.id()))))).setId("board-walk");
         items.addItem(entry(VaadinIcon.USERS, getTranslation("board.menu.members")), event ->
@@ -542,6 +548,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         laneComponents.clear();
         LaneComponent.Swimlanes swimlanes = swimlanes(snapshot);
         watchedCards = watchService.watchedOn(snapshot.id(), actor());
+        milestones = milestoneService.forBoard(snapshot.id());
         for (LaneSnapshot lane : snapshot.lanes()) {
             LaneComponent component = new LaneComponent(lane, snapshot.lanes().size(), today, now, this, swimlanes);
             laneComponents.add(component);
@@ -736,10 +743,13 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     @Override
     public void newCard(LaneSnapshot lane, String initialTitle) {
-        CardEditorDialog.forNewCard(lane, board, initialTitle, (draft, repeats) -> perform(() -> {
+        CardEditorDialog.forNewCard(lane, board, initialTitle, milestones, (draft, extras) -> perform(() -> {
             CardSnapshot created = boardService.createCard(lane.id(), draft, actor());
-            if (repeats.repeats()) {
-                boardService.setRecurrence(created.id(), repeats, actor());
+            if (extras.recurrence().repeats()) {
+                boardService.setRecurrence(created.id(), extras.recurrence(), actor());
+            }
+            if (extras.milestoneId() != null) {
+                milestoneService.assign(created.id(), extras.milestoneId(), actor());
             }
         })).open();
     }
@@ -1003,6 +1013,33 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Override
     public CardSnapshot removeChecklistItem(long itemId) {
         return changeCard(() -> checklistService.removeItem(itemId, actor()));
+    }
+
+    @Override
+    public List<MilestoneSnapshot> milestones() {
+        return milestones;
+    }
+
+    @Override
+    public Optional<MilestoneSnapshot> milestoneOf(CardSnapshot card) {
+        return card.milestoneId() == null ? Optional.empty()
+                : milestones.stream().filter(milestone -> milestone.id() == card.milestoneId()).findFirst();
+    }
+
+    @Override
+    public void setMilestone(long cardId, Long milestoneId) {
+        perform(() -> milestoneService.assign(cardId, milestoneId, actor()));
+    }
+
+    @Override
+    public void setMilestone(CardSnapshot card, Long milestoneId) {
+        setMilestone(card.id(), milestoneId);
+        String name = milestoneId == null ? null : milestones.stream().filter(m -> m.id() == milestoneId).map(MilestoneSnapshot::name).findFirst().orElse("");
+        Toasts.success(name == null ? getTranslation("board.milestoneCleared", card.title()) : getTranslation("board.milestoneSet", card.title(), name));
+    }
+
+    private void openMilestones() {
+        new MilestonesDialog(board, milestoneService, this::actor, clock).open();
     }
 
     @Override

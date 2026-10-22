@@ -141,6 +141,31 @@ class BoardsApiTest {
     }
 
     @Test
+    void managesMilestones() throws Exception {
+        long backlog = board.lanes().get(0).id();
+        HttpResponse<String> created = send("POST", "/api/boards/" + board.id() + "/milestones", "{\"name\": \"v1\", \"targetDate\": \"2030-02-01\"}");
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        long milestoneId = json.readTree(created.body()).get("id").asLong();
+        assertThat(send("POST", "/api/boards/" + board.id() + "/milestones", "{\"name\": \"  \"}").statusCode()).isEqualTo(400);
+
+        long cardId = json.readTree(send("POST", "/api/boards/" + board.id() + "/lanes/" + backlog + "/cards", "{\"title\": \"Goal\"}").body())
+                .get("id").asLong();
+        assertThat(send("POST", "/api/cards/" + cardId + "/milestone", "{\"milestoneId\": " + milestoneId + "}").statusCode()).isEqualTo(204);
+
+        JsonNode progress = json.readTree(send("GET", "/api/boards/" + board.id() + "/milestones", null).body());
+        assertThat(progress.size()).isEqualTo(1);
+        assertThat(progress.get(0).get("milestone").get("name").asString()).isEqualTo("v1");
+        assertThat(progress.get(0).get("open").asInt()).isEqualTo(1);
+        assertThat(progress.get(0).get("done").asInt()).isZero();
+        assertThat(progress.get(0).get("forecast").get("target").asString()).isEqualTo("2030-02-01");
+
+        assertThat(send("POST", "/api/cards/" + cardId + "/milestone", "{\"milestoneId\": null}").statusCode()).isEqualTo(204);
+        assertThat(send("DELETE", "/api/milestones/" + milestoneId, null).statusCode()).isEqualTo(204);
+        assertThat(send("DELETE", "/api/milestones/" + milestoneId, null).statusCode()).isEqualTo(404);
+        assertThat(json.readTree(send("GET", "/api/boards/" + board.id() + "/milestones", null).body()).size()).isZero();
+    }
+
+    @Test
     void createsBoardsFromTheExportFormat() throws Exception {
         String body = "{\"name\": \"Posted\", \"lanes\": [{\"name\": \"Todo\", \"cards\": [{\"title\": \"One\"}]}, {\"name\": \"Done\", \"done\": true}]}";
 

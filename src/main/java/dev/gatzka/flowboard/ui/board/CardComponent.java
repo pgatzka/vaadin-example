@@ -18,6 +18,7 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import dev.gatzka.flowboard.domain.CardAge;
 import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.domain.MilestoneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.service.TimeService;
@@ -38,6 +39,7 @@ public final class CardComponent extends Div {
     }
 
     private final CardSnapshot card;
+    private final Div meta;
 
     /** @param voted whether the current user has voted for the card */
     record Voting(boolean voted, Runnable onToggle) {
@@ -69,7 +71,8 @@ public final class CardComponent extends Div {
 
         Div title = new Div(card.title());
         title.addClassName("task-card__title");
-        add(title, meta(today, completed, age, voting));
+        meta = meta(today, completed, age, voting);
+        add(title, meta);
 
         if (!readOnly) {
             getElement().setAttribute("role", "button");
@@ -138,6 +141,17 @@ public final class CardComponent extends Div {
     /** The right-click menu, or {@code null} on a read-only card. */
     CardContextMenu contextMenu() {
         return contextMenu;
+    }
+
+    /** Shows which milestone the card counts towards. */
+    public void showMilestone(MilestoneSnapshot milestone) {
+        Badge badge = new Badge(milestone.name(), VaadinIcon.FLAG_O.create());
+        badge.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
+        badge.addClassName("task-card__milestone");
+        badge.getElement().setAttribute("title", milestone.hasTarget()
+                ? I18n.t("card.milestoneDue", milestone.name(), I18n.formatter("MMM d, uuuu").format(milestone.targetDate()))
+                : I18n.t("card.milestone", milestone.name()));
+        meta.addComponentAsFirst(badge);
     }
 
     /** Flags the card as changed since the viewer last opened the board. */

@@ -58,6 +58,9 @@ class BoardExchangeServiceTest {
     @Autowired
     private dev.gatzka.flowboard.service.AutomationService automationService;
 
+    @Autowired
+    private dev.gatzka.flowboard.service.MilestoneService milestoneService;
+
     private BoardSnapshot board;
 
     @BeforeEach
@@ -77,6 +80,10 @@ class BoardExchangeServiceTest {
         templateService.save(board.id(), new CardTemplateDraft("Bug", null, "Steps", Priority.URGENT, null, Set.of("bug"), 1, List.of("Reproduce", "Fix")), ACTOR);
         viewService.save(board.id(), "Hot", CardFilter.none().withPriority(Priority.HIGH).withTag("ui"), ACTOR);
         automationService.addRule(board.lanes().get(2).id(), RuleAction.ASSIGN, "Priya", ACTOR);
+        dev.gatzka.flowboard.domain.MilestoneSnapshot launch = milestoneService.create(board.id(),
+                new dev.gatzka.flowboard.domain.MilestoneDraft("Launch", LocalDate.of(2030, 6, 1)), ACTOR);
+        milestoneService.create(board.id(), new dev.gatzka.flowboard.domain.MilestoneDraft("Someday", null), ACTOR);
+        milestoneService.assign(first.id(), launch.id(), ACTOR);
     }
 
     @Test
@@ -97,6 +104,10 @@ class BoardExchangeServiceTest {
         assertThat(first.checklist()).extracting(BoardExport.ChecklistItemExport::text).containsExactly("step one", "step two");
         assertThat(first.checklist()).extracting(BoardExport.ChecklistItemExport::done).containsExactly(true, false);
         assertThat(first.comments()).extracting(BoardExport.CommentExport::author).containsExactly("Jonas");
+        assertThat(first.milestone()).isEqualTo("Launch");
+        assertThat(export.lanes().get(0).cards().get(1).milestone()).isNull();
+        assertThat(export.milestones()).extracting(BoardExport.MilestoneExport::name).containsExactly("Launch", "Someday");
+        assertThat(export.milestones().getFirst().targetDate()).isEqualTo(LocalDate.of(2030, 6, 1));
     }
 
     @Test
@@ -133,6 +144,20 @@ class BoardExchangeServiceTest {
         assertThat(viewService.forBoard(imported.id()).getFirst().filter()).isEqualTo(CardFilter.none().withPriority(Priority.HIGH).withTag("ui"));
         assertThat(automationService.rulesFor(imported.lanes().get(2).id())).extracting(r -> r.describe()).containsExactly("Assign to Priya");
         assertThat(automationService.rulesFor(imported.lanes().get(0).id())).isEmpty();
+        assertThat(milestoneService.forBoard(imported.id())).extracting(m -> m.name()).containsExactly("Launch", "Someday");
+        assertThat(first.milestoneId()).isEqualTo(milestoneService.forBoard(imported.id()).getFirst().id());
+        assertThat(imported.lanes().get(0).cards().get(1).milestoneId()).isNull();
+    }
+
+    @Test
+    void rejectsCardsReferringToUnknownMilestones() {
+        String json = """
+                {"name": "Broken", "lanes": [{"name": "Todo", "cards": [{"title": "Lost", "milestone": "Nowhere"}]}]}
+                """;
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> exchange.importBoard(exchange.parse(json.getBytes(StandardCharsets.UTF_8)), ACTOR))
+                .isInstanceOf(InvalidBoardFileException.class)
+                .hasMessageContaining("unknown milestone");
     }
 
     @Test

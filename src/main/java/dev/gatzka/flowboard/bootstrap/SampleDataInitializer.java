@@ -5,6 +5,8 @@ import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
+import dev.gatzka.flowboard.domain.MilestoneDraft;
+import dev.gatzka.flowboard.domain.MilestoneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.security.AccountService;
@@ -22,12 +24,14 @@ import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.CommentService;
 import dev.gatzka.flowboard.service.DependencyService;
+import dev.gatzka.flowboard.service.MilestoneService;
 import dev.gatzka.flowboard.repository.CardRepository;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -76,6 +80,7 @@ class SampleDataInitializer implements ApplicationRunner {
 
     private final BoardRepository boards;
     private final CardRepository cards;
+    private final MilestoneService milestones;
     private final BoardService boardService;
     private final ChecklistService checklistService;
     private final CommentService commentService;
@@ -86,9 +91,10 @@ class SampleDataInitializer implements ApplicationRunner {
 
     SampleDataInitializer(BoardRepository boards, CardRepository cards, BoardService boardService, ChecklistService checklistService,
             CommentService commentService, DependencyService dependencies, AttachmentService attachments, AccountService accounts,
-            Clock clock) {
+            MilestoneService milestones, Clock clock) {
         this.boards = boards;
         this.cards = cards;
+        this.milestones = milestones;
         this.attachments = attachments;
         this.accounts = accounts;
         this.boardService = boardService;
@@ -159,6 +165,15 @@ class SampleDataInitializer implements ApplicationRunner {
             CardSnapshot finished = card(done, earlier.getKey(), null, Priority.MEDIUM, null, people[i++ % people.length]);
             boardService.archiveCard(finished.id(), ACTOR);
             finishedDaysAgo(finished, earlier.getValue(), 2 + i % 6);
+        }
+
+        MilestoneSnapshot publicBeta = milestones.create(board.id(), new MilestoneDraft("Public beta", today.plusDays(18)), ACTOR);
+        MilestoneSnapshot foundation = milestones.create(board.id(), new MilestoneDraft("Foundation", today.minusDays(2)), ACTOR);
+        for (CardSnapshot member : List.of(guide, export, sync, dragAndDrop, editor)) {
+            milestones.assign(member.id(), publicBeta.id(), ACTOR);
+        }
+        for (CardSnapshot member : List.of(skeleton, persistence)) {
+            milestones.assign(member.id(), foundation.id(), ACTOR);
         }
 
         dependencies.addBlocker(sync.id(), persistence.id(), ACTOR);

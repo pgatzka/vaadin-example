@@ -33,12 +33,14 @@ import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
+import dev.gatzka.flowboard.domain.MilestoneSnapshot;
 import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.ui.support.Toasts;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -56,11 +58,12 @@ final class CardEditorDialog extends Dialog {
     private final DatePicker dueDate = new DatePicker(I18n.t("editor.dueDate"));
     private final IntegerField estimate = new IntegerField(I18n.t("card.estimate"));
     private final Select<Recurrence> recurrence = new Select<>();
+    private final Select<MilestoneSnapshot> milestone = new Select<>();
     private final ComboBox<String> assignee = new ComboBox<>(I18n.t("filter.assignee"));
     private final MultiSelectComboBox<String> tags = new MultiSelectComboBox<>(I18n.t("editor.tags"));
     private final List<String> assigneeOptions;
     private final List<String> tagOptions;
-    private final BiConsumer<CardDraft, Recurrence> onSave;
+    private final BiConsumer<CardDraft, Extras> onSave;
     private final BoardSnapshot board;
     private Long cardId;
     private ChecklistSection checklistSection;
@@ -74,9 +77,13 @@ final class CardEditorDialog extends Dialog {
     private Tab commentsTab;
     private CardEditorActions actions;
 
-    static CardEditorDialog forNewCard(LaneSnapshot lane, BoardSnapshot board, String initialTitle,
-            BiConsumer<CardDraft, Recurrence> onSave) {
-        CardEditorDialog dialog = new CardEditorDialog(I18n.t("editor.newIn", lane.name()), I18n.t("composer.addCard"), board, onSave);
+    /** What the editor saves besides the draft: settings that live outside {@link CardDraft}. */
+    record Extras(Recurrence recurrence, Long milestoneId) {
+    }
+
+    static CardEditorDialog forNewCard(LaneSnapshot lane, BoardSnapshot board, String initialTitle, List<MilestoneSnapshot> milestones,
+            BiConsumer<CardDraft, Extras> onSave) {
+        CardEditorDialog dialog = new CardEditorDialog(I18n.t("editor.newIn", lane.name()), I18n.t("composer.addCard"), board, milestones, onSave);
         dialog.priority.setValue(Priority.MEDIUM);
         if (initialTitle != null && !initialTitle.isBlank()) {
             dialog.title.setValue(initialTitle);
@@ -86,14 +93,19 @@ final class CardEditorDialog extends Dialog {
 
     static CardEditorDialog forCard(CardSnapshot card, BoardSnapshot board, CardEditorActions actions,
             Consumer<CardDraft> onSave, Runnable onArchive, Runnable onDelete) {
-        CardEditorDialog dialog = new CardEditorDialog(I18n.t("editor.edit"), I18n.t("common.save"), board, (draft, repeats) -> {
+        List<MilestoneSnapshot> milestones = actions.milestones();
+        CardEditorDialog dialog = new CardEditorDialog(I18n.t("editor.edit"), I18n.t("common.save"), board, milestones, (draft, extras) -> {
             onSave.accept(draft);
-            if (repeats != card.recurrence()) {
-                actions.setRecurrence(card.id(), repeats);
+            if (extras.recurrence() != card.recurrence()) {
+                actions.setRecurrence(card.id(), extras.recurrence());
+            }
+            if (!Objects.equals(extras.milestoneId(), card.milestoneId())) {
+                actions.setMilestone(card.id(), extras.milestoneId());
             }
         });
         dialog.binder.readRecord(card.toDraft());
         dialog.recurrence.setValue(card.recurrence() == null ? Recurrence.NONE : card.recurrence());
+        milestones.stream().filter(candidate -> Long.valueOf(candidate.id()).equals(card.milestoneId())).findFirst().ifPresent(dialog.milestone::setValue);
         dialog.addCardSections(card, actions);
         dialog.addDeleteButton(card, onDelete);
         dialog.addArchiveButton(onArchive);
@@ -194,7 +206,8 @@ final class CardEditorDialog extends Dialog {
         return card.hasComments() ? I18n.t("card.comments") + " (" + card.comments().size() + ")" : I18n.t("card.comments");
     }
 
-    private CardEditorDialog(String heading, String saveLabel, BoardSnapshot board, BiConsumer<CardDraft, Recurrence> onSave) {
+    private CardEditorDialog(String heading, String saveLabel, BoardSnapshot board, List<MilestoneSnapshot> milestones,
+            BiConsumer<CardDraft, Extras> onSave) {
         this.onSave = onSave;
         this.board = board;
         this.assigneeOptions = new ArrayList<>(board.assignees());
@@ -206,6 +219,8 @@ final class CardEditorDialog extends Dialog {
         setCloseOnOutsideClick(false);
 
         configureFields();
+        milestone.setItems(milestones);
+        milestone.setVisible(!milestones.isEmpty());
         bindFields();
         add(form());
 
@@ -249,6 +264,12 @@ final class CardEditorDialog extends Dialog {
         recurrence.setValue(Recurrence.NONE);
         recurrence.setHelperText(I18n.t("editor.repeatsHelper"));
         recurrence.addClassName("card-recurrence");
+
+        milestone.setLabel(I18n.t("editor.milestone"));
+        milestone.setEmptySelectionAllowed(true);
+        milestone.setEmptySelectionCaption(I18n.t("editor.noMilestone"));
+        milestone.setItemLabelGenerator(candidate -> candidate == null ? "" : candidate.name());
+        milestone.addClassName("card-milestone");
 
         assignee.setItems(assigneeOptions);
         assignee.setAllowCustomValue(true);
@@ -320,7 +341,7 @@ final class CardEditorDialog extends Dialog {
         form.add(descriptionSection, 2);
         form.add(priority, assignee, startDate, dueDate, estimate);
         form.add(tags, 2);
-        form.add(recurrence, 2);
+        form.add(recurrence, milestone);
         return form;
     }
 
@@ -398,7 +419,7 @@ final class CardEditorDialog extends Dialog {
 
     private void save() {
         try {
-            onSave.accept(binder.writeRecord(), recurrence.getValue());
+            onSave.accept(binder.writeRecord(), new Extras(recurrence.getValue(), milestone.getValue() == null ? null : milestone.getValue().id()));
             close();
         } catch (ValidationException invalid) {
             // Field level messages are already visible.

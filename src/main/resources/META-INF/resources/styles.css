@@ -2946,3 +2946,110 @@ vaadin-dialog.activity-sheet::part(content) {
   object-fit: cover;
   border-radius: var(--lumo-border-radius-m);
 }
+
+/* ---------------------------------------------------------------- milestones */
+
+.milestones__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-s);
+  margin-bottom: var(--lumo-space-m);
+}
+
+.milestones__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--lumo-space-xs) var(--lumo-space-s);
+  padding: var(--lumo-space-s) var(--lumo-space-m);
+  border: 1px solid var(--lumo-contrast-10pct);
+  border-radius: var(--lumo-border-radius-m);
+}
+
+.milestones__row[data-state="complete"] {
+  border-color: var(--lumo-success-color-50pct);
+  background: var(--lumo-success-color-10pct);
+}
+
+.milestones__row[data-state="late"] {
+  border-color: var(--lumo-error-color-50pct);
+}
+
+.milestones__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--lumo-space-xs) var(--lumo-space-s);
+}
+
+.milestones__name {
+  font-weight: 600;
+}
+
+.milestones__date {
+  font-size: var(--lumo-font-size-s);
+  color: var(--lumo-secondary-text-color);
+}
+
+.milestones__row[data-state="late"] .milestones__date {
+  color: var(--lumo-error-text-color);
+}
+
+.milestones__actions {
+  display: flex;
+  gap: var(--lumo-space-xs);
+  grid-row: span 2;
+  align-self: start;
+}
+
+.milestones__bar {
+  grid-template-columns: 1fr 8rem;
+}
+
+.milestones__foot {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lumo-space-xs) var(--lumo-space-s);
+  font-size: var(--lumo-font-size-xs);
+  color: var(--lumo-tertiary-text-color);
+}
+
+.milestones__chance[data-state="ok"] {
+  --vaadin-badge-background: var(--lumo-success-color-10pct);
+  --vaadin-badge-text-color: var(--lumo-success-text-color);
+}
+
+.milestones__chance[data-state="maybe"] {
+  --vaadin-badge-background: var(--lumo-warning-color-10pct);
+  --vaadin-badge-text-color: var(--lumo-warning-text-color);
+}
+
+.milestones__chance[data-state="warn"] {
+  --vaadin-badge-background: var(--lumo-error-color-10pct);
+  --vaadin-badge-text-color: var(--lumo-error-text-color);
+}
+
+.milestones__form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--lumo-space-s);
+  align-items: end;
+  padding-top: var(--lumo-space-s);
+  border-top: 1px solid var(--lumo-contrast-10pct);
+}
+
+.milestones__form-buttons {
+  grid-column: span 2;
+  display: flex;
+  gap: var(--lumo-space-s);
+}
+
+.task-card__milestone {
+  max-width: 100%;
+}
+
+.task-card__milestone span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -8,6 +8,9 @@ import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.CardTemplateDraft;
 import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.Forecast;
+import dev.gatzka.flowboard.domain.MilestoneDraft;
+import dev.gatzka.flowboard.domain.MilestoneProgress;
+import dev.gatzka.flowboard.domain.MilestoneSnapshot;
 import dev.gatzka.flowboard.domain.WeeklyDigest;
 import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.exchange.BoardExport;
@@ -20,6 +23,7 @@ import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.CardTemplateService;
 import dev.gatzka.flowboard.service.DigestService;
 import dev.gatzka.flowboard.service.InsightsService;
+import dev.gatzka.flowboard.service.MilestoneService;
 import dev.gatzka.flowboard.service.TimeService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.SharingService;
@@ -55,6 +59,7 @@ public class BoardsApi {
     private final AccountService accounts;
     private final DigestService digests;
     private final InsightsService insights;
+    private final MilestoneService milestoneService;
     private final TimeService time;
     private final CardTemplateService templates;
     private final ActivityLog activityLog;
@@ -63,9 +68,10 @@ public class BoardsApi {
     private final Clock clock;
 
     BoardsApi(BoardService boardService, BoardExchangeService exchange, AccountService accounts, DigestService digests,
-            InsightsService insights, TimeService time, CardTemplateService templates, ActivityLog activityLog, AccessService access,
-            SharingService sharing, Clock clock) {
+            InsightsService insights, MilestoneService milestoneService, TimeService time, CardTemplateService templates,
+            ActivityLog activityLog, AccessService access, SharingService sharing, Clock clock) {
         this.access = access;
+        this.milestoneService = milestoneService;
         this.insights = insights;
         this.sharing = sharing;
         this.boardService = boardService;
@@ -165,6 +171,35 @@ public class BoardsApi {
         return insights.forecast(boardId);
     }
 
+    /** The board's milestones with their progress and the chance of hitting each target. */
+    @GetMapping("/boards/{boardId}/milestones")
+    public List<MilestoneProgress> milestones(@PathVariable long boardId, Principal caller) {
+        requireAccess(boardId, caller);
+        return milestoneService.progress(boardId);
+    }
+
+    @PostMapping(path = "/boards/{boardId}/milestones", consumes = "application/json")
+    public ResponseEntity<MilestoneSnapshot> createMilestone(@PathVariable long boardId, @RequestBody MilestoneDraft draft, Principal caller) {
+        requireAccess(boardId, caller);
+        return ResponseEntity.status(HttpStatus.CREATED).body(milestoneService.create(boardId, draft, actor(caller)));
+    }
+
+    @DeleteMapping("/milestones/{milestoneId}")
+    public ResponseEntity<Void> deleteMilestone(@PathVariable long milestoneId, Principal caller) {
+        MilestoneSnapshot milestone = milestoneService.find(milestoneId).orElseThrow(() -> new NotFoundException("Milestone", milestoneId));
+        requireAccess(milestone.boardId(), caller);
+        milestoneService.delete(milestoneId, actor(caller));
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Puts a card into a milestone of its board; {@code {"milestoneId": null}} takes it out. */
+    @PostMapping(path = "/cards/{cardId}/milestone", consumes = "application/json")
+    public ResponseEntity<Void> setMilestone(@PathVariable long cardId, @RequestBody MilestoneRequest request, Principal caller) {
+        requireCardAccess(cardId, caller);
+        milestoneService.assign(cardId, request.milestoneId(), actor(caller));
+        return ResponseEntity.noContent().build();
+    }
+
     /** The same digest as Markdown, ready to paste into a chat. */
     @GetMapping(path = "/boards/{boardId}/digest.md", produces = "text/markdown;charset=UTF-8")
     public String digestMarkdown(@PathVariable long boardId, @RequestParam(required = false) LocalDate week, Principal caller) {
@@ -232,6 +267,9 @@ public class BoardsApi {
     }
 
     public record TimeRequest(int minutes, String note) {
+    }
+
+    public record MilestoneRequest(Long milestoneId) {
     }
 
     public record FromTemplateRequest(long laneId) {

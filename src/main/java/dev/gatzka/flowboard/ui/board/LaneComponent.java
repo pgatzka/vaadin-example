@@ -269,6 +269,7 @@ final class LaneComponent extends Div {
                 component.markWatching();
             }
             card.cover().ifPresent(cover -> component.showCover(cover, actions::attachmentContent));
+            actions.milestoneOf(card).ifPresent(component::showMilestone);
             makeDraggable(component, card);
             makeInsertTarget(component, card, actions, row);
             component.setContextMenu(new CardContextMenu(component, card, lane, actions));

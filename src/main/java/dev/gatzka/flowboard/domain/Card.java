@@ -62,6 +62,10 @@ public class Card {
     @Column(name = "cover_attachment_id")
     private Long coverAttachmentId;
 
+    /** The milestone the card counts towards, if any. */
+    @Column(name = "milestone_id")
+    private Long milestoneId;
+
     @Column(length = 60)
     private String assignee;
 
@@ -236,6 +240,16 @@ public class Card {
     /** Attachments oldest first; read-only, modify through the card. */
     public Long getCoverAttachmentId() {
         return coverAttachmentId;
+    }
+
+    public Long getMilestoneId() {
+        return milestoneId;
+    }
+
+    /** Links the card to a milestone of its board, or to none. */
+    public void setMilestone(Long milestoneId, Instant now) {
+        this.milestoneId = milestoneId;
+        this.updatedAt = requireNonNull(now);
     }
 
     /** Picks the attachment shown as the card's cover; it must be one of the card's own image attachments. */

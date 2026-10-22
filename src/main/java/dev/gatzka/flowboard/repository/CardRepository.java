@@ -30,6 +30,11 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     /** Cards completed since {@code since}, archived ones included: they were still delivered. */
     List<Card> findAllByLaneBoardIdAndCompletedAtGreaterThanEqual(long boardId, java.time.Instant since);
 
+    @Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("update Card c set c.milestoneId = null where c.milestoneId = :milestoneId")
+    void clearMilestone(long milestoneId);
+
     /** Rewrites the lifecycle timestamps of a card, for seeding history that did not really happen now. */
     @Modifying
     @org.springframework.transaction.annotation.Transactional

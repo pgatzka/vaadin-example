@@ -20,6 +20,7 @@ import dev.gatzka.flowboard.repository.CardRepository;
 import dev.gatzka.flowboard.repository.CardTemplateRepository;
 import dev.gatzka.flowboard.repository.LaneRepository;
 import dev.gatzka.flowboard.repository.SavedViewRepository;
+import dev.gatzka.flowboard.repository.MilestoneRepository;
 import dev.gatzka.flowboard.repository.WebhookRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -52,6 +53,7 @@ public class BoardService {
     private final NotificationService notifications;
     private final VisitService visits;
     private final WebhookRepository webhooks;
+    private final MilestoneRepository milestones;
     private final SavedViewRepository savedViews;
     private final CardTemplateRepository cardTemplates;
     private final BoardMemberRepository boardMembers;
@@ -60,7 +62,7 @@ public class BoardService {
     private final Clock clock;
 
     BoardService(BoardRepository boards, LaneRepository lanes, CardRepository cards, ActivityLog activityLog,
-            NotificationService notifications, VisitService visits, WebhookRepository webhooks,
+            NotificationService notifications, VisitService visits, WebhookRepository webhooks, MilestoneRepository milestones,
             SavedViewRepository savedViews, CardTemplateRepository cardTemplates, BoardMemberRepository boardMembers,
             AutomationService automations, Clock clock, WatchService watches) {
         this.automations = automations;
@@ -69,6 +71,7 @@ public class BoardService {
         this.boardMembers = boardMembers;
         this.visits = visits;
         this.webhooks = webhooks;
+        this.milestones = milestones;
         this.savedViews = savedViews;
         this.boards = boards;
         this.lanes = lanes;
@@ -125,6 +128,7 @@ public class BoardService {
         watches.forgetBoard(boardId);
         visits.forgetBoard(boardId);
         webhooks.deleteAllByBoardId(boardId);
+        milestones.deleteAllByBoardId(boardId);
         savedViews.deleteAllByBoardId(boardId);
         cardTemplates.deleteAllByBoardId(boardId);
         boardMembers.deleteAllByBoardId(boardId);

@@ -104,6 +104,15 @@ interface BoardActions {
     /** Puts the card's deep link on the clipboard. */
     void copyLink(CardSnapshot card);
 
+    /** The milestones of the board, dated ones first. */
+    List<dev.gatzka.flowboard.domain.MilestoneSnapshot> milestones();
+
+    /** The milestone the card counts towards, if any. */
+    java.util.Optional<dev.gatzka.flowboard.domain.MilestoneSnapshot> milestoneOf(CardSnapshot card);
+
+    /** Puts the card into a milestone, or into none with {@code null}. */
+    void setMilestone(CardSnapshot card, Long milestoneId);
+
     /** Whether the lane is folded to a narrow strip for the current user. */
     boolean isCollapsed(LaneSnapshot lane);
 

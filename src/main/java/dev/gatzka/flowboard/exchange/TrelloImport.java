@@ -113,7 +113,7 @@ final class TrelloImport {
             cardsByList.computeIfAbsent(text(card, "idList"), id -> new ArrayList<>()).add(new CardExport(
                     text(card, "name"), description == null || description.isBlank() ? null : description, priority,
                     dueDate(text(card, "start")), dueDate(text(card, "due")), assignee, tags, null, Recurrence.NONE,
-                    checklists.getOrDefault(cardId, List.of()), comments.getOrDefault(cardId, List.of())));
+                    checklists.getOrDefault(cardId, List.of()), comments.getOrDefault(cardId, List.of()), null));
         }
         List<LaneExport> lanes = new ArrayList<>();
         for (JsonNode list : sortedByPosition(root.path("lists"))) {
@@ -129,7 +129,7 @@ final class TrelloImport {
         }
         String description = text(root, "desc");
         return new BoardExport(BoardExport.CURRENT_VERSION, name.strip(), description == null || description.isBlank() ? null : description,
-                null, lanes, List.of(), List.of());
+                null, lanes, List.of(), List.of(), List.of());
     }
 
     private static String labelName(JsonNode label) {

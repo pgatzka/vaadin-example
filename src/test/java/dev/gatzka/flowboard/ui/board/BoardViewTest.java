@@ -1034,6 +1034,47 @@ class BoardViewTest extends FlowboardUiTest {
         assertThat(visibleCardTitles()).containsExactly("Hidden while folded");
     }
 
+    @Test
+    void milestonesAreManagedFromTheBoardAndShownOnCards() {
+        CardSnapshot card = createCard("Toward the goal");
+        openBoard();
+        assertThat($(MenuItem.class, cardComponent(card.id()).contextMenu()).withClassName("card-menu__milestone").all())
+                .as("no milestone entry without milestones").isEmpty();
+
+        test($(MenuItem.class).withId("board-milestones").single()).click();
+        MilestonesDialog dialog = $(MilestonesDialog.class).single();
+        test($(Button.class, dialog).withId("save-milestone").single()).click();
+        assertThat($(TextField.class, dialog).withId("milestone-name").single().isInvalid()).as("a name is required").isTrue();
+        test($(TextField.class, dialog).withId("milestone-name").single()).setValue("Launch");
+        test($(com.vaadin.flow.component.datepicker.DatePicker.class, dialog).withId("milestone-target").single()).setValue(LocalDate.now().plusDays(20));
+        test($(Button.class, dialog).withId("save-milestone").single()).click();
+        assertThat($(Div.class, dialog).withClassName("milestones__row").all()).hasSize(1);
+        assertThat($(Span.class, dialog).withClassName("milestones__count").single().getText()).isEqualTo("0 of 0 cards done");
+        dialog.close();
+
+        chooseFromMenu(card, "card-menu__milestone", "Launch");
+        assertThat(findCard(card.id()).milestoneId()).isNotNull();
+        assertThat($(Badge.class, cardComponent(card.id())).withClassName("task-card__milestone").single().getText()).isEqualTo("Launch");
+
+        test(cardComponent(card.id())).click();
+        CardEditorDialog editor = $(CardEditorDialog.class).single();
+        Select<?> picker = $(Select.class, editor).withClassName("card-milestone").single();
+        assertThat(picker.getValue()).extracting(value -> ((dev.gatzka.flowboard.domain.MilestoneSnapshot) value).name()).isEqualTo("Launch");
+        test(picker).selectItem(null);
+        test($(Button.class, editor).withText("Save").single()).click();
+        assertThat(findCard(card.id()).milestoneId()).isNull();
+        assertThat($(Badge.class, cardComponent(card.id())).withClassName("task-card__milestone").all()).isEmpty();
+
+        test($(MenuItem.class).withId("board-milestones").single()).click();
+        MilestonesDialog again = $(MilestonesDialog.class).single();
+        test($(Button.class, again).withClassName("edit-milestone").single()).click();
+        test($(TextField.class, again).withId("milestone-name").single()).setValue("Launch v2");
+        test($(Button.class, again).withId("save-milestone").single()).click();
+        assertThat($(Span.class, again).withClassName("milestones__name").single().getText()).isEqualTo("Launch v2");
+        test($(Button.class, again).withClassName("remove-milestone").single()).click();
+        assertThat($(Div.class, again).withClassName("milestones__row").all()).isEmpty();
+    }
+
     private void chooseFromMenu(CardSnapshot card, String menuClass, String choice) {
         MenuItem parent = $(MenuItem.class, cardComponent(card.id()).contextMenu()).withClassName(menuClass).single();
         click(parent.getSubMenu().getItems().stream().filter(item -> choice.equals(item.getText())).findFirst().orElseThrow());

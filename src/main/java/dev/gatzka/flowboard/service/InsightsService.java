@@ -82,9 +82,17 @@ public class InsightsService {
 
     /** When the open cards will be done, simulated from the board's completions of the last {@value Forecast#HISTORY_DAYS} days. */
     public Forecast forecast(long boardId) {
+        List<Card> open = cards.findAllByLaneBoardIdAndArchivedAtIsNullOrderByPositionAsc(boardId).stream()
+                .filter(card -> !card.getLane().isDone())
+                .toList();
+        LocalDate target = open.stream().map(Card::getDueDate).filter(Objects::nonNull).max(Comparator.naturalOrder()).orElse(null);
+        return Forecast.of(open.size(), throughput(boardId), LocalDate.now(clock), target, boardId);
+    }
+
+    /** Cards completed on each of the last {@value Forecast#HISTORY_DAYS} days, oldest first, archived cards included. */
+    public List<Integer> throughput(long boardId) {
         ZoneId zone = clock.getZone();
-        LocalDate today = LocalDate.now(clock);
-        LocalDate firstDay = today.minusDays(Forecast.HISTORY_DAYS - 1L);
+        LocalDate firstDay = LocalDate.now(clock).minusDays(Forecast.HISTORY_DAYS - 1L);
         int[] perDay = new int[Forecast.HISTORY_DAYS];
         for (Card card : cards.findAllByLaneBoardIdAndCompletedAtGreaterThanEqual(boardId, firstDay.atStartOfDay(zone).toInstant())) {
             int index = (int) ChronoUnit.DAYS.between(firstDay, LocalDate.ofInstant(card.getCompletedAt(), zone));
@@ -92,11 +100,7 @@ public class InsightsService {
                 perDay[index]++;
             }
         }
-        List<Card> open = cards.findAllByLaneBoardIdAndArchivedAtIsNullOrderByPositionAsc(boardId).stream()
-                .filter(card -> !card.getLane().isDone())
-                .toList();
-        LocalDate target = open.stream().map(Card::getDueDate).filter(Objects::nonNull).max(Comparator.naturalOrder()).orElse(null);
-        return Forecast.of(open.size(), Arrays.stream(perDay).boxed().toList(), today, target, boardId);
+        return Arrays.stream(perDay).boxed().toList();
     }
 
     public BoardInsights forBoard(long boardId) {

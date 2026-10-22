@@ -33,8 +33,8 @@ Java on top of Vaadin Flow's server push.
 | ![Covers](docs/covers.png) | ![Focus](docs/focus.png) | ![Watch](docs/watch.png) |
 | Auf Deutsch | Card context menu | Collapsed lane |
 | ![German](docs/german.png) | ![Context menu](docs/context-menu.png) | ![Collapsed lane](docs/collapsed-lane.png) |
-| Delivery forecast | | |
-| ![Forecast](docs/forecast.png) | | |
+| Delivery forecast | Milestones | |
+| ![Forecast](docs/forecast.png) | ![Milestones](docs/milestones.png) | |
 
 ## Features
 
@@ -88,6 +88,10 @@ Java on top of Vaadin Flow's server push.
   simulation fed by the board's own completions of the last 60 days: the dates by which 50, 85 and
   95 percent of 5,000 replays had finished, the spread behind them, and the chance of clearing the
   board by its latest due date. No estimates needed; quiet days count as part of the pace.
+- **Milestones** (More → Milestones): goals with a target date that cards count towards, from the
+  editor or the card menu. Each milestone shows its progress bar and, from the same simulation as
+  the board forecast, the chance of finishing its open cards by the date. Milestones travel with
+  the JSON export and have their own API.
 - **Right-click a card** for the everyday changes without opening it: move it to another lane, hand it to someone, set the priority, watch it, copy its link or archive it
 - **Collapsible lanes**: fold a lane to a narrow strip that still shows its name and count and still takes drops; the fold is remembered per board for your session
 - **Swimlanes**: group a board by assignee, priority or tag and the lanes turn into a grid with one row per group; dropping a card into another row reassigns, re-prioritises or tags it on the way, and the choice is remembered per board
@@ -201,6 +205,10 @@ account's display name is what the activity feed shows.
 | `DELETE /api/cards/{id}` | Delete a card |
 | `POST /api/cards/{id}/time` | Log time in your name: `{"minutes": 30, "note": "…"}` |
 | `GET /api/boards/{id}/activity` | Recent history of the board, newest first |
+| `GET /api/boards/{id}/milestones` | Milestones with done/open counts and the chance of making each target |
+| `POST /api/boards/{id}/milestones` | Create a milestone (`name`, optional `targetDate`) |
+| `DELETE /api/milestones/{id}` | Remove a milestone; its cards stay |
+| `POST /api/cards/{id}/milestone` | Put a card into a milestone (`{"milestoneId": 7}`) or into none (`null`) |
 | `GET /api/boards/{id}/forecast` | The delivery forecast: confidence dates, the finishing-day distribution and the daily throughput it was built from |
 | `GET /api/boards/{id}/digest` | The weekly digest as JSON; `?week=2026-10-21` picks the week ending that day |
 | `GET /api/boards/{id}/calendar.ics` | The board's due dates as iCalendar, for members |

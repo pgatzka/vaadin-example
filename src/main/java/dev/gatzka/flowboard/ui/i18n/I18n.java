@@ -4,6 +4,8 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.i18n.I18NProvider;
 import com.vaadin.flow.server.VaadinService;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.time.LocalDate;
 import java.util.Locale;
 
 /** Shorthand for translated texts from code that is not a component. */
@@ -29,6 +31,16 @@ public final class I18n {
     /** A date formatter in the current language. */
     public static DateTimeFormatter formatter(String pattern) {
         return DateTimeFormatter.ofPattern(pattern, locale());
+    }
+
+    /** Weekday and date in the locale's medium form, e.g. "Tue, Oct 20, 2026" or "Di., 20.10.2026". */
+    public static String weekdayAndDate(LocalDate date) {
+        return formatter("EEE").format(date) + ", " + DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale()).format(date);
+    }
+
+    /** Weekday, day and month without the year, e.g. "Thu, Nov 12" or "Do., 12. Nov.". */
+    public static String weekdayAndDay(LocalDate date) {
+        return formatter("de".equals(locale().getLanguage()) ? "EEE, d. MMM" : "EEE, MMM d").format(date);
     }
 
     /** "card" or "cards" style plural from two keys. */

@@ -6,10 +6,12 @@ import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.html.Hr;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
+import dev.gatzka.flowboard.domain.MilestoneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.ui.i18n.I18n;
 import dev.gatzka.flowboard.ui.i18n.Labels;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -52,6 +54,19 @@ final class CardContextMenu extends ContextMenu {
             MenuItem item = priority.getSubMenu().addItem(Labels.priority(level), event -> actions.prioritiseCard(card, level));
             item.setCheckable(true);
             item.setChecked(level == card.priority());
+        }
+
+        List<MilestoneSnapshot> milestones = actions.milestones();
+        if (!milestones.isEmpty()) {
+            MenuItem milestone = addItem(I18n.t("cardMenu.milestone"));
+            milestone.addClassName("card-menu__milestone");
+            for (MilestoneSnapshot candidate : milestones) {
+                MenuItem item = milestone.getSubMenu().addItem(candidate.name(), event -> actions.setMilestone(card, candidate.id()));
+                item.setCheckable(true);
+                item.setChecked(Long.valueOf(candidate.id()).equals(card.milestoneId()));
+            }
+            MenuItem none = milestone.getSubMenu().addItem(I18n.t("cardMenu.noMilestone"), event -> actions.setMilestone(card, null));
+            none.setEnabled(card.milestoneId() != null);
         }
 
         boolean watching = actions.isWatching(card);

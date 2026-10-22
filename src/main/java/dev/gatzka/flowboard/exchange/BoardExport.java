@@ -21,12 +21,14 @@ public record BoardExport(
         Instant exportedAt,
         List<LaneExport> lanes,
         List<TemplateExport> templates,
-        List<ViewExport> views) {
+        List<ViewExport> views,
+        List<MilestoneExport> milestones) {
 
     public BoardExport {
         lanes = lanes == null ? List.of() : List.copyOf(lanes);
         templates = templates == null ? List.of() : List.copyOf(templates);
         views = views == null ? List.of() : List.copyOf(views);
+        milestones = milestones == null ? List.of() : List.copyOf(milestones);
     }
 
     /** A card template of the board. */
@@ -37,6 +39,10 @@ public record BoardExport(
             tags = tags == null ? Set.of() : Collections.unmodifiableSortedSet(new TreeSet<>(tags));
             checklist = checklist == null ? List.of() : List.copyOf(checklist);
         }
+    }
+
+    /** A milestone of the board; cards refer to it by name. */
+    public record MilestoneExport(String name, LocalDate targetDate) {
     }
 
     /** A saved view: a name and the filter in its URL form, e.g. {@code p=high&tag=ops}. */
@@ -68,7 +74,8 @@ public record BoardExport(
             Integer estimate,
             Recurrence recurrence,
             List<ChecklistItemExport> checklist,
-            List<CommentExport> comments) {
+            List<CommentExport> comments,
+            String milestone) {
 
         public CardExport {
             recurrence = recurrence == null ? Recurrence.NONE : recurrence;
