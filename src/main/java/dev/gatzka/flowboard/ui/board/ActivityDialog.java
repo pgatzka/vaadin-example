@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -16,18 +18,18 @@ import java.util.List;
 final class ActivityDialog extends Dialog {
 
     private final MessageList messages = new MessageList();
-    private final Span empty = new Span("Nothing has happened on this board yet.");
+    private final Span empty = new Span(I18n.t("activity.empty"));
 
     ActivityDialog() {
         addClassName("activity-sheet");
-        setHeaderTitle("Activity");
+        setHeaderTitle(I18n.t("board.activity"));
         setModal(false);
         setDraggable(false);
         setCloseOnOutsideClick(true);
 
         Button close = new Button(VaadinIcon.CLOSE_SMALL.create(), event -> close());
         close.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        close.setAriaLabel("Close activity");
+        close.setAriaLabel(I18n.t("activity.close"));
         getHeader().add(close);
 
         empty.addClassName("activity-sheet__empty");

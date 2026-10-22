@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.calendar;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
@@ -88,17 +90,17 @@ public class CalendarView extends VerticalLayout implements BeforeEnterObserver,
 
         Button previous = new Button(VaadinIcon.ANGLE_LEFT.create(), event -> show(month.month().minusMonths(1)));
         previous.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        previous.setAriaLabel("Previous month");
+        previous.setAriaLabel(I18n.t("calendar.previous"));
         Button next = new Button(VaadinIcon.ANGLE_RIGHT.create(), event -> show(month.month().plusMonths(1)));
         next.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        next.setAriaLabel("Next month");
-        Button today = new Button("Today", event -> show(YearMonth.now(clock)));
+        next.setAriaLabel(I18n.t("calendar.next"));
+        Button today = new Button(I18n.t("calendar.today"), event -> show(YearMonth.now(clock)));
         today.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         monthTitle.addClassName("calendar__month");
         Div navigation = new Div(previous, monthTitle, next, today);
         navigation.addClassName("calendar__navigation");
 
-        Button backToBoard = new Button("Board", VaadinIcon.TASKS.create(), event -> getUI().ifPresent(
+        Button backToBoard = new Button(I18n.t("common.board"), VaadinIcon.TASKS.create(), event -> getUI().ifPresent(
                 ui -> ui.navigate(BoardView.class, new RouteParameters(BoardView.BOARD_ID, Long.toString(board.id())))));
         backToBoard.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
@@ -112,7 +114,7 @@ public class CalendarView extends VerticalLayout implements BeforeEnterObserver,
         Optional<BoardSnapshot> found = event.getRouteParameters().getLong(BoardView.BOARD_ID).flatMap(boardService::findBoard)
                 .filter(snapshot -> access.canAccess(snapshot.id(), session.login()));
         if (found.isEmpty()) {
-            Toasts.error("That board does not exist or is not open to you");
+            Toasts.error(I18n.t("board.notFound"));
             event.forwardTo(BoardsView.class);
             return;
         }
@@ -123,7 +125,7 @@ public class CalendarView extends VerticalLayout implements BeforeEnterObserver,
 
     @Override
     public String getPageTitle() {
-        return board == null ? "Flowboard" : board.name() + " calendar · Flowboard";
+        return board == null ? "Flowboard" : I18n.t("calendar.pageTitle", board.name()) + " \u00b7 Flowboard";
     }
 
     @Override
@@ -162,7 +164,7 @@ public class CalendarView extends VerticalLayout implements BeforeEnterObserver,
     private void render(YearMonth target) {
         month = CalendarMonth.of(target);
         heading.setText(board.name());
-        monthTitle.setText(month.title());
+        monthTitle.setText(month.title(I18n.locale()));
 
         LocalDate today = LocalDate.now(clock);
         Map<Long, LaneSnapshot> lanesById = board.lanes().stream().collect(Collectors.toMap(LaneSnapshot::id, lane -> lane));
@@ -175,14 +177,14 @@ public class CalendarView extends VerticalLayout implements BeforeEnterObserver,
         grid.removeAll();
         grid.getStyle().set("--calendar-weeks", Integer.toString(month.weeks()));
         for (DayOfWeek weekday : DayOfWeek.values()) {
-            Span header = new Span(weekday.getDisplayName(TextStyle.SHORT, Locale.ENGLISH));
+            Span header = new Span(weekday.getDisplayName(TextStyle.SHORT, I18n.locale()));
             header.addClassName("calendar__weekday");
             grid.add(header);
         }
         for (LocalDate day : month.days()) {
             grid.add(cell(day, today, cardsByDay.getOrDefault(day, List.of()), lanesById));
         }
-        undated.setText(withoutDueDate == 0 ? "" : withoutDueDate + (withoutDueDate == 1 ? " card has" : " cards have") + " no due date.");
+        undated.setText(withoutDueDate == 0 ? "" : I18n.t("calendar.undated", withoutDueDate));
     }
 
     private Div cell(LocalDate day, LocalDate today, List<CardSnapshot> cards, Map<Long, LaneSnapshot> lanesById) {

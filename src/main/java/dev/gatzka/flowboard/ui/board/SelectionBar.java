@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -40,7 +42,7 @@ final class SelectionBar extends Div {
         setVisible(false);
         count.addClassName("selection-bar__count");
 
-        lane.setPlaceholder("Move to…");
+        lane.setPlaceholder(I18n.t("selection.moveTo"));
         lane.setItemLabelGenerator(LaneSnapshot::name);
         lane.addValueChangeListener(event -> {
             if (event.getValue() != null && event.isFromClient()) {
@@ -50,7 +52,7 @@ final class SelectionBar extends Div {
         });
         lane.addClassName("selection-bar__lane");
 
-        assignee.setPlaceholder("Assign to…");
+        assignee.setPlaceholder(I18n.t("selection.assignTo"));
         assignee.setAllowCustomValue(true);
         assignee.addCustomValueSetListener(event -> actions.assignSelected(event.getDetail()));
         assignee.addValueChangeListener(event -> {
@@ -61,9 +63,9 @@ final class SelectionBar extends Div {
         });
         assignee.addClassName("selection-bar__assignee");
 
-        priority.setPlaceholder("Priority…");
+        priority.setPlaceholder(I18n.t("selection.priority"));
         priority.setItems(Priority.values());
-        priority.setItemLabelGenerator(Priority::label);
+        priority.setItemLabelGenerator(Labels::priority);
         priority.addValueChangeListener(event -> {
             if (event.getValue() != null && event.isFromClient()) {
                 actions.prioritiseSelected(event.getValue());
@@ -72,7 +74,7 @@ final class SelectionBar extends Div {
         });
         priority.addClassName("selection-bar__priority");
 
-        tag.setPlaceholder("Add tag…");
+        tag.setPlaceholder(I18n.t("selection.addTag"));
         tag.setAllowCustomValue(true);
         tag.addCustomValueSetListener(event -> actions.tagSelected(event.getDetail()));
         tag.addValueChangeListener(event -> {
@@ -83,12 +85,12 @@ final class SelectionBar extends Div {
         });
         tag.addClassName("selection-bar__tag");
 
-        Button archive = new Button("Archive", VaadinIcon.ARCHIVE.create(), event -> actions.archiveSelected());
+        Button archive = new Button(I18n.t("selection.archive"), VaadinIcon.ARCHIVE.create(), event -> actions.archiveSelected());
         archive.addThemeVariants(ButtonVariant.LUMO_SMALL);
         archive.setId("archive-selected");
         Button clear = new Button(VaadinIcon.CLOSE_SMALL.create(), event -> actions.clearSelection());
         clear.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        clear.setAriaLabel("Clear selection");
+        clear.setAriaLabel(I18n.t("selection.clear"));
         clear.setId("clear-selection");
 
         add(count, lane, assignee, priority, tag, archive, clear);
@@ -97,7 +99,7 @@ final class SelectionBar extends Div {
     /** Shows the bar for the given number of cards, with the board's lanes, names and tags as choices. */
     void show(int selected, BoardSnapshot board, Collection<String> assignees, Collection<String> tags) {
         setVisible(selected > 0);
-        count.setText(selected + (selected == 1 ? " card selected" : " cards selected"));
+        count.setText(I18n.t("selection.count", selected));
         lane.setItems(board.lanes());
         assignee.setItems(assignees);
         tag.setItems(tags);

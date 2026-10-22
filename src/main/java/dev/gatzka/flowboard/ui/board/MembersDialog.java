@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.avatar.AvatarVariant;
 import com.vaadin.flow.component.button.Button;
@@ -25,7 +27,7 @@ final class MembersDialog extends Dialog {
     private final AccessService access;
     private final AccountService accounts;
     private final UserSession session;
-    private final Checkbox membersOnly = new Checkbox("Members only: hide this board from everyone else");
+    private final Checkbox membersOnly = new Checkbox(I18n.t("members.onlyLabel"));
     private final Div list = new Div();
     private final ComboBox<String> newMember = new ComboBox<>();
 
@@ -34,37 +36,36 @@ final class MembersDialog extends Dialog {
         this.access = access;
         this.accounts = accounts;
         this.session = session;
-        setHeaderTitle("Members of \"" + board.name() + "\"");
+        setHeaderTitle(I18n.t("members.title", board.name()));
         setWidth("min(520px, 95vw)");
         addClassName("members-dialog");
 
-        Span hint = new Span("Boards are open to everyone who signs in. Make this one members only and it disappears "
-                + "for everybody who is not on the list. The public read-only link, if on, keeps working.");
+        Span hint = new Span(I18n.t("members.hint"));
         hint.addClassName("share-dialog__hint");
 
         membersOnly.setId("members-only");
         membersOnly.addValueChangeListener(event -> {
             if (event.isFromClient()) {
                 show(access.setMembersOnly(board.id(), event.getValue(), session.login(), session.getDisplayName()));
-                Toasts.info(event.getValue() ? "Only members can see this board now" : "Everyone can see this board again");
+                Toasts.info(I18n.t(event.getValue() ? "members.nowRestricted" : "members.nowOpen"));
             }
         });
 
         list.addClassName("members__list");
-        newMember.setPlaceholder("Add a member by login");
+        newMember.setPlaceholder(I18n.t("members.placeholder"));
         newMember.setItems(accounts.usernames());
         newMember.setAllowCustomValue(true);
         newMember.addCustomValueSetListener(event -> newMember.setValue(event.getDetail()));
         newMember.setWidthFull();
         newMember.setId("new-member");
-        Button add = new Button("Add", VaadinIcon.PLUS.create(), event -> add());
+        Button add = new Button(I18n.t("composer.add"), VaadinIcon.PLUS.create(), event -> add());
         add.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         add.setId("add-member");
         Div form = new Div(newMember, add);
         form.addClassName("members__form");
 
         add(hint, membersOnly, list, form);
-        getFooter().add(new Button("Close", event -> close()));
+        getFooter().add(new Button(I18n.t("common.close"), event -> close()));
         show(access.access(board.id()));
     }
 
@@ -72,7 +73,7 @@ final class MembersDialog extends Dialog {
         membersOnly.setValue(current.membersOnly());
         list.removeAll();
         if (current.members().isEmpty()) {
-            Span none = new Span("No members yet. Add people before making the board members only.");
+            Span none = new Span(I18n.t("members.empty"));
             none.addClassName("insights__hint");
             list.add(none);
         }
@@ -87,7 +88,7 @@ final class MembersDialog extends Dialog {
             handle.addClassName("members__login");
             Button remove = new Button(VaadinIcon.CLOSE_SMALL.create(), event -> remove(login));
             remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
-            remove.setAriaLabel("Remove " + login);
+            remove.setAriaLabel(I18n.t("files.removeAria", login));
             Div row = new Div(avatar, name, handle, remove);
             row.addClassName("members__row");
             list.add(row);

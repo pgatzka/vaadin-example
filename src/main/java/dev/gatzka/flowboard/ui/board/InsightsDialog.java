@@ -1,5 +1,8 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
+
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.avatar.AvatarVariant;
@@ -29,7 +32,6 @@ import java.util.Locale;
 /** Numbers about the board: stat tiles, load per lane, completions per day, work per person. */
 final class InsightsDialog extends Dialog {
 
-    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("MMM d");
 
     private final Div content = new Div();
 
@@ -38,14 +40,14 @@ final class InsightsDialog extends Dialog {
     InsightsDialog(java.util.function.Supplier<Instant> now) {
         this.now = now;
         addClassName("insights");
-        setHeaderTitle("Insights");
+        setHeaderTitle(I18n.t("board.insights"));
         setWidth("min(760px, 95vw)");
         setModal(false);
         setDraggable(true);
 
         Button close = new Button(VaadinIcon.CLOSE_SMALL.create(), event -> close());
         close.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        close.setAriaLabel("Close insights");
+        close.setAriaLabel(I18n.t("insights.close"));
         getHeader().add(close);
 
         content.addClassName("insights__content");
@@ -58,16 +60,16 @@ final class InsightsDialog extends Dialog {
     }
 
     private Component pulseSection(ActivityPulse pulse) {
-        Div section = section("Activity, last " + ActivityPulse.WEEKS + " weeks");
+        Div section = section(I18n.t("insights.activityWeeks", ActivityPulse.WEEKS));
         Div tiles = new Div(
-                tile("Changes", Integer.toString(pulse.totalChanges()), null),
-                tile("Active days", Long.toString(pulse.activeDays()), "of " + pulse.days().size()),
-                tile("Streak", pulse.currentStreak() + (pulse.currentStreak() == 1 ? " day" : " days"), "in a row with activity"));
+                tile(I18n.t("insights.changes"), Integer.toString(pulse.totalChanges()), null),
+                tile(I18n.t("insights.activeDays"), Long.toString(pulse.activeDays()), I18n.t("insights.of", pulse.days().size())),
+                tile(I18n.t("insights.streak"), I18n.t("insights.days", pulse.currentStreak()), I18n.t("insights.inARow")));
         tiles.addClassName("insights__tiles");
         tiles.addClassName("insights__tiles--compact");
         section.add(tiles);
         if (pulse.isQuiet()) {
-            Span hint = new Span("Nothing happened on this board in the last " + ActivityPulse.WEEKS + " weeks.");
+            Span hint = new Span(I18n.t("insights.quiet", ActivityPulse.WEEKS));
             hint.addClassName("insights__hint");
             section.add(hint);
             return section;
@@ -85,7 +87,7 @@ final class InsightsDialog extends Dialog {
                 Div row = bar(person.name(), person.changes() * 100.0 / busiest, Integer.toString(person.changes()), null);
                 row.addComponentAsFirst(avatar);
                 row.addClassName("insights__bar--person");
-                row.getElement().setAttribute("title", "Last active " + Durations.ago(person.lastActive(), now.get()));
+                row.getElement().setAttribute("title", I18n.t("insights.lastActive", Durations.ago(person.lastActive(), now.get())));
                 section.add(row);
             }
         }
@@ -93,9 +95,9 @@ final class InsightsDialog extends Dialog {
     }
 
     private static Component flowSection(CumulativeFlow flow) {
-        Div section = section("Cumulative flow");
+        Div section = section(I18n.t("insights.flow"));
         if (!flow.hasEnoughData()) {
-            Span hint = new Span("The diagram fills in as the board is used day by day. Check back tomorrow.");
+            Span hint = new Span(I18n.t("insights.flowHint"));
             hint.addClassName("insights__hint");
             section.add(hint);
             return section;
@@ -117,16 +119,16 @@ final class InsightsDialog extends Dialog {
 
     private static Component tiles(BoardInsights insights) {
         Div tiles = new Div(
-                tile("Open", Integer.toString(insights.openCards()), null),
-                tile("Completed", Integer.toString(insights.completedCards()),
-                        "%.0f%% of all cards".formatted(insights.completionRatio() * 100)),
-                tile("Overdue", Integer.toString(insights.overdueCards()), insights.overdueCards() > 0 ? "needs attention" : "nothing late")
+                tile(I18n.t("insights.open"), Integer.toString(insights.openCards()), null),
+                tile(I18n.t("card.completed"), Integer.toString(insights.completedCards()),
+                        I18n.t("insights.ofAllCards", Math.round(insights.completionRatio() * 100))),
+                tile(I18n.t("home.overdue"), Integer.toString(insights.overdueCards()), I18n.t(insights.overdueCards() > 0 ? "insights.needsAttention" : "insights.nothingLate"))
                         .withState(insights.overdueCards() > 0 ? "warn" : "ok"),
-                tile("Due in 7 days", Integer.toString(insights.dueThisWeek()), null),
-                tile("Done in 7 days", Integer.toString(insights.completedLast7Days()), null),
-                tile("Avg. cycle time", insights.averageCycleTime().map(Durations::humanize).orElse("–"), "creation to done"),
-                tile("Open points", Integer.toString(insights.openPoints()), "estimated work left"),
-                tile("Velocity", formatVelocity(insights.velocityPerWeek()), "points per week, 4-week average"));
+                tile(I18n.t("home.dueIn7Days"), Integer.toString(insights.dueThisWeek()), null),
+                tile(I18n.t("home.doneIn7Days"), Integer.toString(insights.completedLast7Days()), null),
+                tile(I18n.t("insights.cycleTime"), insights.averageCycleTime().map(Durations::humanize).orElse("\u2013"), I18n.t("insights.creationToDone")),
+                tile(I18n.t("insights.openPoints"), Integer.toString(insights.openPoints()), I18n.t("insights.workLeft")),
+                tile(I18n.t("insights.velocity"), formatVelocity(insights.velocityPerWeek()), I18n.t("insights.velocityHint")));
         tiles.addClassName("insights__tiles");
         return tiles;
     }
@@ -140,8 +142,8 @@ final class InsightsDialog extends Dialog {
     }
 
     private static Component lanes(BoardInsights insights) {
-        Div section = section("Cards per lane");
-        Span hint = new Span("Hover a lane for the average time cards have spent there.");
+        Div section = section(I18n.t("insights.cardsPerLane"));
+        Span hint = new Span(I18n.t("insights.laneHint"));
         hint.addClassName("insights__hint");
         section.add(hint);
         int busiest = Math.max(1, insights.busiestLaneCount());
@@ -149,14 +151,15 @@ final class InsightsDialog extends Dialog {
             String count = lane.wipLimit() == null ? Integer.toString(lane.cards()) : lane.cards() + " / " + lane.wipLimit();
             Div row = bar(lane.name(), lane.cards() * 100.0 / busiest, count, lane.isOverWipLimit() ? "over" : lane.done() ? "done" : null);
             lane.averageTimeInLane().ifPresent(average -> row.getElement().setAttribute("title",
-                    "Cards have been in " + lane.name() + " for " + Durations.humanize(average) + " on average"));
+                    I18n.t("insights.laneAverage", lane.name(), Durations.humanize(average))));
             section.add(row);
         }
         return section;
     }
 
     private static Component completions(BoardInsights insights) {
-        Div section = section("Completed per day");
+        Div section = section(I18n.t("insights.completedPerDay"));
+        DateTimeFormatter DAY = I18n.formatter("MMM d");
         Div chart = new Div();
         chart.addClassName("insights__chart");
         int busiest = Math.max(1, insights.busiestDayCount());
@@ -178,12 +181,12 @@ final class InsightsDialog extends Dialog {
     }
 
     private static Component people(BoardInsights insights) {
-        Div section = section("Open work");
+        Div section = section(I18n.t("insights.openWork"));
         Div priorities = new Div();
         priorities.addClassName("insights__priorities");
         for (Priority priority : Priority.values()) {
             int count = insights.openByPriority().getOrDefault(priority, 0);
-            Badge badge = new Badge(priority.label() + " · " + count);
+            Badge badge = new Badge(Labels.priority(priority) + " \u00b7 " + count);
             badge.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
             badge.getElement().setAttribute("data-priority", priority.name().toLowerCase(Locale.ROOT));
             badge.addClassName("priority-option");
@@ -191,7 +194,7 @@ final class InsightsDialog extends Dialog {
         }
         section.add(priorities);
         if (insights.openByAssignee().isEmpty()) {
-            Span none = new Span("No open cards are assigned to anybody.");
+            Span none = new Span(I18n.t("insights.nobody"));
             none.addClassName("insights__hint");
             section.add(none);
             return section;

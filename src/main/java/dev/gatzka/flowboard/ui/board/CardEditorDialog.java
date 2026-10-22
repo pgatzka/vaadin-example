@@ -1,5 +1,8 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
+
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.button.Button;
@@ -45,16 +48,16 @@ import java.util.function.Consumer;
 final class CardEditorDialog extends Dialog {
 
     private final Binder<CardDraft> binder = new Binder<>(CardDraft.class);
-    private final TextField title = new TextField("Title");
+    private final TextField title = new TextField(I18n.t("editor.title"));
     private final TextArea description = new TextArea();
     private final Markdown preview = new Markdown();
     private final Select<Priority> priority = new Select<>();
-    private final DatePicker startDate = new DatePicker("Start date");
-    private final DatePicker dueDate = new DatePicker("Due date");
-    private final IntegerField estimate = new IntegerField("Estimate");
+    private final DatePicker startDate = new DatePicker(I18n.t("editor.startDate"));
+    private final DatePicker dueDate = new DatePicker(I18n.t("editor.dueDate"));
+    private final IntegerField estimate = new IntegerField(I18n.t("card.estimate"));
     private final Select<Recurrence> recurrence = new Select<>();
-    private final ComboBox<String> assignee = new ComboBox<>("Assignee");
-    private final MultiSelectComboBox<String> tags = new MultiSelectComboBox<>("Tags");
+    private final ComboBox<String> assignee = new ComboBox<>(I18n.t("filter.assignee"));
+    private final MultiSelectComboBox<String> tags = new MultiSelectComboBox<>(I18n.t("editor.tags"));
     private final List<String> assigneeOptions;
     private final List<String> tagOptions;
     private final BiConsumer<CardDraft, Recurrence> onSave;
@@ -73,7 +76,7 @@ final class CardEditorDialog extends Dialog {
 
     static CardEditorDialog forNewCard(LaneSnapshot lane, BoardSnapshot board, String initialTitle,
             BiConsumer<CardDraft, Recurrence> onSave) {
-        CardEditorDialog dialog = new CardEditorDialog("New card in " + lane.name(), "Add card", board, onSave);
+        CardEditorDialog dialog = new CardEditorDialog(I18n.t("editor.newIn", lane.name()), I18n.t("composer.addCard"), board, onSave);
         dialog.priority.setValue(Priority.MEDIUM);
         if (initialTitle != null && !initialTitle.isBlank()) {
             dialog.title.setValue(initialTitle);
@@ -83,7 +86,7 @@ final class CardEditorDialog extends Dialog {
 
     static CardEditorDialog forCard(CardSnapshot card, BoardSnapshot board, CardEditorActions actions,
             Consumer<CardDraft> onSave, Runnable onArchive, Runnable onDelete) {
-        CardEditorDialog dialog = new CardEditorDialog("Edit card", "Save", board, (draft, repeats) -> {
+        CardEditorDialog dialog = new CardEditorDialog(I18n.t("editor.edit"), I18n.t("common.save"), board, (draft, repeats) -> {
             onSave.accept(draft);
             if (repeats != card.recurrence()) {
                 actions.setRecurrence(card.id(), repeats);
@@ -128,8 +131,8 @@ final class CardEditorDialog extends Dialog {
         this.actions = actions;
         Button copyLink = new Button(VaadinIcon.LINK.create(), event -> copyLink(card));
         copyLink.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        copyLink.setAriaLabel("Copy link to this card");
-        copyLink.setTooltipText("Copy link");
+        copyLink.setAriaLabel(I18n.t("editor.copyLinkAria"));
+        copyLink.setTooltipText(I18n.t("editor.copyLink"));
         Button watch = new Button();
         watch.setId("watch-card");
         watch.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
@@ -137,7 +140,7 @@ final class CardEditorDialog extends Dialog {
         watch.addClickListener(event -> {
             boolean watching = actions.toggleWatch(card.id());
             showWatchState(watch, watching);
-            Toasts.info(watching ? "You will hear about changes to this card in your inbox" : "You stopped watching this card");
+            Toasts.info(I18n.t(watching ? "watch.on" : "watch.off"));
         });
         getHeader().add(watch, copyLink);
         checklistSection = new ChecklistSection(card, actions, this::refresh);
@@ -153,18 +156,18 @@ final class CardEditorDialog extends Dialog {
         tabs.add(commentsTab, commentsSection);
         attachmentsTab = new Tab(attachmentsLabel(card));
         tabs.add(attachmentsTab, attachmentsSection);
-        tabs.add("Dependencies", dependenciesSection);
+        tabs.add(I18n.t("board.menu.dependencies"), dependenciesSection);
         timeTab = new Tab(timeLabel(card));
         tabs.add(timeTab, timeSection);
-        tabs.add("History", historySection);
+        tabs.add(I18n.t("editor.history"), historySection);
         tabs.setWidthFull();
         add(checklistSection, tabs);
     }
 
     private static void showWatchState(Button watch, boolean watching) {
-        watch.setText(watching ? "Watching" : "Watch");
+        watch.setText(I18n.t(watching ? "watch.watching" : "watch.watch"));
         watch.setIcon((watching ? VaadinIcon.EYE : VaadinIcon.EYE_SLASH).create());
-        watch.setTooltipText(watching ? "Stop getting inbox notifications for this card" : "Get inbox notifications for comments, moves and edits");
+        watch.setTooltipText(I18n.t(watching ? "watch.stopTooltip" : "watch.startTooltip"));
         watch.getElement().setAttribute("data-watching", Boolean.toString(watching));
         if (watching) {
             watch.addClassName("card-editor__watching");
@@ -176,19 +179,19 @@ final class CardEditorDialog extends Dialog {
     private void copyLink(CardSnapshot card) {
         String path = BoardView.pathTo(board.id(), card.id());
         getUI().ifPresent(ui -> ui.getPage().executeJs("navigator.clipboard.writeText(location.origin + '/' + $0)", path));
-        Toasts.success("Link copied");
+        Toasts.success(I18n.t("common.linkCopied"));
     }
 
     private static String timeLabel(CardSnapshot card) {
-        return card.hasWork() ? "Time · " + dev.gatzka.flowboard.service.TimeService.humanize(card.workedMinutes()) : "Time";
+        return card.hasWork() ? I18n.t("editor.timeTab") + " \u00b7 " + TimeSection.humanize(card.workedMinutes()) : I18n.t("editor.timeTab");
     }
 
     private static String attachmentsLabel(CardSnapshot card) {
-        return card.hasAttachments() ? "Files (" + card.attachments().size() + ")" : "Files";
+        return card.hasAttachments() ? I18n.t("editor.filesTab") + " (" + card.attachments().size() + ")" : I18n.t("editor.filesTab");
     }
 
     private static String commentsLabel(CardSnapshot card) {
-        return card.hasComments() ? "Comments (" + card.comments().size() + ")" : "Comments";
+        return card.hasComments() ? I18n.t("card.comments") + " (" + card.comments().size() + ")" : I18n.t("card.comments");
     }
 
     private CardEditorDialog(String heading, String saveLabel, BoardSnapshot board, BiConsumer<CardDraft, Recurrence> onSave) {
@@ -210,27 +213,27 @@ final class CardEditorDialog extends Dialog {
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         save.addClickShortcut(Key.ENTER, KeyModifier.CONTROL);
         save.setTooltipText("Ctrl + Enter");
-        getFooter().add(new Button("Cancel", event -> close()), save);
+        getFooter().add(new Button(I18n.t("common.cancel"), event -> close()), save);
     }
 
     private void configureFields() {
         title.setAutofocus(true);
         title.setMaxLength(120);
-        title.setPlaceholder("What needs to be done?");
+        title.setPlaceholder(I18n.t("editor.titlePlaceholder"));
 
-        description.setPlaceholder("Add details. Markdown is supported.");
+        description.setPlaceholder(I18n.t("editor.descriptionPlaceholder"));
         description.setMinHeight("9em");
         description.setWidthFull();
         preview.addClassName("markdown-preview");
 
-        priority.setLabel("Priority");
+        priority.setLabel(I18n.t("filter.priority"));
         priority.setItems(Priority.values());
-        priority.setItemLabelGenerator(Priority::label);
+        priority.setItemLabelGenerator(Labels::priority);
         priority.setRenderer(new ComponentRenderer<>(CardEditorDialog::priorityOption));
 
         dueDate.setClearButtonVisible(true);
         startDate.setClearButtonVisible(true);
-        startDate.setTooltipText("Optional; drawn as a bar on the timeline");
+        startDate.setTooltipText(I18n.t("editor.startDateTooltip"));
         startDate.addValueChangeListener(event -> dueDate.setMin(event.getValue()));
         dueDate.addValueChangeListener(event -> startDate.setMax(event.getValue()));
 
@@ -238,19 +241,19 @@ final class CardEditorDialog extends Dialog {
         estimate.setMax(CardDraft.MAX_ESTIMATE);
         estimate.setStepButtonsVisible(true);
         estimate.setClearButtonVisible(true);
-        estimate.setPlaceholder("points");
+        estimate.setPlaceholder(I18n.t("editor.pointsPlaceholder"));
 
-        recurrence.setLabel("Repeats");
+        recurrence.setLabel(I18n.t("editor.repeats"));
         recurrence.setItems(Recurrence.values());
-        recurrence.setItemLabelGenerator(Recurrence::label);
+        recurrence.setItemLabelGenerator(Labels::recurrence);
         recurrence.setValue(Recurrence.NONE);
-        recurrence.setHelperText("When finished, a fresh copy returns to its lane");
+        recurrence.setHelperText(I18n.t("editor.repeatsHelper"));
         recurrence.addClassName("card-recurrence");
 
         assignee.setItems(assigneeOptions);
         assignee.setAllowCustomValue(true);
         assignee.setClearButtonVisible(true);
-        assignee.setPlaceholder("Type a name");
+        assignee.setPlaceholder(I18n.t("editor.assigneePlaceholder"));
         assignee.addCustomValueSetListener(event -> {
             String value = event.getDetail().strip();
             if (!value.isEmpty()) {
@@ -263,7 +266,7 @@ final class CardEditorDialog extends Dialog {
         tags.setItems(tagOptions);
         tags.setAllowCustomValue(true);
         tags.setClearButtonVisible(true);
-        tags.setPlaceholder("Add tags");
+        tags.setPlaceholder(I18n.t("editor.tagsPlaceholder"));
         tags.setSelectedItemsOnTop(true);
         tags.addCustomValueSetListener(event -> {
             String value = event.getDetail().strip();
@@ -279,21 +282,21 @@ final class CardEditorDialog extends Dialog {
 
     private void bindFields() {
         binder.forField(title)
-                .asRequired("A card needs a title")
-                .withValidator(new StringLengthValidator("Keep the title under 120 characters", 0, 120))
+                .asRequired(I18n.t("editor.titleRequired"))
+                .withValidator(new StringLengthValidator(I18n.t("editor.titleTooLong"), 0, 120))
                 .bind("title");
         binder.forField(description)
                 .withNullRepresentation("")
-                .withValidator(new StringLengthValidator("Keep the description under 4000 characters", 0, 4000))
+                .withValidator(new StringLengthValidator(I18n.t("editor.descriptionTooLong"), 0, 4000))
                 .bind("description");
-        binder.forField(priority).asRequired("Pick a priority").bind("priority");
+        binder.forField(priority).asRequired(I18n.t("editor.priorityRequired")).bind("priority");
         binder.forField(dueDate).bind("dueDate");
         binder.forField(startDate)
                 .withValidator(start -> start == null || dueDate.getValue() == null || !start.isAfter(dueDate.getValue()),
-                        "The start date cannot be after the due date")
+                        I18n.t("editor.startAfterDue"))
                 .bind("startDate");
         binder.forField(estimate)
-                .withValidator(new IntegerRangeValidator("Between 0 and " + CardDraft.MAX_ESTIMATE + " points", 0, CardDraft.MAX_ESTIMATE))
+                .withValidator(new IntegerRangeValidator(I18n.t("editor.estimateRange", CardDraft.MAX_ESTIMATE), 0, CardDraft.MAX_ESTIMATE))
                 .bind("estimate");
         binder.forField(assignee).bind("assignee");
         binder.forField(tags).bind("tags");
@@ -301,13 +304,13 @@ final class CardEditorDialog extends Dialog {
 
     private FormLayout form() {
         TabSheet descriptionTabs = new TabSheet();
-        descriptionTabs.add("Write", description);
-        descriptionTabs.add("Preview", preview);
+        descriptionTabs.add(I18n.t("editor.write"), description);
+        descriptionTabs.add(I18n.t("editor.preview"), preview);
         descriptionTabs.addSelectedChangeListener(event -> preview.setContent(
-                description.isEmpty() ? "*Nothing to preview yet.*" : description.getValue()));
+                description.isEmpty() ? I18n.t("editor.nothingToPreview") : description.getValue()));
         descriptionTabs.setWidthFull();
 
-        Span descriptionLabel = new Span("Description");
+        Span descriptionLabel = new Span(I18n.t("common.description"));
         descriptionLabel.addClassName("field-label");
         Div descriptionSection = new Div(descriptionLabel, descriptionTabs);
 
@@ -322,11 +325,11 @@ final class CardEditorDialog extends Dialog {
     }
 
     private void addDeleteButton(CardSnapshot card, Runnable onDelete) {
-        Button delete = new Button("Delete", event -> {
+        Button delete = new Button(I18n.t("common.delete"), event -> {
             ConfirmDialog confirm = new ConfirmDialog(
-                    "Delete \"%s\"?".formatted(card.title()),
-                    "The card is removed from the board for everyone.",
-                    "Delete",
+                    I18n.t("home.deleteTitle", card.title()),
+                    I18n.t("editor.deleteText"),
+                    I18n.t("common.delete"),
                     confirmed -> {
                         onDelete.run();
                         close();
@@ -341,28 +344,28 @@ final class CardEditorDialog extends Dialog {
     }
 
     private void addMoveButton(CardSnapshot card, CardEditorActions actions) {
-        Button move = new Button("Move…", VaadinIcon.EXCHANGE.create(), event -> new MoveCardDialog(card, board, actions, moved -> {
+        Button move = new Button(I18n.t("editor.move"), VaadinIcon.EXCHANGE.create(), event -> new MoveCardDialog(card, board, actions, moved -> {
             if (moved.id() == card.id()) {
                 close(); // the card moved; the board re-renders it where it landed
             }
         }).open());
         move.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        move.setTooltipText("Move or copy the card to another lane or board");
+        move.setTooltipText(I18n.t("editor.moveTooltip"));
         getFooter().addComponentAtIndex(1, move);
     }
 
     private void addTemplateButton(CardSnapshot card, CardEditorActions actions) {
-        Button asTemplate = new Button("Save as template", VaadinIcon.COPY_O.create(), event -> {
+        Button asTemplate = new Button(I18n.t("editor.saveAsTemplate"), VaadinIcon.COPY_O.create(), event -> {
             Dialog ask = new Dialog();
-            ask.setHeaderTitle("Save as template");
-            TextField name = new TextField("Template name");
+            ask.setHeaderTitle(I18n.t("editor.saveAsTemplate"));
+            TextField name = new TextField(I18n.t("templates.name"));
             name.setValue(card.title());
             name.setMaxLength(60);
             name.setWidthFull();
             name.setAutofocus(true);
             name.setId("template-from-card-name");
             ask.add(name);
-            Button confirm = new Button("Save", confirmed -> {
+            Button confirm = new Button(I18n.t("common.save"), confirmed -> {
                 try {
                     actions.saveAsTemplate(card.id(), name.getValue());
                 } catch (IllegalArgumentException e) {
@@ -370,26 +373,26 @@ final class CardEditorDialog extends Dialog {
                     name.setInvalid(true);
                     return;
                 }
-                Toasts.success("Template \"" + name.getValue().strip() + "\" saved");
+                Toasts.success(I18n.t("templates.savedNamed", name.getValue().strip()));
                 ask.close();
             });
             confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             confirm.addClickShortcut(Key.ENTER);
-            ask.getFooter().add(new Button("Cancel", cancelled -> ask.close()), confirm);
+            ask.getFooter().add(new Button(I18n.t("common.cancel"), cancelled -> ask.close()), confirm);
             ask.open();
         });
         asTemplate.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        asTemplate.setTooltipText("Reuse this card's fields and checklist for new cards");
+        asTemplate.setTooltipText(I18n.t("editor.templateTooltip"));
         getFooter().addComponentAtIndex(1, asTemplate);
     }
 
     private void addArchiveButton(Runnable onArchive) {
-        Button archive = new Button("Archive", VaadinIcon.ARCHIVE.create(), event -> {
+        Button archive = new Button(I18n.t("selection.archive"), VaadinIcon.ARCHIVE.create(), event -> {
             onArchive.run();
             close();
         });
         archive.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        archive.setTooltipText("Take the card off the board; it can be restored from the archive");
+        archive.setTooltipText(I18n.t("editor.archiveTooltip"));
         getFooter().addComponentAtIndex(1, archive);
     }
 
@@ -403,7 +406,7 @@ final class CardEditorDialog extends Dialog {
     }
 
     private static Span priorityOption(Priority priority) {
-        Span option = new Span(priority.label());
+        Span option = new Span(Labels.priority(priority));
         option.addClassName("priority-option");
         option.getElement().setAttribute("data-priority", priority.name().toLowerCase(Locale.ROOT));
         return option;

@@ -48,6 +48,10 @@ Java on top of Vaadin Flow's server push.
   in the URL, so a filtered board can be linked to, and can be saved as a named **view** that
   shows up as a chip for everybody on the board.
 - **Light and dark theme**, following the operating system on first visit, and an installable PWA manifest.
+- **English and German.** The whole interface is translated; the browser's language picks the
+  default, the account menu switches it, and the choice is kept in a cookie. Dates, weekday and
+  month names follow the language too. Activity entries, notifications and exports stay in English,
+  since they are data rather than chrome.
 - **Export and import** boards as JSON files, lanes, cards, checklists, comments, templates, saved
   views and lane rules included. **Trello exports** import too (Menu → Print and export → Export as
   JSON): lists become lanes, labels become tags (a label called "High" or "Urgent" sets the priority),
@@ -232,7 +236,8 @@ dev.gatzka.flowboard
 ├── repository    Spring Data JPA repositories
 ├── service       BoardService (use cases), ActivityLog, BoardChangeBroadcaster, PresenceTracker
 ├── bootstrap     Sample data on first start
-└── ui            MainLayout, board list, Kanban board view and its dialogs
+├── ui            MainLayout, board list, Kanban board view and its dialogs
+└── ui.i18n       I18NProvider over i18n/translations*.properties, language cookie, enum labels
 ```
 
 A few design choices worth knowing about:

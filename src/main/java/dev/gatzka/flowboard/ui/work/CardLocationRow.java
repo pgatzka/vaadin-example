@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.work;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.badge.Badge;
 import com.vaadin.flow.component.badge.BadgeVariant;
 import com.vaadin.flow.component.html.Span;
@@ -10,14 +12,11 @@ import dev.gatzka.flowboard.domain.CardLocation;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.ui.board.BoardView;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Map;
 
 /** One card in a cross-board list; a link that opens the card on its board. */
 public final class CardLocationRow extends RouterLink {
-
-    private static final DateTimeFormatter DUE = DateTimeFormatter.ofPattern("MMM d");
 
     public CardLocationRow(CardLocation location, LocalDate today) {
         super(BoardView.class, new RouteParameters(Map.of(
@@ -34,7 +33,7 @@ public final class CardLocationRow extends RouterLink {
         add(title, where);
 
         if (card.dueDate() != null) {
-            Badge due = new Badge(DUE.format(card.dueDate()), VaadinIcon.CALENDAR_O.create());
+            Badge due = new Badge(I18n.formatter("MMM d").format(card.dueDate()), VaadinIcon.CALENDAR_O.create());
             due.addThemeVariants(BadgeVariant.SMALL);
             if (location.isCompleted()) {
                 due.addThemeVariants(BadgeVariant.SUCCESS);

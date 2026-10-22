@@ -20,6 +20,8 @@ import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.Grouping;
 import dev.gatzka.flowboard.domain.LaneRuleSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -137,10 +139,10 @@ final class LaneComponent extends Div {
 
         Div header = new Div(name);
         if (lane.hasEstimates()) {
-            Badge points = new Badge(lane.totalEstimate() + " pt");
+            Badge points = new Badge(I18n.t("unit.points", lane.totalEstimate()));
             points.addThemeVariants(BadgeVariant.SMALL);
             points.addClassName("lane__points");
-            points.getElement().setAttribute("title", "Story points in this lane");
+            points.getElement().setAttribute("title", I18n.t("lane.points"));
             header.add(points);
         }
         List<LaneRuleSnapshot> rules = actions.rulesFor(lane);
@@ -148,7 +150,7 @@ final class LaneComponent extends Div {
             Badge automation = new Badge(VaadinIcon.BOLT.create());
             automation.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.ICON_ONLY, BadgeVariant.CONTRAST);
             automation.addClassName("lane__rules");
-            automation.getElement().setAttribute("title", rules.stream().map(LaneRuleSnapshot::describe).collect(java.util.stream.Collectors.joining("\n")));
+            automation.getElement().setAttribute("title", rules.stream().map(rule -> Labels.rule(rule.action(), rule.argument())).collect(java.util.stream.Collectors.joining("\n")));
             header.add(automation);
         }
         header.add(countBadge(), menu(laneCount, actions));
@@ -174,9 +176,7 @@ final class LaneComponent extends Div {
         badge.addThemeVariants(BadgeVariant.SMALL, lane.isOverWipLimit() ? BadgeVariant.ERROR : BadgeVariant.CONTRAST);
         badge.addClassName("lane__count");
         if (lane.hasWipLimit()) {
-            badge.getElement().setAttribute("title", lane.isOverWipLimit()
-                    ? "Over the work-in-progress limit of " + lane.wipLimit()
-                    : "Work-in-progress limit: " + lane.wipLimit());
+            badge.getElement().setAttribute("title", I18n.t(lane.isOverWipLimit() ? "lane.wipOver" : "lane.wip", lane.wipLimit()));
         }
         return badge;
     }
@@ -185,27 +185,27 @@ final class LaneComponent extends Div {
         MenuBar menu = new MenuBar();
         menu.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE, MenuBarVariant.LUMO_ICON, MenuBarVariant.LUMO_SMALL);
         MenuItem root = menu.addItem(VaadinIcon.ELLIPSIS_DOTS_V.create());
-        root.setAriaLabel("Lane actions");
+        root.setAriaLabel(I18n.t("lane.actions"));
         SubMenu items = root.getSubMenu();
         java.util.List<CardTemplateSnapshot> templates = actions.templates();
         if (!templates.isEmpty()) {
-            MenuItem fromTemplate = items.addItem("New from template");
+            MenuItem fromTemplate = items.addItem(I18n.t("lane.fromTemplate"));
             fromTemplate.addClassName("lane__from-template");
             SubMenu choices = fromTemplate.getSubMenu();
             templates.forEach(template -> choices.addItem(template.name(), event -> actions.newCardFromTemplate(lane, template)));
         }
-        MenuItem selectAll = items.addItem("Select all cards", event -> actions.selectAll(lane));
+        MenuItem selectAll = items.addItem(I18n.t("lane.selectAll"), event -> actions.selectAll(lane));
         selectAll.setEnabled(!lane.cards().isEmpty());
-        items.addItem("Edit lane", event -> actions.editLane(lane));
-        MenuItem left = items.addItem("Move left", event -> actions.moveLane(lane, -1));
+        items.addItem(I18n.t("lane.edit"), event -> actions.editLane(lane));
+        MenuItem left = items.addItem(I18n.t("lane.moveLeft"), event -> actions.moveLane(lane, -1));
         left.setEnabled(lane.position() > 0);
-        MenuItem right = items.addItem("Move right", event -> actions.moveLane(lane, 1));
+        MenuItem right = items.addItem(I18n.t("lane.moveRight"), event -> actions.moveLane(lane, 1));
         right.setEnabled(lane.position() < laneCount - 1);
-        MenuItem sortByVotes = items.addItem("Sort by votes", event -> actions.sortLaneByVotes(lane));
+        MenuItem sortByVotes = items.addItem(I18n.t("lane.sortByVotes"), event -> actions.sortLaneByVotes(lane));
         sortByVotes.setEnabled(lane.cards().stream().anyMatch(card -> card.votes() > 0));
-        MenuItem archive = items.addItem("Archive all cards", event -> actions.archiveLane(lane));
+        MenuItem archive = items.addItem(I18n.t("lane.archiveAll"), event -> actions.archiveLane(lane));
         archive.setEnabled(!lane.cards().isEmpty());
-        MenuItem delete = items.addItem("Delete lane", event -> actions.deleteLane(lane));
+        MenuItem delete = items.addItem(I18n.t("lane.delete"), event -> actions.deleteLane(lane));
         delete.addClassName("danger");
         return menu;
     }
@@ -248,7 +248,7 @@ final class LaneComponent extends Div {
             shown++;
         }
         if (shown == 0) {
-            Span hint = new Span(row == null ? "Drop cards here" : "Drop here");
+            Span hint = new Span(I18n.t(row == null ? "lane.dropHere" : "lane.dropRow"));
             hint.addClassName("lane__empty");
             body.add(hint);
         }

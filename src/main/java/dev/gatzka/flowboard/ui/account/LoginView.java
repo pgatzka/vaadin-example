@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.account;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
@@ -9,7 +11,7 @@ import com.vaadin.flow.component.login.LoginForm;
 import com.vaadin.flow.component.login.LoginI18n;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import dev.gatzka.flowboard.ui.support.Themes;
@@ -17,9 +19,13 @@ import org.springframework.beans.factory.annotation.Value;
 
 /** Sign-in page; the form posts to Spring Security, which sends the user back to where they wanted to go. */
 @Route(value = LoginView.PATH, autoLayout = false)
-@PageTitle("Sign in · Flowboard")
 @AnonymousAllowed
-public class LoginView extends Div implements BeforeEnterObserver {
+public class LoginView extends Div implements BeforeEnterObserver, HasDynamicTitle {
+
+    @Override
+    public String getPageTitle() {
+        return I18n.t("login.signIn") + " \u00b7 Flowboard";
+    }
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
@@ -37,10 +43,12 @@ public class LoginView extends Div implements BeforeEnterObserver {
         addClassName("account-page");
 
         LoginI18n i18n = LoginI18n.createDefault();
-        i18n.getForm().setTitle("Sign in");
-        i18n.getForm().setSubmit("Sign in");
-        i18n.getErrorMessage().setTitle("That didn't work");
-        i18n.getErrorMessage().setMessage("Check your username and password and try again.");
+        i18n.getForm().setTitle(I18n.t("login.signIn"));
+        i18n.getForm().setSubmit(I18n.t("login.signIn"));
+        i18n.getForm().setUsername(I18n.t("register.username"));
+        i18n.getForm().setPassword(I18n.t("register.password"));
+        i18n.getErrorMessage().setTitle(I18n.t("login.errorTitle"));
+        i18n.getErrorMessage().setMessage(I18n.t("login.errorText"));
         form.setI18n(i18n);
         form.setAction(PATH);
         form.setForgotPasswordButtonVisible(false);
@@ -48,10 +56,10 @@ public class LoginView extends Div implements BeforeEnterObserver {
         notice.addClassName("account-page__notice");
         notice.setVisible(false);
 
-        Div footer = new Div(new Span("New here? "), new Anchor(RegisterView.PATH, "Create an account"));
+        Div footer = new Div(new Span(I18n.t("login.newHere") + " "), new Anchor(RegisterView.PATH, I18n.t("register.title")));
         footer.addClassName("account-page__footer");
         if (sampleData) {
-            Span hint = new Span("Just looking? Sign in as demo with the password demo1234.");
+            Span hint = new Span(I18n.t("login.demoHint"));
             hint.addClassName("account-page__hint");
             footer.add(hint);
         }
@@ -66,7 +74,7 @@ public class LoginView extends Div implements BeforeEnterObserver {
         var parameters = event.getLocation().getQueryParameters().getParameters();
         form.setError(parameters.containsKey(ERROR_PARAMETER));
         boolean registered = parameters.containsKey(REGISTERED_PARAMETER);
-        notice.setText(registered ? "Your account is ready. Sign in to get started." : "");
+        notice.setText(registered ? I18n.t("login.registered") : "");
         notice.setVisible(registered);
     }
 }

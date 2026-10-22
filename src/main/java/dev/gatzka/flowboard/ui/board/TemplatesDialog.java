@@ -1,5 +1,8 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
+
 import com.vaadin.flow.component.badge.Badge;
 import com.vaadin.flow.component.badge.BadgeVariant;
 import com.vaadin.flow.component.button.Button;
@@ -34,26 +37,25 @@ final class TemplatesDialog extends Dialog {
     private final Supplier<String> actor;
     private final Runnable onChanged;
     private final Div list = new Div();
-    private final TextField name = new TextField("Template name");
-    private final TextField title = new TextField("Card title");
-    private final TextArea description = new TextArea("Description");
+    private final TextField name = new TextField(I18n.t("templates.name"));
+    private final TextField title = new TextField(I18n.t("composer.placeholder"));
+    private final TextArea description = new TextArea(I18n.t("common.description"));
     private final Select<Priority> priority = new Select<>();
-    private final TextField assignee = new TextField("Assignee");
-    private final MultiSelectComboBox<String> tags = new MultiSelectComboBox<>("Tags");
-    private final IntegerField estimate = new IntegerField("Estimate");
-    private final TextArea checklist = new TextArea("Checklist, one item per line");
+    private final TextField assignee = new TextField(I18n.t("filter.assignee"));
+    private final MultiSelectComboBox<String> tags = new MultiSelectComboBox<>(I18n.t("editor.tags"));
+    private final IntegerField estimate = new IntegerField(I18n.t("card.estimate"));
+    private final TextArea checklist = new TextArea(I18n.t("templates.checklist"));
 
     TemplatesDialog(BoardSnapshot board, CardTemplateService templates, Supplier<String> actor, Runnable onChanged) {
         this.board = board;
         this.templates = templates;
         this.actor = actor;
         this.onChanged = onChanged;
-        setHeaderTitle("Card templates for \"" + board.name() + "\"");
+        setHeaderTitle(I18n.t("templates.title", board.name()));
         setWidth("min(680px, 95vw)");
         addClassName("templates-dialog");
 
-        Span hint = new Span("A template is a ready-made card: title, details, tags, estimate and a checklist. "
-                + "Use it from a lane's menu, or turn any card into one from its editor.");
+        Span hint = new Span(I18n.t("templates.hint"));
         hint.addClassName("share-dialog__hint");
         list.addClassName("templates__list");
 
@@ -61,12 +63,12 @@ final class TemplatesDialog extends Dialog {
         name.setRequired(true);
         name.setId("template-name");
         title.setMaxLength(120);
-        title.setPlaceholder("Defaults to the template name");
+        title.setPlaceholder(I18n.t("templates.titlePlaceholder"));
         description.setMaxLength(4000);
         description.setMinHeight("5em");
-        priority.setLabel("Priority");
+        priority.setLabel(I18n.t("filter.priority"));
         priority.setItems(Priority.values());
-        priority.setItemLabelGenerator(Priority::label);
+        priority.setItemLabelGenerator(Labels::priority);
         priority.setValue(Priority.MEDIUM);
         assignee.setMaxLength(60);
         tags.setItems(board.tags());
@@ -86,10 +88,10 @@ final class TemplatesDialog extends Dialog {
         estimate.setMin(0);
         estimate.setMax(CardDraft.MAX_ESTIMATE);
         estimate.setStepButtonsVisible(true);
-        estimate.setPlaceholder("points");
+        estimate.setPlaceholder(I18n.t("editor.pointsPlaceholder"));
         checklist.setMaxLength(2000);
         checklist.setMinHeight("5em");
-        checklist.setPlaceholder("Write the test plan\nShip it\nTell the team");
+        checklist.setPlaceholder(I18n.t("templates.checklistPlaceholder"));
 
         FormLayout form = new FormLayout();
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("480px", 2));
@@ -98,14 +100,14 @@ final class TemplatesDialog extends Dialog {
         form.add(priority, estimate, assignee, tags);
         form.add(checklist, 2);
 
-        Button save = new Button("Save template", VaadinIcon.CHECK.create(), event -> save());
+        Button save = new Button(I18n.t("templates.save"), VaadinIcon.CHECK.create(), event -> save());
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         save.setId("save-template");
 
-        H3 newHeading = new H3("New template");
+        H3 newHeading = new H3(I18n.t("templates.new"));
         newHeading.addClassName("dashboard__heading");
         add(hint, list, newHeading, form, save);
-        getFooter().add(new Button("Close", event -> close()));
+        getFooter().add(new Button(I18n.t("common.close"), event -> close()));
         refresh();
     }
 
@@ -113,7 +115,7 @@ final class TemplatesDialog extends Dialog {
         list.removeAll();
         List<CardTemplateSnapshot> all = templates.forBoard(board.id());
         if (all.isEmpty()) {
-            Span empty = new Span("No templates yet.");
+            Span empty = new Span(I18n.t("templates.empty"));
             empty.addClassName("insights__hint");
             list.add(empty);
         }
@@ -126,27 +128,27 @@ final class TemplatesDialog extends Dialog {
         label.addClassName("templates__name");
         Div meta = new Div();
         meta.addClassName("templates__meta");
-        meta.add(badge(draft.priority().label()));
+        meta.add(badge(Labels.priority(draft.priority())));
         if (draft.estimate() != null) {
-            meta.add(badge(draft.estimate() + " pt"));
+            meta.add(badge(I18n.t("unit.points", draft.estimate())));
         }
         draft.tags().forEach(tag -> meta.add(badge(tag)));
         if (!draft.checklist().isEmpty()) {
-            meta.add(badge(draft.checklist().size() + " steps"));
+            meta.add(badge(I18n.t("templates.steps", draft.checklist().size())));
         }
         if (draft.assignee() != null) {
             meta.add(badge("→ " + draft.assignee()));
         }
-        Button edit = new Button("Edit", event -> load(draft));
+        Button edit = new Button(I18n.t("common.edit"), event -> load(draft));
         edit.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
         Button remove = new Button(VaadinIcon.TRASH.create(), event -> {
             templates.delete(template.id(), actor.get());
-            Toasts.info("Template removed");
+            Toasts.info(I18n.t("templates.removed"));
             refresh();
             onChanged.run();
         });
         remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
-        remove.setAriaLabel("Remove template " + template.name());
+        remove.setAriaLabel(I18n.t("templates.removeAria", template.name()));
         Div row = new Div(label, meta, edit, remove);
         row.addClassName("templates__row");
         return row;
@@ -190,7 +192,7 @@ final class TemplatesDialog extends Dialog {
         tags.clear();
         estimate.clear();
         checklist.clear();
-        Toasts.success("Template saved");
+        Toasts.success(I18n.t("templates.saved"));
         refresh();
         onChanged.run();
     }

@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.messages.MessageInput;
@@ -15,7 +17,7 @@ import java.util.function.Consumer;
 final class CommentsSection extends Div {
 
     private final MessageList messages = new MessageList();
-    private final Span empty = new Span("No comments yet. Start the conversation below.");
+    private final Span empty = new Span(I18n.t("comments.empty"));
 
     CommentsSection(CardSnapshot card, CardEditorActions actions, Consumer<CardSnapshot> onChanged) {
         addClassName("comments");

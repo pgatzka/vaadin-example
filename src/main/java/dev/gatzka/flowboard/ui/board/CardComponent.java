@@ -12,6 +12,8 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.server.streams.DownloadHandler;
 import com.vaadin.flow.server.streams.DownloadResponse;
 import dev.gatzka.flowboard.domain.AttachmentSnapshot;
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import dev.gatzka.flowboard.domain.CardAge;
@@ -27,8 +29,13 @@ import java.util.Locale;
 /** A single card on the board. Purely presentational: drag and drop is wired up by the lane. */
 public final class CardComponent extends Div {
 
-    private static final DateTimeFormatter SAME_YEAR = DateTimeFormatter.ofPattern("MMM d");
-    private static final DateTimeFormatter OTHER_YEAR = DateTimeFormatter.ofPattern("MMM d, uuuu");
+    private static DateTimeFormatter sameYear() {
+        return I18n.formatter("MMM d");
+    }
+
+    private static DateTimeFormatter otherYear() {
+        return I18n.formatter("MMM d, uuuu");
+    }
 
     private final CardSnapshot card;
 
@@ -58,7 +65,7 @@ public final class CardComponent extends Div {
             addClassName("task-card--stale");
         }
         getElement().setAttribute("data-priority", card.priority().name().toLowerCase(Locale.ROOT));
-        getElement().setAttribute("aria-label", card.title() + ", " + card.priority().label() + " priority");
+        getElement().setAttribute("aria-label", I18n.t("card.ariaPriority", card.title(), Labels.priority(card.priority())));
 
         Div title = new Div(card.title());
         title.addClassName("task-card__title");
@@ -125,7 +132,7 @@ public final class CardComponent extends Div {
     /** Flags the card as changed since the viewer last opened the board. */
     void markChanged() {
         addClassName("task-card--changed");
-        getElement().setAttribute("title", "Changed since your last visit");
+        getElement().setAttribute("title", I18n.t("card.changed"));
     }
 
     /** Shows the small eye for a card the current user watches. */
@@ -147,23 +154,23 @@ public final class CardComponent extends Div {
         }
 
         if (!completed && age.isNoteworthy()) {
-            Badge aging = new Badge(age.days() + " d here", VaadinIcon.HOURGLASS.create());
+            Badge aging = new Badge(I18n.t("card.daysHere", age.days()), VaadinIcon.HOURGLASS.create());
             aging.addThemeVariants(BadgeVariant.SMALL, age.level() == CardAge.Level.STALE ? BadgeVariant.WARNING : BadgeVariant.CONTRAST);
             aging.addClassName("task-card__age");
-            aging.getElement().setAttribute("title", "In this lane for " + age.days() + " days");
+            aging.getElement().setAttribute("title", I18n.t("card.daysHereTitle", age.days()));
             meta.add(aging);
         }
 
         if (card.isBlocked()) {
-            Badge blocked = new Badge("Blocked", VaadinIcon.BAN.create());
+            Badge blocked = new Badge(I18n.t("card.blocked"), VaadinIcon.BAN.create());
             blocked.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.ERROR);
             blocked.addClassName("task-card__blocked");
-            blocked.getElement().setAttribute("title", "Waiting for: " + card.blockers().stream()
-                    .filter(blocker -> !blocker.resolved()).map(blocker -> blocker.title()).collect(java.util.stream.Collectors.joining(", ")));
+            blocked.getElement().setAttribute("title", I18n.t("card.waitingFor", card.blockers().stream()
+                    .filter(blocker -> !blocker.resolved()).map(blocker -> blocker.title()).collect(java.util.stream.Collectors.joining(", "))));
             meta.add(blocked);
         }
         if (card.priority() == Priority.URGENT || card.priority() == Priority.HIGH) {
-            Badge priority = new Badge(card.priority().label());
+            Badge priority = new Badge(Labels.priority(card.priority()));
             priority.addThemeVariants(BadgeVariant.SMALL, card.priority() == Priority.URGENT ? BadgeVariant.ERROR : BadgeVariant.WARNING);
             meta.add(priority);
         }
@@ -180,48 +187,48 @@ public final class CardComponent extends Div {
             Badge time = new Badge(TimeService.humanize(card.workedMinutes()), VaadinIcon.CLOCK.create());
             time.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
             time.addClassName("task-card__time");
-            time.getElement().setAttribute("title", "Time logged");
+            time.getElement().setAttribute("title", I18n.t("card.timeLogged"));
             meta.add(time);
         }
         if (card.isRecurring()) {
             Badge repeats = new Badge(VaadinIcon.REFRESH.create());
             repeats.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST, BadgeVariant.ICON_ONLY);
             repeats.addClassName("task-card__repeats");
-            repeats.getElement().setAttribute("title", "Repeats: " + card.recurrence().label().toLowerCase(Locale.ROOT));
+            repeats.getElement().setAttribute("title", I18n.t("card.repeats", Labels.recurrence(card.recurrence()).toLowerCase(I18n.locale())));
             meta.add(repeats);
         }
         if (card.isEstimated()) {
-            Badge points = new Badge(card.estimate() + " pt");
+            Badge points = new Badge(I18n.t("unit.points", card.estimate()));
             points.addThemeVariants(BadgeVariant.SMALL);
             points.addClassName("task-card__estimate");
-            points.getElement().setAttribute("title", "Estimate");
+            points.getElement().setAttribute("title", I18n.t("card.estimate"));
             meta.add(points);
         }
         if (card.hasChecklist()) {
             Badge checklist = new Badge(card.checklistDone() + "/" + card.checklist().size(), VaadinIcon.CHECK_SQUARE_O.create());
             checklist.addThemeVariants(BadgeVariant.SMALL, card.isChecklistComplete() ? BadgeVariant.SUCCESS : BadgeVariant.CONTRAST);
             checklist.addClassName("task-card__checklist");
-            checklist.getElement().setAttribute("title", "Checklist");
+            checklist.getElement().setAttribute("title", I18n.t("card.checklist"));
             meta.add(checklist);
         }
         if (card.hasAttachments()) {
             Badge files = new Badge(Integer.toString(card.attachments().size()), VaadinIcon.PAPERCLIP.create());
             files.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
             files.addClassName("task-card__attachments");
-            files.getElement().setAttribute("title", "Attachments");
+            files.getElement().setAttribute("title", I18n.t("card.attachments"));
             meta.add(files);
         }
         if (card.hasComments()) {
             Badge comments = new Badge(Integer.toString(card.comments().size()), VaadinIcon.COMMENT_O.create());
             comments.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
             comments.addClassName("task-card__comments");
-            comments.getElement().setAttribute("title", "Comments");
+            comments.getElement().setAttribute("title", I18n.t("card.comments"));
             meta.add(comments);
         }
         if (card.hasDescription()) {
             Icon notes = VaadinIcon.ALIGN_LEFT.create();
             notes.addClassName("task-card__notes");
-            notes.setTooltipText("Has a description");
+            notes.setTooltipText(I18n.t("card.hasDescription"));
             meta.add(notes);
         }
         if (card.assignee() != null) {
@@ -238,27 +245,27 @@ public final class CardComponent extends Div {
         if (voting.voted()) {
             vote.addClassName("task-card__vote--mine");
         }
-        vote.setAriaLabel(voting.voted() ? "Withdraw your vote" : "Vote for this card");
-        vote.setTooltipText(card.votes() == 0 ? "Vote" : card.votes() + (card.votes() == 1 ? " vote" : " votes"));
+        vote.setAriaLabel(I18n.t(voting.voted() ? "card.withdrawVote" : "card.vote"));
+        vote.setTooltipText(card.votes() == 0 ? I18n.t("card.voteTooltip") : I18n.t("card.votes", card.votes()));
         vote.getElement().addEventListener("click", event -> { }).stopPropagation();
         return vote;
     }
 
     private Component dueBadge(LocalDate today, boolean completed) {
         LocalDate due = card.dueDate();
-        DateTimeFormatter formatter = due.getYear() == today.getYear() ? SAME_YEAR : OTHER_YEAR;
+        DateTimeFormatter formatter = due.getYear() == today.getYear() ? sameYear() : otherYear();
         Badge badge = new Badge(formatter.format(due), VaadinIcon.CALENDAR_O.create());
         badge.addThemeVariants(BadgeVariant.SMALL);
         badge.addClassName("task-card__due");
         if (completed) {
             badge.addThemeVariants(BadgeVariant.SUCCESS);
-            badge.getElement().setAttribute("title", "Completed");
+            badge.getElement().setAttribute("title", I18n.t("card.completed"));
         } else if (card.isOverdue(today)) {
             badge.addThemeVariants(BadgeVariant.ERROR);
-            badge.getElement().setAttribute("title", "Overdue");
+            badge.getElement().setAttribute("title", I18n.t("card.overdue"));
         } else if (card.isDueSoon(today)) {
             badge.addThemeVariants(BadgeVariant.WARNING);
-            badge.getElement().setAttribute("title", "Due soon");
+            badge.getElement().setAttribute("title", I18n.t("card.dueSoon"));
         }
         return badge;
     }

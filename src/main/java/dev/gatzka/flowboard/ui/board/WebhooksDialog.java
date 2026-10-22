@@ -1,5 +1,8 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
+
 import com.vaadin.flow.component.badge.Badge;
 import com.vaadin.flow.component.badge.BadgeVariant;
 import com.vaadin.flow.component.button.Button;
@@ -31,8 +34,8 @@ final class WebhooksDialog extends Dialog {
     private final Supplier<String> actor;
     private final Clock clock;
     private final Div list = new Div();
-    private final TextField url = new TextField("Endpoint URL");
-    private final PasswordField secret = new PasswordField("Secret (optional)");
+    private final TextField url = new TextField(I18n.t("webhooks.url"));
+    private final PasswordField secret = new PasswordField(I18n.t("webhooks.secret"));
     private final Select<WebhookFormat> format = new Select<>();
 
     WebhooksDialog(BoardSnapshot board, WebhookService webhooks, WebhookDispatcher dispatcher, Supplier<String> actor, Clock clock) {
@@ -41,13 +44,11 @@ final class WebhooksDialog extends Dialog {
         this.dispatcher = dispatcher;
         this.actor = actor;
         this.clock = clock;
-        setHeaderTitle("Webhooks for \"" + board.name() + "\"");
+        setHeaderTitle(I18n.t("webhooks.title", board.name()));
         setWidth("min(640px, 95vw)");
         addClassName("webhooks-dialog");
 
-        Span hint = new Span("Every change on this board is posted to each endpoint: as Flowboard JSON for your own "
-                + "integrations, or as a ready-made message for a Slack or Discord incoming webhook. "
-                + "Set a secret and the request carries an HMAC-SHA256 signature you can verify.");
+        Span hint = new Span(I18n.t("webhooks.hint"));
         hint.addClassName("share-dialog__hint");
 
         list.addClassName("webhooks__list");
@@ -57,21 +58,21 @@ final class WebhooksDialog extends Dialog {
         url.setClearButtonVisible(true);
         secret.setWidthFull();
         secret.setClearButtonVisible(true);
-        format.setLabel("Format");
+        format.setLabel(I18n.t("webhooks.format"));
         format.setId("webhook-format");
         format.setItems(WebhookFormat.values());
-        format.setItemLabelGenerator(WebhookFormat::label);
+        format.setItemLabelGenerator(Labels::webhookFormat);
         format.setValue(WebhookFormat.FLOWBOARD);
         format.setWidthFull();
         url.addValueChangeListener(event -> guessFormat(event.getValue()));
-        Button add = new Button("Add webhook", VaadinIcon.PLUS.create(), event -> add());
+        Button add = new Button(I18n.t("webhooks.add"), VaadinIcon.PLUS.create(), event -> add());
         add.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         add.setId("add-webhook");
         Div form = new Div(url, format, secret, add);
         form.addClassName("webhooks__form");
 
         add(hint, list, form);
-        getFooter().add(new Button("Close", event -> close()));
+        getFooter().add(new Button(I18n.t("common.close"), event -> close()));
         refresh();
     }
 
@@ -79,7 +80,7 @@ final class WebhooksDialog extends Dialog {
         list.removeAll();
         var hooks = webhooks.forBoard(board.id());
         if (hooks.isEmpty()) {
-            Span empty = new Span("No webhooks yet.");
+            Span empty = new Span(I18n.t("webhooks.empty"));
             empty.addClassName("insights__hint");
             list.add(empty);
             return;
@@ -91,31 +92,31 @@ final class WebhooksDialog extends Dialog {
         Span address = new Span(hook.url());
         address.addClassName("webhooks__url");
         Badge status = statusBadge(hook);
-        Badge kind = new Badge(hook.format().label());
+        Badge kind = new Badge(Labels.webhookFormat(hook.format()));
         kind.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
         kind.addClassName("webhooks__format");
 
-        Checkbox enabled = new Checkbox("Enabled", hook.enabled());
+        Checkbox enabled = new Checkbox(I18n.t("webhooks.enabled"), hook.enabled());
         enabled.addValueChangeListener(event -> {
             if (event.isFromClient()) {
                 webhooks.setEnabled(hook.id(), event.getValue(), actor.get());
                 refresh();
             }
         });
-        Button test = new Button("Send test", event -> {
+        Button test = new Button(I18n.t("webhooks.sendTest"), event -> {
             dispatcher.sendTest(hook.id(), actor.get());
-            Toasts.info("Test event sent; the delivery log updates on refresh");
+            Toasts.info(I18n.t("webhooks.testSent"));
         });
         test.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-        Button deliveries = new Button("Deliveries", event -> new DeliveriesDialog(hook, webhooks.deliveries(hook.id()), clock).open());
+        Button deliveries = new Button(I18n.t("webhooks.deliveries"), event -> new DeliveriesDialog(hook, webhooks.deliveries(hook.id()), clock).open());
         deliveries.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
         Button remove = new Button(VaadinIcon.TRASH.create(), event -> {
             webhooks.remove(hook.id(), actor.get());
-            Toasts.info("Webhook removed");
+            Toasts.info(I18n.t("webhooks.removed"));
             refresh();
         });
         remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
-        remove.setAriaLabel("Remove webhook");
+        remove.setAriaLabel(I18n.t("webhooks.removeAria"));
         remove.addClassName("remove-webhook");
         Div actions = new Div(enabled, test, deliveries, remove);
         actions.addClassName("webhooks__actions");
@@ -128,7 +129,7 @@ final class WebhooksDialog extends Dialog {
 
     private Badge statusBadge(WebhookSnapshot hook) {
         if (!hook.enabled()) {
-            Badge paused = new Badge("Paused");
+            Badge paused = new Badge(I18n.t("webhooks.paused"));
             paused.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
             return paused;
         }
@@ -138,7 +139,7 @@ final class WebhooksDialog extends Dialog {
             badge.addClassName("webhooks__status");
             return badge;
         }).orElseGet(() -> {
-            Badge badge = new Badge("Not called yet");
+            Badge badge = new Badge(I18n.t("webhooks.notCalled"));
             badge.addThemeVariants(BadgeVariant.SMALL);
             badge.addClassName("webhooks__status");
             return badge;
@@ -157,7 +158,7 @@ final class WebhooksDialog extends Dialog {
         secret.clear();
         format.setValue(WebhookFormat.FLOWBOARD);
         url.setInvalid(false);
-        Toasts.success("Webhook added");
+        Toasts.success(I18n.t("webhooks.added"));
         refresh();
     }
 
@@ -184,10 +185,10 @@ final class WebhooksDialog extends Dialog {
     private static final class DeliveriesDialog extends Dialog {
 
         DeliveriesDialog(WebhookSnapshot hook, java.util.List<WebhookSnapshot.DeliverySnapshot> deliveries, Clock clock) {
-            setHeaderTitle("Deliveries to " + hook.url());
+            setHeaderTitle(I18n.t("webhooks.deliveriesTo", hook.url()));
             setWidth("min(560px, 95vw)");
             if (deliveries.isEmpty()) {
-                Span empty = new Span("Nothing has been sent yet.");
+                Span empty = new Span(I18n.t("webhooks.nothingSent"));
                 empty.addClassName("insights__hint");
                 add(empty);
             }
@@ -205,7 +206,7 @@ final class WebhooksDialog extends Dialog {
                 rows.add(row);
             }
             add(rows);
-            getFooter().add(new Button("Close", event -> close()));
+            getFooter().add(new Button(I18n.t("common.close"), event -> close()));
         }
     }
 }

@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.assistant;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -21,18 +23,18 @@ public final class SuggestChecklistDialog extends Dialog {
 
     private final CheckboxGroup<String> steps = new CheckboxGroup<>();
     private final ProgressBar progress = new ProgressBar();
-    private final Span status = new Span("Thinking about \"%s\"…");
-    private final Button add = new Button("Add selected");
+    private final Span status = new Span();
+    private final Button add = new Button(I18n.t("suggest.addSelected"));
     private List<String> suggestions = List.of();
 
     public SuggestChecklistDialog(CardSnapshot card, BoardSnapshot board, AssistantService assistant, Executor executor,
             Consumer<List<String>> onAdd) {
-        setHeaderTitle("Suggested checklist");
+        setHeaderTitle(I18n.t("suggest.title"));
         setWidth("min(520px, 95vw)");
         addClassName("assistant-dialog");
 
         progress.setIndeterminate(true);
-        status.setText("Thinking about \"" + card.title() + "\"…");
+        status.setText(I18n.t("suggest.thinking", card.title()));
         status.addClassName("assistant-dialog__status");
         steps.addThemeVariants(CheckboxGroupVariant.LUMO_VERTICAL);
         steps.setVisible(false);
@@ -44,7 +46,7 @@ public final class SuggestChecklistDialog extends Dialog {
             onAdd.accept(suggestions.stream().filter(steps.getSelectedItems()::contains).toList());
             close();
         });
-        getFooter().add(new Button("Cancel", event -> close()), add);
+        getFooter().add(new Button(I18n.t("common.cancel"), event -> close()), add);
 
         UI ui = UI.getCurrent();
         Background.run(executor, ui, () -> assistant.suggestChecklist(card, board), this::showSuggestions, this::showError);
@@ -53,7 +55,7 @@ public final class SuggestChecklistDialog extends Dialog {
     private void showSuggestions(List<String> suggestions) {
         this.suggestions = suggestions;
         progress.setVisible(false);
-        status.setText("Tick the steps worth adding.");
+        status.setText(I18n.t("suggest.tick"));
         steps.setItems(suggestions);
         steps.setValue(java.util.Set.copyOf(suggestions));
         steps.setVisible(true);

@@ -12,19 +12,21 @@ import com.vaadin.flow.component.popover.PopoverPosition;
 import com.vaadin.flow.component.combobox.ComboBox;
 import dev.gatzka.flowboard.domain.CardFilter;
 import dev.gatzka.flowboard.domain.Priority;
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
 import java.util.function.Consumer;
 
 /** Toolbar button with a popover holding the structured card filters. */
 final class FilterMenu extends Div {
 
     private final Badge count = new Badge();
-    private final ComboBox<Priority> priority = new ComboBox<>("Priority");
-    private final Checkbox overdue = new Checkbox("Overdue only");
-    private final Checkbox mine = new Checkbox("Assigned to me");
-    private final Checkbox unassigned = new Checkbox("Unassigned");
-    private final ComboBox<String> tag = new ComboBox<>("Tag");
-    private final ComboBox<String> assignee = new ComboBox<>("Assignee");
-    private final Button clear = new Button("Clear filters");
+    private final ComboBox<Priority> priority = new ComboBox<>(I18n.t("filter.priority"));
+    private final Checkbox overdue = new Checkbox(I18n.t("filter.overdue"));
+    private final Checkbox mine = new Checkbox(I18n.t("filter.mine"));
+    private final Checkbox unassigned = new Checkbox(I18n.t("filter.unassigned"));
+    private final ComboBox<String> tag = new ComboBox<>(I18n.t("filter.tag"));
+    private final ComboBox<String> assignee = new ComboBox<>(I18n.t("filter.assignee"));
+    private final Button clear = new Button(I18n.t("filter.clear"));
     private final Consumer<CardFilter> onChange;
     private CardFilter filter = CardFilter.none();
     private boolean updating;
@@ -33,28 +35,28 @@ final class FilterMenu extends Div {
         this.onChange = onChange;
         addClassName("filter-menu");
 
-        Button toggle = new Button("Filters", VaadinIcon.FILTER.create());
+        Button toggle = new Button(I18n.t("filter.button"), VaadinIcon.FILTER.create());
         toggle.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         toggle.setSuffixComponent(count);
         count.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.FILLED);
         count.setVisible(false);
 
         priority.setItems(Priority.values());
-        priority.setItemLabelGenerator(Priority::label);
-        priority.setPlaceholder("Any");
+        priority.setItemLabelGenerator(Labels::priority);
+        priority.setPlaceholder(I18n.t("filter.any"));
         priority.setClearButtonVisible(true);
         priority.setWidthFull();
         priority.addValueChangeListener(event -> update(filter.withPriority(event.getValue())));
         overdue.addValueChangeListener(event -> update(filter.withOverdueOnly(event.getValue())));
         mine.addValueChangeListener(event -> update(filter.withMineOnly(event.getValue())));
         unassigned.addValueChangeListener(event -> update(filter.withUnassignedOnly(event.getValue())));
-        tag.setPlaceholder("Any");
+        tag.setPlaceholder(I18n.t("filter.any"));
         tag.setClearButtonVisible(true);
         tag.setWidthFull();
         tag.setAllowCustomValue(true);
         tag.addCustomValueSetListener(event -> update(filter.withTag(event.getDetail())));
         tag.addValueChangeListener(event -> update(filter.withTag(event.getValue())));
-        assignee.setPlaceholder("Anybody");
+        assignee.setPlaceholder(I18n.t("filter.anybody"));
         assignee.setClearButtonVisible(true);
         assignee.setWidthFull();
         assignee.setAllowCustomValue(true);
@@ -71,7 +73,7 @@ final class FilterMenu extends Div {
         popover.setTarget(toggle);
         popover.setPosition(PopoverPosition.BOTTOM_END);
         popover.setOpenOnClick(true);
-        popover.setAriaLabel("Card filters");
+        popover.setAriaLabel(I18n.t("filter.aria"));
 
         add(toggle, popover);
         show(filter);

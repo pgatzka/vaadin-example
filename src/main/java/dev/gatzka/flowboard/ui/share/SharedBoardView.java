@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.share;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
@@ -64,10 +66,10 @@ public class SharedBoardView extends Div implements BeforeEnterObserver, HasDyna
 
         H1 brand = new H1("Flowboard");
         brand.addClassName("shared__brand");
-        Badge readOnly = new Badge("Read-only · live", VaadinIcon.EYE.create());
+        Badge readOnly = new Badge(I18n.t("shared.readOnly"), VaadinIcon.EYE.create());
         readOnly.addThemeVariants(BadgeVariant.CONTRAST);
         readOnly.addClassName("shared__badge");
-        Anchor signIn = new Anchor(LoginView.PATH, "Sign in");
+        Anchor signIn = new Anchor(LoginView.PATH, I18n.t("login.signIn"));
         signIn.addClassName("shared__sign-in");
         Div header = new Div(brand, readOnly, new Span(), signIn);
         header.addClassName("shared__header");
@@ -83,7 +85,7 @@ public class SharedBoardView extends Div implements BeforeEnterObserver, HasDyna
         content.addClassName("shared__content");
 
         gone.addClassName("shared__gone");
-        gone.add(new H2("This link is not active"), new Span("The board may have been unshared or deleted. Ask whoever sent you the link for a new one."));
+        gone.add(new H2(I18n.t("shared.goneTitle")), new Span(I18n.t("shared.goneText")));
         gone.setVisible(false);
 
         add(header, content, gone);
@@ -102,7 +104,7 @@ public class SharedBoardView extends Div implements BeforeEnterObserver, HasDyna
 
     @Override
     public String getPageTitle() {
-        return (board == null ? "Shared board" : board.name()) + " · Flowboard";
+        return (board == null ? I18n.t("shared.title") : board.name()) + " \u00b7 Flowboard";
     }
 
     @Override

@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.team;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
@@ -50,7 +52,6 @@ public class TeamView extends VerticalLayout {
     static final int DEFAULT_POINTS_CAPACITY = 10;
     static final int DEFAULT_CARDS_CAPACITY = 5;
     private static final String CAPACITY_ATTRIBUTE = TeamView.class.getName() + ".capacity";
-    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("MMM d");
 
     private final WorkloadService workloadService;
     private final BoardChangeBroadcaster broadcaster;
@@ -59,7 +60,7 @@ public class TeamView extends VerticalLayout {
     private final Clock clock;
 
     private final Span subtitle = new Span();
-    private final IntegerField capacity = new IntegerField("Capacity per person and week");
+    private final IntegerField capacity = new IntegerField(I18n.t("team.capacity"));
     private final Div table = new Div();
     private final Div suggestions = new Div();
     private Registration changeSubscription;
@@ -76,7 +77,7 @@ public class TeamView extends VerticalLayout {
         addClassName("boards-view");
         addClassName("team");
         setSizeFull();
-        H2 heading = new H2("Team");
+        H2 heading = new H2(I18n.t("nav.team"));
         subtitle.addClassName("page-subtitle");
 
         capacity.setId("team-capacity");
@@ -115,17 +116,15 @@ public class TeamView extends VerticalLayout {
         Integer remembered = (Integer) VaadinSession.getCurrent().getAttribute(CAPACITY_ATTRIBUTE);
         int defaultCapacity = workload.pointsBased() ? DEFAULT_POINTS_CAPACITY : DEFAULT_CARDS_CAPACITY;
         capacity.setValue(remembered != null ? remembered : defaultCapacity);
-        capacity.setHelperText(workload.pointsBased() ? "In story points; a card without an estimate counts as one point." : "In cards.");
+        capacity.setHelperText(I18n.t(workload.pointsBased() ? "team.capacityPoints" : "team.capacityCards"));
         render();
     }
 
     private void render() {
         int limit = capacity.getValue() == null ? DEFAULT_CARDS_CAPACITY : capacity.getValue();
         subtitle.setText(workload.isEmpty()
-                ? "No open cards on the boards you can see."
-                : "%d open %s across %d %s. Cells turn red above %s per week."
-                        .formatted(workload.openCards(), workload.openCards() == 1 ? "card" : "cards", workload.people().size(),
-                                workload.people().size() == 1 ? "person" : "people", workload.unit(limit)));
+                ? I18n.t("team.empty")
+                : I18n.t("team.summary", workload.openCards(), workload.people().size(), unit(limit)));
         table.removeAll();
         suggestions.removeAll();
         if (workload.isEmpty()) {
@@ -139,15 +138,16 @@ public class TeamView extends VerticalLayout {
     }
 
     private Div header() {
-        Div header = new Div(cell("team__corner", new Span("Person")));
+        DateTimeFormatter DAY = I18n.formatter("MMM d");
+        Div header = new Div(cell("team__corner", new Span(I18n.t("team.person"))));
         for (int week = 0; week < Workload.WEEKS; week++) {
             LocalDate start = workload.weekStart(week);
-            Span title = new Span(week == 0 ? "This week" : week == 1 ? "Next week" : "Week " + (week + 1));
-            Span range = new Span(DAY.format(start) + " – " + DAY.format(start.plusDays(6)));
+            Span title = new Span(week == 0 ? I18n.t("team.thisWeek") : week == 1 ? I18n.t("team.nextWeek") : I18n.t("team.week", week + 1));
+            Span range = new Span(DAY.format(start) + " \u2013 " + DAY.format(start.plusDays(6)));
             range.addClassName("team__range");
             header.add(cell("team__head", title, range));
         }
-        header.add(cell("team__head", new Span("Later")), cell("team__head", new Span("No date")), cell("team__head", new Span("Total")));
+        header.add(cell("team__head", new Span(I18n.t("work.later"))), cell("team__head", new Span(I18n.t("team.noDate"))), cell("team__head", new Span(I18n.t("team.total"))));
         header.addClassName("team__row");
         header.addClassName("team__row--head");
         return header;
@@ -164,11 +164,11 @@ public class TeamView extends VerticalLayout {
         } else {
             name.add(VaadinIcon.USER_CLOCK.create());
         }
-        Span label = new Span(person.name());
+        Span label = new Span(person.isUnassigned() ? I18n.t("filter.unassigned") : person.name());
         label.addClassName("team__name");
         name.add(label);
         if (person.overdue() > 0) {
-            Badge overdue = new Badge(person.overdue() + " overdue");
+            Badge overdue = new Badge(I18n.t("tile.overdue", person.overdue()));
             overdue.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.ERROR);
             overdue.addClassName("team__overdue");
             name.add(overdue);
@@ -176,14 +176,15 @@ public class TeamView extends VerticalLayout {
         Div row = new Div(name);
         row.addClassName("team__row");
         row.getElement().setAttribute("data-person", person.name());
+        DateTimeFormatter DAY = I18n.formatter("MMM d");
         for (int week = 0; week < Workload.WEEKS; week++) {
             LocalDate start = workload.weekStart(week);
             row.add(loadCell(person, person.week(week), limit, true,
-                    person.name() + " · week of " + DAY.format(start)));
+                    person.name() + " \u00b7 " + I18n.t("team.weekOf", DAY.format(start))));
         }
-        row.add(loadCell(person, person.later(), limit, false, person.name() + " · later"),
-                loadCell(person, person.undated(), limit, false, person.name() + " · no due date"));
-        Span total = new Span(workload.unit(workload.load(person)));
+        row.add(loadCell(person, person.later(), limit, false, person.name() + " \u00b7 " + I18n.t("work.later").toLowerCase(I18n.locale())),
+                loadCell(person, person.undated(), limit, false, person.name() + " \u00b7 " + I18n.t("work.noDueDate").toLowerCase(I18n.locale())));
+        Span total = new Span(unit(workload.load(person)));
         total.addClassName("team__total");
         row.add(cell("team__cell team__cell--total", total));
         return row;
@@ -206,9 +207,9 @@ public class TeamView extends VerticalLayout {
         bar.addClassName("team__bar");
         double share = capped ? Math.min(1.0, (double) load / Math.max(1, limit)) : 0;
         bar.getStyle().set("--team-fill", String.format(java.util.Locale.ROOT, "%.0f%%", share * 100));
-        Span amount = new Span(workload.unit(load));
+        Span amount = new Span(unit(load));
         amount.addClassName("team__amount");
-        Span count = new Span(workload.pointsBased() ? slot.count() + (slot.count() == 1 ? " card" : " cards") : "");
+        Span count = new Span(workload.pointsBased() ? I18n.count(slot.count(), "unit.card", "unit.cards") : "");
         count.addClassName("team__count");
         Div numbers = new Div(amount, count);
         numbers.addClassName("team__load");
@@ -217,7 +218,7 @@ public class TeamView extends VerticalLayout {
         open.addClickListener(event -> showCards(title, slot));
         open.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
         open.addClassName("team__open");
-        open.setAriaLabel("Show the cards of " + title);
+        open.setAriaLabel(I18n.t("team.showCards", title));
         cell.add(bar, open);
         return cell;
     }
@@ -232,7 +233,7 @@ public class TeamView extends VerticalLayout {
         LocalDate today = LocalDate.now(clock);
         slot.cards().forEach(location -> list.add(new CardLocationRow(location, today)));
         dialog.add(list);
-        Button close = new Button("Close", event -> dialog.close());
+        Button close = new Button(I18n.t("common.close"), event -> dialog.close());
         dialog.getFooter().add(close);
         dialog.open();
     }
@@ -241,7 +242,7 @@ public class TeamView extends VerticalLayout {
         if (proposals.isEmpty()) {
             return;
         }
-        H3 heading = new H3("Even it out");
+        H3 heading = new H3(I18n.t("team.evenOut"));
         heading.addClassName("team__suggestions-heading");
         suggestions.add(heading);
         for (Suggestion proposal : proposals) {
@@ -255,24 +256,27 @@ public class TeamView extends VerticalLayout {
         card.addClassName("team__suggestion-card");
         Span text = new Span();
         text.addClassName("team__suggestion-text");
-        String week = "week of " + DAY.format(workload.weekStart(proposal.weekIndex()));
+        String week = I18n.t("team.weekOf", I18n.formatter("MMM d").format(workload.weekStart(proposal.weekIndex())));
         if (proposal.isAssignment()) {
-            text.add(new Span("Assign "), card, new Span(" to %s (%s): they would be at %s."
-                    .formatted(proposal.to(), week, workload.unit(proposal.toAfter()))));
+            text.add(new Span(I18n.t("team.assignPrefix")), card, new Span(I18n.t("team.assignSuffix", proposal.to(), week, unit(proposal.toAfter()))));
         } else {
-            text.add(new Span("Move "), card, new Span(" from %s to %s (%s): %s would be at %s, %s at %s."
-                    .formatted(proposal.from(), proposal.to(), week, proposal.from(), workload.unit(proposal.fromAfter()),
-                            proposal.to(), workload.unit(proposal.toAfter()))));
+            text.add(new Span(I18n.t("team.movePrefix")), card, new Span(I18n.t("team.moveSuffix", proposal.from(), proposal.to(), week,
+                    unit(proposal.fromAfter()), unit(proposal.toAfter()))));
         }
-        Button apply = new Button(proposal.isAssignment() ? "Assign" : "Reassign", event -> {
+        Button apply = new Button(I18n.t(proposal.isAssignment() ? "team.assign" : "team.reassign"), event -> {
             workloadService.reassign(location.card().id(), proposal.to(), session.getDisplayName());
-            Toasts.success("\"%s\" is now assigned to %s".formatted(location.card().title(), proposal.to()));
+            Toasts.success(I18n.t("team.assigned", location.card().title(), proposal.to()));
         });
         apply.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
         apply.addClassName("team__reassign");
         Div row = new Div(VaadinIcon.EXCHANGE.create(), text, apply);
         row.addClassName("team__suggestion");
         return row;
+    }
+
+    /** The load in the workload's unit, in the current language. */
+    private String unit(int amount) {
+        return workload.pointsBased() ? I18n.t("unit.points", amount) : I18n.count(amount, "unit.card", "unit.cards");
     }
 
     private static Div cell(String classes, com.vaadin.flow.component.Component... content) {

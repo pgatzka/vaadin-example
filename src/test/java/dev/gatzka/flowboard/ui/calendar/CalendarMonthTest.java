@@ -32,7 +32,7 @@ class CalendarMonthTest {
     void pathSegmentRoundTrips() {
         CalendarMonth month = CalendarMonth.of(YearMonth.of(2027, 2));
         assertThat(month.pathSegment()).isEqualTo("2027-02");
-        assertThat(month.title()).isEqualTo("February 2027");
+        assertThat(month.title(java.util.Locale.ENGLISH)).isEqualTo("February 2027");
         assertThat(CalendarMonth.parse("2027-02")).contains(YearMonth.of(2027, 2));
         assertThat(CalendarMonth.parse("nope")).isEmpty();
         assertThat(CalendarMonth.parse(null)).isEmpty();

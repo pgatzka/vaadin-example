@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import dev.gatzka.flowboard.domain.ActivityPulse;
 import dev.gatzka.flowboard.domain.ActivityPulse.DayCount;
 import java.time.DayOfWeek;
@@ -14,7 +16,9 @@ final class HeatmapChart {
     static final int GAP = 3;
     private static final int LABEL_WIDTH = 28;
     private static final int LABEL_HEIGHT = 16;
-    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE, MMM d");
+    private static DateTimeFormatter day() {
+        return I18n.formatter("EEE, MMM d");
+    }
     private static final double[] LEVELS = {0.25, 0.5, 0.75, 1.0};
 
     private HeatmapChart() {
@@ -31,11 +35,11 @@ final class HeatmapChart {
         int max = Math.max(1, pulse.busiestDayCount());
         StringBuilder svg = new StringBuilder();
         svg.append("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ").append(width).append(' ').append(height)
-                .append("\" width=\"").append(width).append("\" role=\"img\" aria-label=\"Activity per day\" class=\"heatmap\">");
+                .append("\" width=\"").append(width).append("\" role=\"img\" aria-label=\"").append(I18n.t("heatmap.aria")).append("\" class=\"heatmap\">");
         for (DayOfWeek weekday : new DayOfWeek[] {DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY}) {
             int row = weekday.getValue() - 1;
             svg.append("<text class=\"heatmap__label\" x=\"0\" y=\"").append(LABEL_HEIGHT + row * (CELL + GAP) + CELL - 2)
-                    .append("\">").append(weekday.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)).append("</text>");
+                    .append("\">").append(weekday.getDisplayName(TextStyle.SHORT, I18n.locale())).append("</text>");
         }
         int lastMonth = -1;
         for (int i = 0; i < pulse.days().size(); i++) {
@@ -48,12 +52,12 @@ final class HeatmapChart {
             if (row == 0 && day.day().getMonthValue() != lastMonth) {
                 lastMonth = day.day().getMonthValue();
                 svg.append("<text class=\"heatmap__label\" x=\"").append(x).append("\" y=\"").append(LABEL_HEIGHT - 5).append("\">")
-                        .append(day.day().getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)).append("</text>");
+                        .append(day.day().getMonth().getDisplayName(TextStyle.SHORT, I18n.locale())).append("</text>");
             }
             svg.append("<rect class=\"heatmap__day\" data-level=\"").append(level(day.count(), max)).append("\" x=\"").append(x)
                     .append("\" y=\"").append(y).append("\" width=\"").append(CELL).append("\" height=\"").append(CELL)
-                    .append("\" rx=\"2\"><title>").append(DAY.format(day.day())).append(": ")
-                    .append(day.count()).append(day.count() == 1 ? " change" : " changes").append("</title></rect>");
+                    .append("\" rx=\"2\"><title>").append(day().format(day.day())).append(": ")
+                    .append(day.count()).append(I18n.t(day.count() == 1 ? "heatmap.change" : "heatmap.changes")).append("</title></rect>");
         }
         svg.append("</svg>");
         return svg.toString();

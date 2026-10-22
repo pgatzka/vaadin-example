@@ -8,6 +8,7 @@ import com.vaadin.flow.server.streams.DownloadHandler;
 import com.vaadin.flow.server.streams.DownloadResponse;
 import dev.gatzka.flowboard.domain.BoardSummary;
 import dev.gatzka.flowboard.exchange.BoardExchangeService;
+import dev.gatzka.flowboard.ui.i18n.I18n;
 import java.io.ByteArrayInputStream;
 import java.util.Locale;
 
@@ -15,7 +16,7 @@ import java.util.Locale;
 final class ExportDialog extends Dialog {
 
     ExportDialog(BoardSummary board, BoardExchangeService exchange) {
-        setHeaderTitle("Export \"%s\"".formatted(board.name()));
+        setHeaderTitle(I18n.t("export.title", board.name()));
         setWidth("min(460px, 95vw)");
 
         String fileName = fileName(board.name());
@@ -24,13 +25,13 @@ final class ExportDialog extends Dialog {
             return new DownloadResponse(new ByteArrayInputStream(bytes), fileName, "application/json", bytes.length);
         }, fileName);
 
-        Anchor download = new Anchor(handler, "Download " + fileName);
+        Anchor download = new Anchor(handler, I18n.t("export.download", fileName));
         download.addClassName("export-link");
         download.getElement().setAttribute("download", true);
 
-        add(new Paragraph("Lanes, cards, checklists and comments are written to a JSON file that can be imported into any Flowboard."),
+        add(new Paragraph(I18n.t("export.text")),
                 download);
-        getFooter().add(new Button("Close", event -> close()));
+        getFooter().add(new Button(I18n.t("common.close"), event -> close()));
     }
 
     static String fileName(String boardName) {

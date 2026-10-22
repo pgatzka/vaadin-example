@@ -1,5 +1,8 @@
 package dev.gatzka.flowboard.ui.timeline;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.DetachEvent;
@@ -21,6 +24,7 @@ import com.vaadin.flow.shared.Registration;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.domain.Grouping;
 import dev.gatzka.flowboard.domain.Timeline;
 import dev.gatzka.flowboard.domain.Timeline.Bar;
 import dev.gatzka.flowboard.domain.Timeline.Group;
@@ -51,7 +55,6 @@ import java.util.Optional;
 public class TimelineView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle {
 
     static final int DAY_WIDTH = 22;
-    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("MMM d");
 
     private final BoardService boardService;
     private final BoardChangeBroadcaster broadcaster;
@@ -94,13 +97,13 @@ public class TimelineView extends VerticalLayout implements BeforeEnterObserver,
 
         Button previous = new Button(VaadinIcon.ANGLE_LEFT.create(), event -> show(from.minusWeeks(4)));
         previous.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        previous.setAriaLabel("Four weeks back");
+        previous.setAriaLabel(I18n.t("timeline.back"));
         previous.setId("timeline-prev");
         Button next = new Button(VaadinIcon.ANGLE_RIGHT.create(), event -> show(from.plusWeeks(4)));
         next.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        next.setAriaLabel("Four weeks ahead");
+        next.setAriaLabel(I18n.t("timeline.ahead"));
         next.setId("timeline-next");
-        Button today = new Button("Today", event -> show(Timeline.windowStart(LocalDate.now(clock))));
+        Button today = new Button(I18n.t("calendar.today"), event -> show(Timeline.windowStart(LocalDate.now(clock))));
         today.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         today.setId("timeline-today");
         range.addClassName("calendar__month");
@@ -109,11 +112,11 @@ public class TimelineView extends VerticalLayout implements BeforeEnterObserver,
 
         groupBy.setId("timeline-group");
         groupBy.setItems(GroupBy.values());
-        groupBy.setItemLabelGenerator(GroupBy::label);
+        groupBy.setItemLabelGenerator(Labels::groupBy);
         groupBy.setValue(GroupBy.LANE);
         groupBy.addValueChangeListener(event -> render());
 
-        Button backToBoard = new Button("Board", VaadinIcon.TASKS.create(), event -> getUI().ifPresent(
+        Button backToBoard = new Button(I18n.t("common.board"), VaadinIcon.TASKS.create(), event -> getUI().ifPresent(
                 ui -> ui.navigate(BoardView.class, new RouteParameters(BoardView.BOARD_ID, Long.toString(board.id())))));
         backToBoard.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
@@ -127,7 +130,7 @@ public class TimelineView extends VerticalLayout implements BeforeEnterObserver,
         Optional<BoardSnapshot> found = event.getRouteParameters().getLong(BoardView.BOARD_ID).flatMap(boardService::findBoard)
                 .filter(snapshot -> access.canAccess(snapshot.id(), session.login()));
         if (found.isEmpty()) {
-            Toasts.error("That board does not exist or is not open to you");
+            Toasts.error(I18n.t("board.notFound"));
             event.forwardTo(BoardsView.class);
             return;
         }
@@ -137,7 +140,7 @@ public class TimelineView extends VerticalLayout implements BeforeEnterObserver,
 
     @Override
     public String getPageTitle() {
-        return (board == null ? "Timeline" : "Timeline · " + board.name()) + " · Flowboard";
+        return (board == null ? I18n.t("board.menu.timeline") : I18n.t("board.menu.timeline") + " \u00b7 " + board.name()) + " \u00b7 Flowboard";
     }
 
     @Override
@@ -172,12 +175,13 @@ public class TimelineView extends VerticalLayout implements BeforeEnterObserver,
     private void render() {
         heading.setText(board.name());
         timeline = Timeline.of(board, groupBy.getValue(), from, Timeline.DEFAULT_WEEKS);
-        range.setText(DAY.format(timeline.from()) + " – " + DAY.format(timeline.to()));
+        DateTimeFormatter DAY = I18n.formatter("MMM d");
+        range.setText(DAY.format(timeline.from()) + " \u2013 " + DAY.format(timeline.to()));
         LocalDate today = LocalDate.now(clock);
         scroller.removeAll();
         scroller.add(header(today));
         for (Group group : timeline.groups()) {
-            Div label = new Div(new Span(group.name()));
+            Div label = new Div(new Span(Grouping.UNASSIGNED.equals(group.name()) ? I18n.t("filter.unassigned") : group.name()));
             label.addClassName("timeline__group");
             label.getElement().setAttribute("data-group", group.name());
             scroller.add(label);
@@ -191,19 +195,18 @@ public class TimelineView extends VerticalLayout implements BeforeEnterObserver,
             scroller.add(marker);
         }
         if (timeline.isEmpty()) {
-            Span empty = new Span("No card has a start or due date in these weeks. Give cards dates, or move the window.");
+            Span empty = new Span(I18n.t("timeline.empty"));
             empty.addClassName("timeline__empty");
             scroller.add(empty);
         }
         StringBuilder note = new StringBuilder();
         if (timeline.undated() > 0) {
-            note.append(timeline.undated()).append(timeline.undated() == 1 ? " card has" : " cards have").append(" no dates and stay off the timeline.");
+            note.append(I18n.t("timeline.undated", timeline.undated()));
         }
         if (timeline.outside() > 0) {
-            note.append(note.isEmpty() ? "" : " ").append(timeline.outside()).append(timeline.outside() == 1 ? " card falls" : " cards fall")
-                    .append(" outside these weeks.");
+            note.append(note.isEmpty() ? "" : " ").append(I18n.t("timeline.outside", timeline.outside()));
         }
-        note.append(note.isEmpty() ? "" : " ").append("Drag a bar to move it, pull its ends to change the dates, click it to open the card.");
+        note.append(note.isEmpty() ? "" : " ").append(I18n.t("timeline.help"));
         footer.setText(note.toString());
     }
 
@@ -216,7 +219,7 @@ public class TimelineView extends VerticalLayout implements BeforeEnterObserver,
         track.addClassName("timeline__track--head");
         track.getStyle().set("width", (timeline.days() * DAY_WIDTH) + "px");
         for (LocalDate weekStart : timeline.weekStarts()) {
-            Span week = new Span(Timeline.monthLabel(weekStart) + " " + weekStart.getDayOfMonth());
+            Span week = new Span(I18n.formatter("MMM d").format(weekStart));
             week.addClassName("timeline__week");
             if (!weekStart.isAfter(today) && today.isBefore(weekStart.plusWeeks(1))) {
                 week.addClassName("timeline__week--current");
@@ -281,13 +284,14 @@ public class TimelineView extends VerticalLayout implements BeforeEnterObserver,
 
     private static String describe(Bar bar) {
         CardSnapshot card = bar.card();
+        DateTimeFormatter day = I18n.formatter("MMM d");
         if (bar.milestone()) {
-            return card.title() + " · due " + DAY.format(card.dueDate());
+            return card.title() + " \u00b7 " + I18n.t("timeline.dueOn", day.format(card.dueDate()));
         }
         if (bar.openEnded()) {
-            return card.title() + " · from " + DAY.format(card.startDate()) + ", no due date";
+            return card.title() + " \u00b7 " + I18n.t("timeline.fromOpen", day.format(card.startDate()));
         }
-        return card.title() + " · " + DAY.format(card.startDate()) + " – " + DAY.format(card.dueDate());
+        return card.title() + " \u00b7 " + day.format(card.startDate()) + " \u2013 " + day.format(card.dueDate());
     }
 
     /** Pointer handling lives in the browser: bars move while dragging and the server hears the result once. */
@@ -367,9 +371,9 @@ public class TimelineView extends VerticalLayout implements BeforeEnterObserver,
         try {
             CardDraft draft = card.toDraft().withDates(start, due);
             boardService.updateCard(id, draft, session.getDisplayName());
-            Toasts.success("\"" + card.title() + "\" now " + describeDates(start, due));
+            Toasts.success(I18n.t("timeline.rescheduled", card.title(), describeDates(start, due)));
         } catch (NotFoundException gone) {
-            Toasts.error("Somebody else removed that card in the meantime");
+            Toasts.error(I18n.t("board.removedMeanwhile"));
         } catch (IllegalArgumentException invalid) {
             Toasts.error(invalid.getMessage());
             render();
@@ -377,9 +381,10 @@ public class TimelineView extends VerticalLayout implements BeforeEnterObserver,
     }
 
     private static String describeDates(LocalDate start, LocalDate due) {
+        DateTimeFormatter day = I18n.formatter("MMM d");
         if (start != null && due != null) {
-            return "runs " + DAY.format(start) + " – " + DAY.format(due);
+            return I18n.t("timeline.runs", day.format(start), day.format(due));
         }
-        return due != null ? "due " + DAY.format(due) : "starts " + DAY.format(start);
+        return due != null ? I18n.t("timeline.dueOn", day.format(due)) : I18n.t("timeline.startsOn", day.format(start));
     }
 }

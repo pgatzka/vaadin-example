@@ -1,5 +1,6 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -29,7 +30,7 @@ final class ViewsBar extends Div {
 
     private final Actions actions;
     private final Div chips = new Div();
-    private final Button save = new Button("Save view", VaadinIcon.STAR_O.create());
+    private final Button save = new Button(I18n.t("views.save"), VaadinIcon.STAR_O.create());
 
     ViewsBar(Actions actions) {
         this.actions = actions;
@@ -37,7 +38,7 @@ final class ViewsBar extends Div {
         chips.addClassName("views-bar__chips");
         save.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
         save.addClassName("views-bar__save");
-        save.setTooltipText("Save the current filter as a view everybody on the board can use");
+        save.setTooltipText(I18n.t("views.saveTooltip"));
         save.addClickListener(event -> askForName());
         add(chips, save);
     }
@@ -54,15 +55,15 @@ final class ViewsBar extends Div {
             chip.addClassName("views-bar__chip");
             if (active) {
                 chip.addClassName("views-bar__chip--active");
-                chip.setTooltipText("This view is applied");
+                chip.setTooltipText(I18n.t("views.applied"));
             }
             Div holder = new Div(chip);
             holder.addClassName("views-bar__item");
             if (active) {
                 Button remove = new Button(VaadinIcon.CLOSE_SMALL.create(), event -> actions.deleteView(view));
                 remove.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-                remove.setAriaLabel("Delete view " + view.name());
-                remove.setTooltipText("Delete this view");
+                remove.setAriaLabel(I18n.t("views.deleteAria", view.name()));
+                remove.setTooltipText(I18n.t("views.deleteTooltip"));
                 remove.addClassName("views-bar__remove");
                 holder.add(remove);
             }
@@ -72,19 +73,19 @@ final class ViewsBar extends Div {
 
     private void askForName() {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Save view");
-        Span hint = new Span("Everyone on this board will see it as a chip above the lanes.");
+        dialog.setHeaderTitle(I18n.t("views.save"));
+        Span hint = new Span(I18n.t("views.hint"));
         hint.addClassName("share-dialog__hint");
-        TextField name = new TextField("Name");
-        name.setPlaceholder("e.g. Backend bugs");
+        TextField name = new TextField(I18n.t("common.name"));
+        name.setPlaceholder(I18n.t("views.namePlaceholder"));
         name.setMaxLength(60);
         name.setAutofocus(true);
         name.setWidthFull();
         name.setId("view-name");
         dialog.add(hint, name);
-        Button confirm = new Button("Save", event -> {
+        Button confirm = new Button(I18n.t("common.save"), event -> {
             if (name.getValue().isBlank()) {
-                name.setErrorMessage("Please enter a name");
+                name.setErrorMessage(I18n.t("views.nameRequired"));
                 name.setInvalid(true);
                 return;
             }
@@ -93,7 +94,7 @@ final class ViewsBar extends Div {
         });
         confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         confirm.addClickShortcut(Key.ENTER);
-        dialog.getFooter().add(new Button("Cancel", event -> dialog.close()), confirm);
+        dialog.getFooter().add(new Button(I18n.t("common.cancel"), event -> dialog.close()), confirm);
         dialog.open();
     }
 }

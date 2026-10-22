@@ -14,7 +14,6 @@ import java.util.Optional;
 record CalendarMonth(YearMonth month, List<LocalDate> days) {
 
     private static final DateTimeFormatter PATH = DateTimeFormatter.ofPattern("uuuu-MM");
-    private static final DateTimeFormatter TITLE = DateTimeFormatter.ofPattern("MMMM uuuu");
 
     static CalendarMonth of(YearMonth month) {
         LocalDate first = month.atDay(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -39,8 +38,8 @@ record CalendarMonth(YearMonth month, List<LocalDate> days) {
         return PATH.format(month);
     }
 
-    String title() {
-        return TITLE.format(month);
+    String title(java.util.Locale locale) {
+        return DateTimeFormatter.ofPattern("MMMM uuuu", locale).format(month);
     }
 
     boolean contains(LocalDate day) {

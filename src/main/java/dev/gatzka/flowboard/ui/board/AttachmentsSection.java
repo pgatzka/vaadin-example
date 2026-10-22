@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Anchor;
@@ -27,7 +29,7 @@ final class AttachmentsSection extends Div {
     private static final DateTimeFormatter WHEN = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM);
 
     private final Div list = new Div();
-    private final Span empty = new Span("No files yet. Drop one below or pick it.");
+    private final Span empty = new Span(I18n.t("files.empty"));
     private final CardEditorActions actions;
     private final Consumer<CardSnapshot> onChanged;
     private CardSnapshot card;
@@ -43,7 +45,7 @@ final class AttachmentsSection extends Div {
         Upload upload = new Upload(UploadHandler.inMemory((metadata, bytes) ->
                 update(actions.attach(this.card.id(), metadata.fileName(), metadata.contentType(), bytes))));
         upload.setMaxFileSize((int) AttachmentService.MAX_SIZE);
-        upload.setDropLabel(new Span("Drop files here (up to 5 MB each)"));
+        upload.setDropLabel(new Span(I18n.t("files.drop")));
         upload.addFileRejectedListener(event -> Toasts.error(event.getErrorMessage()));
         upload.addClassName("attachments__upload");
 
@@ -68,28 +70,29 @@ final class AttachmentsSection extends Div {
         Anchor name = new Anchor(handler, attachment.fileName());
         name.addClassName("attachments__name");
 
-        Span meta = new Span(attachment.humanSize() + " · " + attachment.uploadedBy() + " · " + WHEN.format(attachment.uploadedAt().atZone(ZoneId.systemDefault())));
+        Span meta = new Span(attachment.humanSize() + " \u00b7 " + attachment.uploadedBy() + " \u00b7 "
+                + WHEN.withLocale(I18n.locale()).format(attachment.uploadedAt().atZone(ZoneId.systemDefault())));
         meta.addClassName("attachments__meta");
 
         Div text = new Div(name, meta);
         text.addClassName("attachments__text");
         if (attachment.isImage()) {
             boolean cover = card.isCover(attachment.id());
-            Button useAsCover = new Button(cover ? "Cover" : "Use as cover", event -> update(actions.setCover(card.id(), cover ? null : attachment.id())));
+            Button useAsCover = new Button(I18n.t(cover ? "files.cover" : "files.useAsCover"), event -> update(actions.setCover(card.id(), cover ? null : attachment.id())));
             useAsCover.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
             useAsCover.addClassName("attachments__cover");
             if (cover) {
                 useAsCover.setIcon(VaadinIcon.CHECK.create());
                 useAsCover.addClassName("attachments__cover--on");
-                useAsCover.setTooltipText("Shown on the card; click to stop using it as the cover");
+                useAsCover.setTooltipText(I18n.t("files.coverTooltip"));
             } else {
-                useAsCover.setTooltipText("Show this image on the card");
+                useAsCover.setTooltipText(I18n.t("files.useAsCoverTooltip"));
             }
             text.add(useAsCover);
         }
         Button remove = new Button(VaadinIcon.TRASH.create(), event -> update(actions.removeAttachment(attachment.id())));
         remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
-        remove.setAriaLabel("Remove " + attachment.fileName());
+        remove.setAriaLabel(I18n.t("files.removeAria", attachment.fileName()));
 
         Div row = new Div(icon, text, remove);
         row.addClassName("attachments__row");

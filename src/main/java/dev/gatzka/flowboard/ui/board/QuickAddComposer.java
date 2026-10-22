@@ -1,5 +1,6 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -31,7 +32,7 @@ final class QuickAddComposer extends Div {
             });
             """;
 
-    private final Button openButton = new Button("Add card", VaadinIcon.PLUS.create());
+    private final Button openButton = new Button(I18n.t("composer.addCard"), VaadinIcon.PLUS.create());
     private final Div editor = new Div();
     private final TextField title = new TextField();
     private final Runnable onOpen;
@@ -58,19 +59,19 @@ final class QuickAddComposer extends Div {
         openButton.addClassName("quick-add__open");
         openButton.addClickListener(event -> open());
 
-        title.setPlaceholder("Card title");
+        title.setPlaceholder(I18n.t("composer.placeholder"));
         title.setMaxLength(120);
         title.setWidthFull();
         title.setClearButtonVisible(true);
         title.setValueChangeMode(ValueChangeMode.EAGER);
         title.addKeyPressListener(Key.ENTER, event -> submit(onQuickAdd));
         title.addKeyDownListener(Key.ESCAPE, event -> close());
-        title.setHelperText("Shorthand: !high @name #tag ~3 start:mon due:fri every:week. Paste several lines to add several cards.");
+        title.setHelperText(I18n.t("composer.helper"));
         title.getElement().addEventListener("multiline-paste", event -> pasteLines(event.getEventData().path("event.detail.text").asString()))
                 .addEventData("event.detail.text");
         title.addAttachListener(event -> title.getElement().executeJs(MULTILINE_PASTE_JS, title.getElement()));
 
-        Button add = new Button("Add", event -> submit(onQuickAdd));
+        Button add = new Button(I18n.t("composer.add"), event -> submit(onQuickAdd));
         add.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
 
         Button more = new Button(VaadinIcon.ELLIPSIS_DOTS_H.create(), event -> {
@@ -79,12 +80,12 @@ final class QuickAddComposer extends Div {
             onMoreOptions.accept(typed);
         });
         more.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
-        more.setTooltipText("More options");
-        more.setAriaLabel("Open the full card editor");
+        more.setTooltipText(I18n.t("composer.more"));
+        more.setAriaLabel(I18n.t("composer.openEditor"));
 
         Button cancel = new Button(VaadinIcon.CLOSE_SMALL.create(), event -> close());
         cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
-        cancel.setAriaLabel("Cancel");
+        cancel.setAriaLabel(I18n.t("common.cancel"));
 
         Div actions = new Div(add, more, cancel);
         actions.addClassName("quick-add__actions");

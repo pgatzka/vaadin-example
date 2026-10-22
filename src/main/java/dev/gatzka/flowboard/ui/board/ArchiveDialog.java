@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
@@ -20,7 +22,7 @@ final class ArchiveDialog extends Dialog {
     private static final DateTimeFormatter ARCHIVED = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT);
 
     private final Div list = new Div();
-    private final Span empty = new Span("Nothing archived. Archiving keeps finished cards out of the way without deleting them.");
+    private final Span empty = new Span(I18n.t("archive.empty"));
     private final Consumer<CardSnapshot> onRestore;
     private final Consumer<CardSnapshot> onDelete;
 
@@ -28,14 +30,14 @@ final class ArchiveDialog extends Dialog {
         this.onRestore = onRestore;
         this.onDelete = onDelete;
         addClassName("activity-sheet");
-        setHeaderTitle("Archive");
+        setHeaderTitle(I18n.t("board.menu.archive"));
         setModal(false);
         setDraggable(false);
         setCloseOnOutsideClick(true);
 
         Button close = new Button(VaadinIcon.CLOSE_SMALL.create(), event -> close());
         close.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        close.setAriaLabel("Close archive");
+        close.setAriaLabel(I18n.t("archive.close"));
         getHeader().add(close);
 
         list.addClassName("archive__list");
@@ -52,13 +54,13 @@ final class ArchiveDialog extends Dialog {
     private Div row(CardSnapshot card) {
         Span title = new Span(card.title());
         title.addClassName("archive__title");
-        Span when = new Span("Archived " + ARCHIVED.format(card.archivedAt().atZone(ZoneId.systemDefault())));
+        Span when = new Span(I18n.t("archive.when", ARCHIVED.withLocale(I18n.locale()).format(card.archivedAt().atZone(ZoneId.systemDefault()))));
         when.addClassName("archive__when");
-        Button restore = new Button("Restore", VaadinIcon.ARROW_BACKWARD.create(), event -> onRestore.accept(card));
+        Button restore = new Button(I18n.t("archive.restore"), VaadinIcon.ARROW_BACKWARD.create(), event -> onRestore.accept(card));
         restore.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
         Button delete = new Button(VaadinIcon.TRASH.create(), event -> confirmDelete(card));
         delete.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON, ButtonVariant.LUMO_ERROR);
-        delete.setAriaLabel("Delete \"" + card.title() + "\" permanently");
+        delete.setAriaLabel(I18n.t("archive.deleteAria", card.title()));
         Div actions = new Div(restore, delete);
         actions.addClassName("archive__actions");
         Div row = new Div(new Div(title, when), actions);
@@ -67,8 +69,8 @@ final class ArchiveDialog extends Dialog {
     }
 
     private void confirmDelete(CardSnapshot card) {
-        ConfirmDialog confirm = new ConfirmDialog("Delete \"%s\" permanently?".formatted(card.title()),
-                "This cannot be undone.", "Delete", event -> onDelete.accept(card));
+        ConfirmDialog confirm = new ConfirmDialog(I18n.t("archive.deleteTitle", card.title()),
+                I18n.t("archive.deleteText"), I18n.t("common.delete"), event -> onDelete.accept(card));
         confirm.setCancelable(true);
         confirm.setConfirmButtonTheme("error primary");
         confirm.open();

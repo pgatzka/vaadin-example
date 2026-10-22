@@ -88,6 +88,8 @@ import dev.gatzka.flowboard.ui.calendar.CalendarView;
 import dev.gatzka.flowboard.ui.digest.DigestView;
 import dev.gatzka.flowboard.ui.support.Celebration;
 import dev.gatzka.flowboard.ui.support.Toasts;
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
 import dev.gatzka.flowboard.ui.timeline.TimelineView;
 import dev.gatzka.flowboard.ui.walk.WalkView;
 import dev.gatzka.flowboard.ui.support.UiAccess;
@@ -160,7 +162,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         public void saveView(String name) {
             try {
                 savedViews.save(board.id(), name, filters.filter(), actor());
-                Toasts.success("View \"" + name.strip() + "\" saved");
+                Toasts.success(getTranslation("view.saved", name.strip()));
             } catch (IllegalArgumentException e) {
                 Toasts.error(e.getMessage());
             }
@@ -170,7 +172,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         @Override
         public void deleteView(SavedViewSnapshot view) {
             savedViews.delete(view.id(), actor());
-            Toasts.info("View \"" + view.name() + "\" deleted");
+            Toasts.info(getTranslation("view.deleted", view.name()));
             showViews();
         }
     });
@@ -189,19 +191,19 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         public void moveSelected(LaneSnapshot lane) {
             List<Long> ids = List.copyOf(selection);
             perform(() -> ids.forEach(id -> boardService.moveCard(id, lane.id(), Integer.MAX_VALUE, actor())));
-            Toasts.success(ids.size() + (ids.size() == 1 ? " card moved to " : " cards moved to ") + lane.name());
+            Toasts.success(getTranslation("board.selection.moved", ids.size(), lane.name()));
         }
 
         @Override
         public void assignSelected(String assignee) {
             changeSelected(draft -> draft.withAssignee(assignee),
-                    "assigned to " + assignee.strip());
+                    getTranslation("board.selection.assigned", assignee.strip()));
         }
 
         @Override
         public void prioritiseSelected(Priority priority) {
             changeSelected(draft -> draft.withPriority(priority),
-                    "set to " + priority.label().toLowerCase(java.util.Locale.ROOT));
+                    getTranslation("board.selection.priority", Labels.priority(priority).toLowerCase(I18n.locale())));
         }
 
         @Override
@@ -210,7 +212,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
                 Set<String> tags = new LinkedHashSet<>(draft.tags());
                 tags.add(tag.strip());
                 return draft.withTags(tags);
-            }, "tagged " + tag.strip());
+            }, getTranslation("board.selection.tagged", tag.strip()));
         }
 
         @Override
@@ -218,7 +220,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             List<Long> ids = List.copyOf(selection);
             selection.clear();
             perform(() -> ids.forEach(id -> boardService.archiveCard(id, actor())));
-            Toasts.undoable(ids.size() + (ids.size() == 1 ? " card archived" : " cards archived"),
+            Toasts.undoable(getTranslation("board.selection.archived", ids.size()),
                     () -> perform(() -> boardService.restoreCards(ids, actor())));
         }
 
@@ -300,11 +302,11 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         Div titles = new Div(heading, description);
         titles.addClassName("board-toolbar__titles");
 
-        search.setPlaceholder("Filter cards");
+        search.setPlaceholder(getTranslation("board.filterPlaceholder"));
         search.setPrefixComponent(VaadinIcon.SEARCH.create());
         search.setClearButtonVisible(true);
         search.setValueChangeMode(ValueChangeMode.LAZY);
-        search.setTooltipText("Press / to focus");
+        search.setTooltipText(getTranslation("board.filterTooltip"));
         search.addClassName("board-toolbar__search");
         search.addValueChangeListener(event -> filters.setQuery(event.getValue()));
 
@@ -314,24 +316,24 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
         Button activity = new Button(VaadinIcon.CLOCK.create(), event -> openActivity());
         activity.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        activity.setAriaLabel("Show activity");
-        activity.setTooltipText("Activity");
+        activity.setAriaLabel(getTranslation("board.activityAria"));
+        activity.setTooltipText(getTranslation("board.activity"));
 
         Button insights = new Button(VaadinIcon.CHART.create(), event -> openInsights());
         insights.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        insights.setAriaLabel("Show insights");
-        insights.setTooltipText("Insights");
+        insights.setAriaLabel(getTranslation("board.insightsAria"));
+        insights.setTooltipText(getTranslation("board.insights"));
 
-        Button addLane = new Button("Add lane", VaadinIcon.PLUS.create(), event -> addLane());
+        Button addLane = new Button(getTranslation("board.addLane"), VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
         grouping.setId("board-grouping");
         grouping.setItems(Grouping.values());
-        grouping.setItemLabelGenerator(Grouping::label);
+        grouping.setItemLabelGenerator(Labels::grouping);
         grouping.setValue(Grouping.NONE);
         grouping.setPrefixComponent(VaadinIcon.LINES_LIST.create());
-        grouping.setTooltipText("Split the board into swimlanes");
-        grouping.setAriaLabel("Group by");
+        grouping.setTooltipText(getTranslation("board.groupTooltip"));
+        grouping.setAriaLabel(getTranslation("board.groupAria"));
         grouping.addClassName("board-toolbar__grouping");
         grouping.addValueChangeListener(event -> {
             if (event.isFromClient()) {
@@ -354,25 +356,25 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         MenuBar menu = new MenuBar();
         menu.addThemeVariants(MenuBarVariant.LUMO_TERTIARY, MenuBarVariant.LUMO_ICON);
         MenuItem root = menu.addItem(VaadinIcon.ELLIPSIS_DOTS_H.create());
-        root.setAriaLabel("More board actions");
+        root.setAriaLabel(getTranslation("board.moreAria"));
         root.setId("board-more");
         SubMenu items = root.getSubMenu();
-        items.addItem(entry(VaadinIcon.CALENDAR, "Calendar"), event -> getUI().ifPresent(ui -> ui.navigate(
+        items.addItem(entry(VaadinIcon.CALENDAR, getTranslation("board.menu.calendar")), event -> getUI().ifPresent(ui -> ui.navigate(
                 CalendarView.class, new RouteParameters(BOARD_ID, Long.toString(board.id())))));
-        items.addItem(entry(VaadinIcon.TIMER, "Timeline"), event -> getUI().ifPresent(ui -> ui.navigate(
+        items.addItem(entry(VaadinIcon.TIMER, getTranslation("board.menu.timeline")), event -> getUI().ifPresent(ui -> ui.navigate(
                 TimelineView.class, new RouteParameters(BOARD_ID, Long.toString(board.id()))))).setId("board-timeline");
-        items.addItem(entry(VaadinIcon.NEWSPAPER, "Weekly digest"), event -> getUI().ifPresent(ui -> ui.navigate(
+        items.addItem(entry(VaadinIcon.NEWSPAPER, getTranslation("board.menu.digest")), event -> getUI().ifPresent(ui -> ui.navigate(
                 DigestView.class, new RouteParameters(BOARD_ID, Long.toString(board.id()))))).setId("board-digest");
-        items.addItem(entry(VaadinIcon.ARCHIVE, "Archive"), event -> openArchive()).setId("board-archive");
-        items.addItem(entry(VaadinIcon.CLUSTER, "Dependencies"), event -> openDependencies()).setId("board-dependencies");
-        items.addItem(entry(VaadinIcon.MEGAPHONE, "Walk the board"), event -> getUI().ifPresent(ui -> ui.navigate(
+        items.addItem(entry(VaadinIcon.ARCHIVE, getTranslation("board.menu.archive")), event -> openArchive()).setId("board-archive");
+        items.addItem(entry(VaadinIcon.CLUSTER, getTranslation("board.menu.dependencies")), event -> openDependencies()).setId("board-dependencies");
+        items.addItem(entry(VaadinIcon.MEGAPHONE, getTranslation("board.menu.walk")), event -> getUI().ifPresent(ui -> ui.navigate(
                 WalkView.class, new RouteParameters(WalkView.BOARD_ID, Long.toString(board.id()))))).setId("board-walk");
-        items.addItem(entry(VaadinIcon.USERS, "Members…"), event ->
+        items.addItem(entry(VaadinIcon.USERS, getTranslation("board.menu.members")), event ->
                 new MembersDialog(board, access, accounts, session).open()).setId("board-members");
-        items.addItem(entry(VaadinIcon.COPY_O, "Card templates…"), event ->
+        items.addItem(entry(VaadinIcon.COPY_O, getTranslation("board.menu.templates")), event ->
                 new TemplatesDialog(board, templateService, this::actor, this::reload).open()).setId("board-templates");
-        items.addItem(entry(VaadinIcon.SHARE, "Public link…"), event -> new ShareDialog(board, sharing, this::actor).open()).setId("share-board");
-        items.addItem(entry(VaadinIcon.PLUG, "Webhooks…"), event ->
+        items.addItem(entry(VaadinIcon.SHARE, getTranslation("board.menu.share")), event -> new ShareDialog(board, sharing, this::actor).open()).setId("share-board");
+        items.addItem(entry(VaadinIcon.PLUG, getTranslation("board.menu.webhooks")), event ->
                 new WebhooksDialog(board, webhookService, webhookDispatcher, this::actor, clock).open()).setId("board-webhooks");
         return menu;
     }
@@ -388,11 +390,11 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         MenuBar menu = new MenuBar();
         menu.addThemeVariants(MenuBarVariant.LUMO_TERTIARY);
         MenuItem root = menu.addItem(VaadinIcon.MAGIC.create());
-        root.add(new Span("Assistant"));
-        root.setAriaLabel("Assistant");
+        root.add(new Span(getTranslation("assistant.title")));
+        root.setAriaLabel(getTranslation("assistant.title"));
         SubMenu items = root.getSubMenu();
-        items.addItem("Standup summary", event -> new StandupDialog(board, activityLog.recent(board.id()), assistant, executor).open());
-        items.addItem("Cards from notes…", event -> new NotesToCardsDialog(board, assistant, executor, this::createCards).open());
+        items.addItem(getTranslation("assistant.standup"), event -> new StandupDialog(board, activityLog.recent(board.id()), assistant, executor).open());
+        items.addItem(getTranslation("assistant.notes"), event -> new NotesToCardsDialog(board, assistant, executor, this::createCards).open());
         return menu;
     }
 
@@ -401,7 +403,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             return;
         }
         perform(() -> drafts.forEach(draft -> boardService.createCard(lane.id(), draft, actor())));
-        Toasts.success(drafts.size() == 1 ? "1 card created in " + lane.name() : drafts.size() + " cards created in " + lane.name());
+        Toasts.success(getTranslation("board.cardsCreated", drafts.size(), lane.name()));
     }
 
     // ------------------------------------------------------------ navigation
@@ -411,7 +413,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         Optional<BoardSnapshot> found = event.getRouteParameters().getLong(BOARD_ID).flatMap(boardService::findBoard)
                 .filter(snapshot -> access.canAccess(snapshot.id(), session.login()));
         if (found.isEmpty()) {
-            Toasts.error("That board does not exist or is not open to you");
+            Toasts.error(getTranslation("board.notFound"));
             event.forwardTo(BoardsView.class);
             return;
         }
@@ -421,7 +423,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
                 .map(CardFilterCodec::decode).filter(CardFilter::isActive).ifPresent(this::applyFilterEverywhere);
         event.getRouteParameters().getLong(CARD_ID).ifPresent(cardId -> findCard(cardId).ifPresentOrElse(
                 this::openCard,
-                () -> Toasts.error("That card is not on this board any more")));
+                () -> Toasts.error(getTranslation("board.cardGone"))));
     }
 
     /** Path of this board, or of one of its cards when {@code cardId} is given. */
@@ -522,7 +524,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
     private void reload() {
         boardService.findBoard(board.id()).ifPresentOrElse(this::render, () -> {
-            Toasts.error("This board was deleted");
+            Toasts.error(getTranslation("board.deleted"));
             getUI().ifPresent(ui -> ui.navigate(BoardsView.class));
         });
     }
@@ -605,7 +607,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             String row = swimlanes.rows().get(i);
             long count = snapshot.lanes().stream().flatMap(lane -> lane.cards().stream())
                     .filter(card -> swimlanes.grouping().keyOf(card).equalsIgnoreCase(row)).count();
-            Span name = new Span(row);
+            Span name = new Span(Grouping.UNASSIGNED.equals(row) ? getTranslation("filter.unassigned")
+                    : Grouping.NO_TAG.equals(row) ? getTranslation("swimlane.noTag")
+                    : swimlanes.grouping() == Grouping.PRIORITY ? Labels.priority(Priority.valueOf(row.toUpperCase(java.util.Locale.ROOT))) : row);
             name.addClassName("swimlane__name");
             Span total = new Span(Long.toString(count));
             total.addClassName("swimlane__count");
@@ -747,7 +751,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Override
     public void quickAddCards(LaneSnapshot lane, List<String> lines) {
         perform(() -> lines.forEach(line -> createFromShorthand(lane, line)));
-        Toasts.success(lines.size() + " cards added to " + lane.name());
+        Toasts.success(getTranslation("board.cardsAdded", lines.size(), lane.name()));
     }
 
     /** Creates a card from quick-add text, honouring the {@link QuickAdd} shorthand. */
@@ -805,7 +809,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     public void newCardFromTemplate(LaneSnapshot lane, CardTemplateSnapshot template) {
         perform(() -> {
             CardSnapshot created = templateService.instantiate(template.id(), lane.id(), actor());
-            Toasts.success("\"" + created.title() + "\" created from " + template.name());
+            Toasts.success(getTranslation("board.createdFromTemplate", created.title(), template.name()));
         });
     }
 
@@ -855,7 +859,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private void changeSelected(java.util.function.UnaryOperator<CardDraft> change, String what) {
         List<CardSnapshot> cards = selection.stream().map(this::findCard).flatMap(Optional::stream).toList();
         perform(() -> cards.forEach(card -> boardService.updateCard(card.id(), change.apply(card.toDraft()), actor())));
-        Toasts.success(cards.size() + (cards.size() == 1 ? " card " : " cards ") + what);
+        Toasts.success(getTranslation("board.selectionChanged", cards.size(), what));
     }
 
     /** Keeps the selection in step with the board: drops cards that left, marks the rest, shows the bar. */
@@ -909,16 +913,16 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         if (completing) {
             celebrate(origin.title(), undo);
         } else {
-            String laneName = board.lane(targetLaneId).map(LaneSnapshot::name).orElse("another lane");
-            Toasts.undoable("Moved \"" + origin.title() + "\" to " + laneName, undo);
+            String laneName = board.lane(targetLaneId).map(LaneSnapshot::name).orElse(getTranslation("board.anotherLane"));
+            Toasts.undoable(getTranslation("board.movedTo", origin.title(), laneName), undo);
         }
     }
 
     private void confirmMovingBlockedCard(CardSnapshot card, Runnable proceed) {
         String waitingFor = card.blockers().stream().filter(blocker -> !blocker.resolved())
                 .map(blocker -> "\"" + blocker.title() + "\"").collect(java.util.stream.Collectors.joining(", "));
-        ConfirmDialog confirm = new ConfirmDialog("Still blocked", "\"%s\" is waiting for %s. Mark it done anyway?".formatted(card.title(), waitingFor),
-                "Move anyway", event -> proceed.run());
+        ConfirmDialog confirm = new ConfirmDialog(getTranslation("board.stillBlocked"), getTranslation("board.stillBlockedText", card.title(), waitingFor),
+                getTranslation("board.moveAnyway"), event -> proceed.run());
         confirm.setCancelable(true);
         confirm.open();
     }
@@ -931,7 +935,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     private void celebrate(String title, Runnable undo) {
-        Toasts.undoable("🎉 Done: " + title, undo);
+        Toasts.undoable(getTranslation("board.done", title), undo);
         getUI().ifPresent(Celebration::confetti);
     }
 
@@ -1154,17 +1158,17 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         perform(() -> {
             int archived = boardService.archiveLane(lane.id(), actor());
             if (archived == 0) {
-                Toasts.info("Nothing to archive");
+                Toasts.info(getTranslation("board.nothingToArchive"));
                 return;
             }
-            Toasts.undoable(archived == 1 ? "1 card archived" : archived + " cards archived",
+            Toasts.undoable(getTranslation("board.selection.archived", archived),
                     () -> perform(() -> boardService.restoreCards(cardIds, actor())));
         });
     }
 
     private void archiveCard(CardSnapshot card) {
         perform(() -> boardService.archiveCard(card.id(), actor()));
-        Toasts.undoable("Archived \"" + card.title() + "\"", () -> perform(() -> boardService.restoreCard(card.id(), actor())));
+        Toasts.undoable(getTranslation("board.archived", card.title()), () -> perform(() -> boardService.restoreCard(card.id(), actor())));
     }
 
     private void addLane() {
@@ -1176,7 +1180,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         try {
             action.run();
         } catch (NotFoundException gone) {
-            Toasts.error("Somebody else removed that in the meantime");
+            Toasts.error(getTranslation("board.removedMeanwhile"));
         }
         reload();
     }

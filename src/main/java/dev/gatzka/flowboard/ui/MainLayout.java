@@ -16,6 +16,12 @@ import com.vaadin.flow.component.badge.BadgeVariant;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.contextmenu.ContextMenu;
+import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.i18n.LocaleChangeEvent;
+import com.vaadin.flow.i18n.LocaleChangeObserver;
+import dev.gatzka.flowboard.ui.i18n.FlowboardI18NProvider;
+import dev.gatzka.flowboard.ui.i18n.LocalePreference;
+import java.util.Locale;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
@@ -58,7 +64,7 @@ import java.util.Map;
 /** Application frame: navigation drawer with all boards, theme toggle and the current user. */
 @Layout
 @PermitAll
-public class MainLayout extends AppLayout {
+public class MainLayout extends AppLayout implements LocaleChangeObserver {
 
     private final BoardService boardService;
     private final BoardChangeBroadcaster broadcaster;
@@ -77,7 +83,16 @@ public class MainLayout extends AppLayout {
     private Registration inboxSubscription;
     private Registration profileSubscription;
 
-    private final SideNav boardsNav = new SideNav("Boards");
+    private final SideNav boardsNav = new SideNav();
+    private final SideNavItem homeItem = new SideNavItem("", BoardsView.class, VaadinIcon.HOME_O.create());
+    private final SideNavItem myWorkItem = new SideNavItem("", MyWorkView.class, VaadinIcon.USER_CHECK.create());
+    private final SideNavItem teamItem = new SideNavItem("", TeamView.class, VaadinIcon.GROUP.create());
+    private final Button search = new Button(VaadinIcon.SEARCH.create());
+    private final Button help = new Button(VaadinIcon.QUESTION_CIRCLE_O.create());
+    private MenuItem changeNameItem;
+    private MenuItem tokensItem;
+    private MenuItem languageItem;
+    private MenuItem signOutItem;
     private final Button themeToggle = new Button();
     private final Button userButton = new Button();
     private final Button timerChip = new Button();
@@ -106,6 +121,7 @@ public class MainLayout extends AppLayout {
         setPrimarySection(Section.DRAWER);
         addToNavbar(true, header());
         addToDrawer(drawer());
+        relabel();
 
         applyTheme(session.isDarkMode());
         if (!session.hasThemePreference()) {
@@ -130,24 +146,24 @@ public class MainLayout extends AppLayout {
     /** What the command palette offers: navigation, board shortcuts and a few toggles. */
     private List<Command> commands() {
         List<Command> list = new ArrayList<>();
-        list.add(new Command("New board", VaadinIcon.PLUS, () -> getUI().ifPresent(ui -> {
+        list.add(new Command(getTranslation("command.newBoard"), VaadinIcon.PLUS, () -> getUI().ifPresent(ui -> {
             ui.navigate(BoardsView.class);
             ComponentUtil.fireEvent(ui, new NewBoardRequestedEvent(ui));
         })));
-        list.add(new Command("Home", VaadinIcon.HOME_O, () -> getUI().ifPresent(ui -> ui.navigate(BoardsView.class))));
-        list.add(new Command("My work", VaadinIcon.USER_CHECK, () -> getUI().ifPresent(ui -> ui.navigate(MyWorkView.class))));
-        list.add(new Command("Team", VaadinIcon.GROUP, () -> getUI().ifPresent(ui -> ui.navigate(TeamView.class))));
-        list.add(new Command(session.isDarkMode() ? "Switch to light theme" : "Switch to dark theme", VaadinIcon.ADJUST, () -> {
+        list.add(new Command(getTranslation("nav.home"), VaadinIcon.HOME_O, () -> getUI().ifPresent(ui -> ui.navigate(BoardsView.class))));
+        list.add(new Command(getTranslation("nav.myWork"), VaadinIcon.USER_CHECK, () -> getUI().ifPresent(ui -> ui.navigate(MyWorkView.class))));
+        list.add(new Command(getTranslation("nav.team"), VaadinIcon.GROUP, () -> getUI().ifPresent(ui -> ui.navigate(TeamView.class))));
+        list.add(new Command(getTranslation(session.isDarkMode() ? "theme.toLight" : "theme.toDark"), VaadinIcon.ADJUST, () -> {
             session.setDarkMode(!session.isDarkMode());
             applyTheme(session.isDarkMode());
         }));
-        list.add(new Command("Keyboard shortcuts", VaadinIcon.QUESTION_CIRCLE_O, () -> new ShortcutsDialog().open()));
-        list.add(new Command("Change display name", VaadinIcon.USER, () -> new ProfileDialog(session, this::onProfileSaved).open()));
-        list.add(new Command("API tokens", VaadinIcon.KEY, () -> new ApiTokensDialog(apiTokens, session.login(), clock).open()));
-        list.add(new Command("Sign out", VaadinIcon.SIGN_OUT, session::signOut));
+        list.add(new Command(getTranslation("shortcuts.title"), VaadinIcon.QUESTION_CIRCLE_O, () -> new ShortcutsDialog().open()));
+        list.add(new Command(getTranslation("account.changeName"), VaadinIcon.USER, () -> new ProfileDialog(session, this::onProfileSaved).open()));
+        list.add(new Command(getTranslation("tokens.title"), VaadinIcon.KEY, () -> new ApiTokensDialog(apiTokens, session.login(), clock).open()));
+        list.add(new Command(getTranslation("account.signOut"), VaadinIcon.SIGN_OUT, session::signOut));
         for (BoardSummary board : access.visibleBoards(session.login())) {
             RouteParameters parameters = new RouteParameters(BoardView.BOARD_ID, Long.toString(board.id()));
-            list.add(new Command("Open board: " + board.name(), VaadinIcon.TASKS, () -> getUI().ifPresent(ui -> ui.navigate(BoardView.class, parameters))));
+            list.add(new Command(getTranslation("command.openBoard", board.name()), VaadinIcon.TASKS, () -> getUI().ifPresent(ui -> ui.navigate(BoardView.class, parameters))));
         }
         return list;
     }
@@ -166,19 +182,26 @@ public class MainLayout extends AppLayout {
         userButton.addClassName("user-button");
         ContextMenu userMenu = new ContextMenu(userButton);
         userMenu.setOpenOnClick(true);
-        userMenu.addItem("Change display name", event -> new ProfileDialog(session, this::onProfileSaved).open());
-        userMenu.addItem("API tokens…", event -> new ApiTokensDialog(apiTokens, session.login(), clock).open()).setId("api-tokens");
-        userMenu.addItem("Sign out", event -> session.signOut()).setId("sign-out");
+        changeNameItem = userMenu.addItem("", event -> new ProfileDialog(session, this::onProfileSaved).open());
+        tokensItem = userMenu.addItem("", event -> new ApiTokensDialog(apiTokens, session.login(), clock).open());
+        tokensItem.setId("api-tokens");
+        languageItem = userMenu.addItem("");
+        languageItem.setId("language");
+        for (Locale locale : List.of(FlowboardI18NProvider.ENGLISH, FlowboardI18NProvider.GERMAN)) {
+            MenuItem choice = languageItem.getSubMenu().addItem(locale.getDisplayLanguage(locale),
+                    event -> getUI().ifPresent(ui -> LocalePreference.choose(ui, locale)));
+            choice.setId("lang-" + locale.getLanguage());
+            choice.setCheckable(true);
+            choice.setChecked(FlowboardI18NProvider.supported(UI.getCurrent().getLocale()).equals(locale));
+        }
+        signOutItem = userMenu.addItem("", event -> session.signOut());
+        signOutItem.setId("sign-out");
 
-        Button search = new Button(VaadinIcon.SEARCH.create(), event -> searchDialog.open());
+        search.addClickListener(event -> searchDialog.open());
         search.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        search.setAriaLabel("Search all boards");
-        search.setTooltipText("Search (Ctrl+K)");
 
         inboxButton.setIcon(VaadinIcon.BELL_O.create());
         inboxButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        inboxButton.setAriaLabel("Inbox");
-        inboxButton.setTooltipText("Inbox");
         inboxButton.addClassName("inbox-button");
         inboxButton.setSuffixComponent(unread);
         unread.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.ERROR, BadgeVariant.FILLED);
@@ -188,10 +211,8 @@ public class MainLayout extends AppLayout {
             inboxDialog.open();
         });
 
-        Button help = new Button(VaadinIcon.QUESTION_CIRCLE_O.create(), event -> new ShortcutsDialog().open());
+        help.addClickListener(event -> new ShortcutsDialog().open());
         help.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        help.setAriaLabel("Keyboard shortcuts");
-        help.setTooltipText("Keyboard shortcuts (Ctrl+/)");
 
         timerChip.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_CONTRAST);
         timerChip.setIcon(VaadinIcon.TIMER.create());
@@ -206,13 +227,37 @@ public class MainLayout extends AppLayout {
 
     private Scroller drawer() {
         SideNav mainNav = new SideNav();
-        mainNav.addItem(new SideNavItem("Home", BoardsView.class, VaadinIcon.HOME_O.create()));
-        mainNav.addItem(new SideNavItem("My work", MyWorkView.class, VaadinIcon.USER_CHECK.create()));
-        mainNav.addItem(new SideNavItem("Team", TeamView.class, VaadinIcon.GROUP.create()));
+        mainNav.addItem(homeItem, myWorkItem, teamItem);
 
         Div content = new Div(mainNav, boardsNav);
         content.addClassName("drawer-content");
         return new Scroller(content);
+    }
+
+    /** Every fixed text of the shell in the current language; runs once and again whenever the language changes. */
+    private void relabel() {
+        boardsNav.setLabel(getTranslation("nav.boards"));
+        homeItem.setLabel(getTranslation("nav.home"));
+        myWorkItem.setLabel(getTranslation("nav.myWork"));
+        teamItem.setLabel(getTranslation("nav.team"));
+        changeNameItem.setText(getTranslation("account.changeName"));
+        tokensItem.setText(getTranslation("tokens.menu"));
+        languageItem.setText(getTranslation("language.menu"));
+        signOutItem.setText(getTranslation("account.signOut"));
+        search.setAriaLabel(getTranslation("search.aria"));
+        search.setTooltipText(getTranslation("search.tooltip"));
+        help.setAriaLabel(getTranslation("shortcuts.title"));
+        help.setTooltipText(getTranslation("shortcuts.tooltip"));
+        userButton.setTooltipText(getTranslation("account.title"));
+        applyTheme(session.isDarkMode());
+        refreshInbox();
+    }
+
+    @Override
+    public void localeChange(LocaleChangeEvent event) {
+        relabel();
+        refreshBoards();
+        showTimer();
     }
 
     @Override
@@ -272,7 +317,7 @@ public class MainLayout extends AppLayout {
         long count = notificationService.unreadCount(session.getDisplayName());
         unread.setText(Long.toString(count));
         unread.setVisible(count > 0);
-        inboxButton.setAriaLabel(count == 0 ? "Inbox" : "Inbox, " + count + " unread");
+        inboxButton.setAriaLabel(count == 0 ? getTranslation("inbox.title") : getTranslation("inbox.unreadAria", count));
     }
 
     private void refreshBoards() {
@@ -286,7 +331,7 @@ public class MainLayout extends AppLayout {
                 Badge badge = new Badge(count > 99 ? "99+" : Long.toString(count));
                 badge.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.FILLED);
                 badge.addClassName("nav-unread");
-                badge.getElement().setAttribute("title", count + " change" + (count == 1 ? "" : "s") + " since you last looked");
+                badge.getElement().setAttribute("title", getTranslation("nav.unreadTitle", count));
                 item.setSuffixComponent(badge);
             }
             boardsNav.addItem(item);
@@ -297,8 +342,8 @@ public class MainLayout extends AppLayout {
         getUI().orElseGet(UI::getCurrent).getElement().getThemeList().set(Lumo.DARK, dark);
         Icon icon = (dark ? VaadinIcon.SUN_O : VaadinIcon.MOON_O).create();
         themeToggle.setIcon(icon);
-        themeToggle.setAriaLabel(dark ? "Switch to light theme" : "Switch to dark theme");
-        themeToggle.setTooltipText(dark ? "Light theme" : "Dark theme");
+        themeToggle.setAriaLabel(getTranslation(dark ? "theme.toLight" : "theme.toDark"));
+        themeToggle.setTooltipText(getTranslation(dark ? "theme.light" : "theme.dark"));
     }
 
     /** A chip in the header while the user has a timer running; clicking it opens the card. */
@@ -312,7 +357,7 @@ public class MainLayout extends AppLayout {
                 timerChip.addClassName("timer-chip--focus");
                 timerChip.setText(timer.cardTitle());
                 long today = timeService.focusSessionsToday(session.getDisplayName());
-                timerChip.setTooltipText("Focus session · " + today + (today == 1 ? " session" : " sessions") + " finished today");
+                timerChip.setTooltipText(getTranslation("focus.chipTooltip", today));
                 timerChip.getElement().executeJs("""
                         const chip = this; const endsAt = $0;
                         if (chip._countdown) clearInterval(chip._countdown);
@@ -328,7 +373,7 @@ public class MainLayout extends AppLayout {
                         """, timer.endsAt().toEpochMilli());
             } else {
                 timerChip.setText(timer.cardTitle());
-                timerChip.setTooltipText("Timer running since " + Durations.ago(timer.startedAt(), java.time.Instant.now()).replace(" ago", ""));
+                timerChip.setTooltipText(getTranslation("timer.chipTooltip", Durations.since(timer.startedAt(), java.time.Instant.now())));
                 timerChip.getElement().executeJs("if (this._countdown) clearInterval(this._countdown);");
             }
         });
@@ -345,7 +390,6 @@ public class MainLayout extends AppLayout {
         avatar.addThemeVariants(AvatarVariant.LUMO_XSMALL);
         userButton.setIcon(avatar);
         userButton.setText(session.getDisplayName());
-        userButton.setTooltipText("Account");
     }
 
     private void onProfileSaved() {

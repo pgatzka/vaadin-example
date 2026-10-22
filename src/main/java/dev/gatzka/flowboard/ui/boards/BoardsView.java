@@ -13,7 +13,7 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.router.RouteParameters;
@@ -41,8 +41,7 @@ import java.util.List;
 /** Home: what needs attention across all boards, what happened lately, and the boards themselves. */
 @Route("")
 @PermitAll
-@PageTitle("Home · Flowboard")
-public class BoardsView extends VerticalLayout {
+public class BoardsView extends VerticalLayout implements HasDynamicTitle {
 
     private final BoardService boardService;
     private final OverviewService overviewService;
@@ -70,14 +69,14 @@ public class BoardsView extends VerticalLayout {
         addClassName("boards-view");
         setSizeFull();
 
-        H2 heading = new H2("Home");
-        Span subtitle = new Span("Everything across your boards, live.");
+        H2 heading = new H2(getTranslation("nav.home"));
+        Span subtitle = new Span(getTranslation("home.subtitle"));
         subtitle.addClassName("page-subtitle");
         Div titles = new Div(heading, subtitle);
 
-        Button newBoard = new Button("New board", VaadinIcon.PLUS.create(), event -> openCreateDialog());
+        Button newBoard = new Button(getTranslation("command.newBoard"), VaadinIcon.PLUS.create(), event -> openCreateDialog());
         newBoard.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        Button importBoard = new Button("Import", VaadinIcon.UPLOAD.create(), event -> openImportDialog());
+        Button importBoard = new Button(getTranslation("home.import"), VaadinIcon.UPLOAD.create(), event -> openImportDialog());
         importBoard.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         Div actions = new Div(importBoard, newBoard);
         actions.addClassName("page-header__actions");
@@ -87,7 +86,7 @@ public class BoardsView extends VerticalLayout {
 
         dashboard.addClassName("dashboard");
         grid.addClassName("board-grid");
-        H3 boardsHeading = new H3("Boards");
+        H3 boardsHeading = new H3(getTranslation("nav.boards"));
         boardsHeading.addClassName("dashboard__heading");
         add(header, dashboard, boardsHeading, grid);
         refresh();
@@ -133,15 +132,15 @@ public class BoardsView extends VerticalLayout {
             return;
         }
         Div tiles = new Div(
-                tile("Open cards", overview.openCards(), null),
-                tile("Overdue", overview.overdueCards(), overview.overdueCards() > 0 ? "warn" : "ok"),
-                tile("Due in 7 days", overview.dueThisWeek(), null),
-                tile("Done in 7 days", overview.completedLast7Days(), null));
+                tile(getTranslation("home.openCards"), overview.openCards(), null),
+                tile(getTranslation("home.overdue"), overview.overdueCards(), overview.overdueCards() > 0 ? "warn" : "ok"),
+                tile(getTranslation("home.dueIn7Days"), overview.dueThisWeek(), null),
+                tile(getTranslation("home.doneIn7Days"), overview.completedLast7Days(), null));
         tiles.addClassName("insights__tiles");
 
-        Div attention = section("Needs attention");
+        Div attention = section(getTranslation("home.needsAttention"));
         if (overview.needsAttention().isEmpty()) {
-            attention.add(hint("Nothing is overdue. Nice."));
+            attention.add(hint(getTranslation("home.nothingOverdue")));
         } else {
             LocalDate today = LocalDate.now(clock);
             Div list = new Div();
@@ -150,9 +149,9 @@ public class BoardsView extends VerticalLayout {
             attention.add(list);
         }
 
-        Div activity = section("Recent activity");
+        Div activity = section(getTranslation("home.recentActivity"));
         if (overview.recentActivity().isEmpty()) {
-            activity.add(hint("Nothing has happened yet."));
+            activity.add(hint(getTranslation("home.nothingYet")));
         } else {
             Div list = new Div();
             list.addClassName("dashboard__activity");
@@ -205,14 +204,19 @@ public class BoardsView extends VerticalLayout {
     }
 
     private Div emptyState() {
-        Span title = new Span("No boards yet");
+        Span title = new Span(getTranslation("home.noBoards"));
         title.addClassName("empty-state__title");
-        Span hint = new Span("Create your first board to start organising work.");
-        Button create = new Button("Create a board", VaadinIcon.PLUS.create(), event -> openCreateDialog());
+        Span hint = new Span(getTranslation("home.noBoardsHint"));
+        Button create = new Button(getTranslation("home.createBoard"), VaadinIcon.PLUS.create(), event -> openCreateDialog());
         create.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         Div empty = new Div(title, hint, create);
         empty.addClassName("empty-state");
         return empty;
+    }
+
+    @Override
+    public String getPageTitle() {
+        return getTranslation("nav.home") + " \u00b7 Flowboard";
     }
 
     private void open(BoardSummary board) {
@@ -230,7 +234,7 @@ public class BoardsView extends VerticalLayout {
     private void openImportDialog() {
         new ImportDialog(exchange, session.getDisplayName(), imported -> {
             refresh();
-            Toasts.success("Imported \"%s\"".formatted(imported.name()));
+            Toasts.success(getTranslation("home.imported", imported.name()));
             getUI().ifPresent(ui -> ui.navigate(BoardView.class, new RouteParameters(BoardView.BOARD_ID, Long.toString(imported.id()))));
         }).open();
     }
@@ -241,9 +245,9 @@ public class BoardsView extends VerticalLayout {
 
     private void confirmDelete(BoardSummary board) {
         ConfirmDialog confirm = new ConfirmDialog(
-                "Delete \"%s\"?".formatted(board.name()),
-                "All of its lanes and cards are removed for everyone. This cannot be undone.",
-                "Delete",
+                getTranslation("home.deleteTitle", board.name()),
+                getTranslation("home.deleteText"),
+                getTranslation("common.delete"),
                 event -> perform(() -> boardService.deleteBoard(board.id(), session.getDisplayName())));
         confirm.setCancelable(true);
         confirm.setConfirmButtonTheme("error primary");
@@ -254,7 +258,7 @@ public class BoardsView extends VerticalLayout {
         try {
             action.run();
         } catch (NotFoundException gone) {
-            Toasts.error("That board no longer exists");
+            Toasts.error(getTranslation("home.boardGone"));
         }
         refresh();
     }

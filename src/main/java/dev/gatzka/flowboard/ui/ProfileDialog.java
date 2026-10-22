@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.avatar.AvatarVariant;
@@ -16,20 +18,20 @@ import dev.gatzka.flowboard.service.Participant;
 final class ProfileDialog extends Dialog {
 
     ProfileDialog(UserSession session, Runnable onSaved) {
-        setHeaderTitle("Who are you?");
+        setHeaderTitle(I18n.t("profile.title"));
         setWidth("min(420px, 95vw)");
 
         Avatar preview = new Avatar();
         preview.addThemeVariants(AvatarVariant.LUMO_XLARGE);
 
-        TextField name = new TextField("Display name");
+        TextField name = new TextField(I18n.t("profile.displayName"));
         name.setValue(session.getDisplayName());
         name.setMaxLength(UserSession.MAX_NAME_LENGTH);
         name.setRequired(true);
         name.setAutofocus(true);
         name.setWidthFull();
         name.setValueChangeMode(ValueChangeMode.EAGER);
-        name.setHelperText("Shown next to your changes and to others on the same board.");
+        name.setHelperText(I18n.t("profile.helper"));
         name.addValueChangeListener(event -> showPreview(preview, event.getValue()));
         showPreview(preview, name.getValue());
 
@@ -39,10 +41,10 @@ final class ProfileDialog extends Dialog {
         content.setFlexGrow(1, name);
         add(content);
 
-        Button save = new Button("Save", event -> {
+        Button save = new Button(I18n.t("common.save"), event -> {
             String value = name.getValue().strip();
             if (value.isEmpty()) {
-                name.setErrorMessage("Please enter a name");
+                name.setErrorMessage(I18n.t("views.nameRequired"));
                 name.setInvalid(true);
                 return;
             }
@@ -52,7 +54,7 @@ final class ProfileDialog extends Dialog {
         });
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         save.addClickShortcut(Key.ENTER);
-        getFooter().add(new Button("Cancel", event -> close()), save);
+        getFooter().add(new Button(I18n.t("common.cancel"), event -> close()), save);
     }
 
     private static void showPreview(Avatar preview, String name) {

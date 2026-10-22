@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.digest;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -42,7 +44,7 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
     private final Executor executor;
     private final Clock clock;
     private final Markdown narrative = new Markdown();
-    private final Button narrate = new Button("Write a summary", VaadinIcon.MAGIC.create(), event -> narrate());
+    private final Button narrate = new Button(I18n.t("digest.narrate"), VaadinIcon.MAGIC.create(), event -> narrate());
     private String narrativeText;
     private final AccessService access;
     private final UserSession session;
@@ -72,18 +74,18 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
 
         Button previous = new Button(VaadinIcon.ANGLE_LEFT.create(), event -> show(digest.to().minusWeeks(1)));
         previous.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        previous.setAriaLabel("Previous week");
+        previous.setAriaLabel(I18n.t("digest.previous"));
         Button next = new Button(VaadinIcon.ANGLE_RIGHT.create(), event -> show(digest.to().plusWeeks(1)));
         next.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        next.setAriaLabel("Next week");
-        Button thisWeek = new Button("This week", event -> show(LocalDate.now(clock)));
+        next.setAriaLabel(I18n.t("digest.next"));
+        Button thisWeek = new Button(I18n.t("digest.thisWeek"), event -> show(LocalDate.now(clock)));
         thisWeek.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        Button copy = new Button("Copy as Markdown", VaadinIcon.COPY_O.create(), event -> copy());
+        Button copy = new Button(I18n.t("common.copyMarkdown"), VaadinIcon.COPY_O.create(), event -> copy());
         copy.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         copy.setId("copy-digest");
-        Button print = new Button("Print", VaadinIcon.PRINT.create(), event -> getUI().ifPresent(ui -> ui.getPage().executeJs("window.print()")));
+        Button print = new Button(I18n.t("digest.print"), VaadinIcon.PRINT.create(), event -> getUI().ifPresent(ui -> ui.getPage().executeJs("window.print()")));
         print.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        Button backToBoard = new Button("Board", VaadinIcon.TASKS.create(), event -> getUI().ifPresent(
+        Button backToBoard = new Button(I18n.t("common.board"), VaadinIcon.TASKS.create(), event -> getUI().ifPresent(
                 ui -> ui.navigate(BoardView.class, new RouteParameters(BoardView.BOARD_ID, Long.toString(boardId)))));
         backToBoard.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         narrate.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
@@ -113,7 +115,7 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
     public void beforeEnter(BeforeEnterEvent event) {
         boardId = event.getRouteParameters().getLong(BoardView.BOARD_ID).orElse(-1L);
         if (!access.canAccess(boardId, session.login())) {
-            Toasts.error("That board does not exist or is not open to you");
+            Toasts.error(I18n.t("board.notFound"));
             event.forwardTo(BoardsView.class);
             return;
         }
@@ -121,14 +123,14 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
         try {
             show(weekEnding);
         } catch (NotFoundException gone) {
-            Toasts.error("That board does not exist");
+            Toasts.error(I18n.t("home.boardGone"));
             event.forwardTo(BoardsView.class);
         }
     }
 
     @Override
     public String getPageTitle() {
-        return (digest == null ? "Digest" : "Digest · " + digest.boardName()) + " · Flowboard";
+        return (digest == null ? I18n.t("digest.title") : I18n.t("digest.title") + " \u00b7 " + digest.boardName()) + " \u00b7 Flowboard";
     }
 
     private void show(LocalDate weekEnding) {
@@ -136,7 +138,7 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
         narrativeText = null;
         narrative.setVisible(false);
         narrate.setEnabled(true);
-        heading.setText("Weekly digest · " + digest.boardName());
+        heading.setText(I18n.t("board.menu.digest") + " \u00b7 " + digest.boardName());
         period.setText(digest.period());
         markdown.setContent(digest.toMarkdown());
         getUI().ifPresent(ui -> ui.getPage().getHistory().replaceState(null,
@@ -146,7 +148,7 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
     /** Asks the assistant for the week's story and shows it above the numbers once it arrives. */
     private void narrate() {
         narrate.setEnabled(false);
-        narrate.setText("Writing…");
+        narrate.setText(I18n.t("digest.writing"));
         WeeklyDigest asked = digest;
         getUI().ifPresent(ui -> Background.run(executor, ui, () -> assistant.digestNarrative(asked), text -> {
             if (asked == digest) {
@@ -154,11 +156,11 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
                 narrative.setContent(text);
                 narrative.setVisible(true);
             }
-            narrate.setText("Write a summary");
+            narrate.setText(I18n.t("digest.narrate"));
             narrate.setEnabled(true);
         }, failure -> {
             Toasts.error(failure.getMessage());
-            narrate.setText("Write a summary");
+            narrate.setText(I18n.t("digest.narrate"));
             narrate.setEnabled(true);
         }));
     }
@@ -171,7 +173,7 @@ public class DigestView extends VerticalLayout implements BeforeEnterObserver, H
     private void copy() {
         String text = markdownToCopy();
         getUI().ifPresent(ui -> ui.getPage().executeJs("navigator.clipboard.writeText($0)", text));
-        Toasts.success("Digest copied as Markdown");
+        Toasts.success(I18n.t("digest.copied"));
     }
 
     WeeklyDigest digest() {

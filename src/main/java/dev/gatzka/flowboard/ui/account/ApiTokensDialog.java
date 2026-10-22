@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.account;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -25,25 +27,24 @@ public final class ApiTokensDialog extends Dialog {
     private final Clock clock;
     private final Div list = new Div();
     private final Div reveal = new Div();
-    private final TextField name = new TextField("Token name");
+    private final TextField name = new TextField(I18n.t("tokens.name"));
 
     public ApiTokensDialog(ApiTokenService tokens, String login, Clock clock) {
         this.tokens = tokens;
         this.login = login;
         this.clock = clock;
-        setHeaderTitle("API tokens");
+        setHeaderTitle(I18n.t("tokens.title"));
         setWidth("min(560px, 95vw)");
         addClassName("tokens");
 
-        add(new Paragraph("Scripts and integrations can call the API with a token instead of your password: "
-                + "send it as \"Authorization: Bearer <token>\". Tokens act as you and can be revoked any time."));
+        add(new Paragraph(I18n.t("tokens.hint")));
 
         name.setId("token-name");
-        name.setPlaceholder("e.g. CI pipeline");
+        name.setPlaceholder(I18n.t("tokens.placeholder"));
         name.setMaxLength(ApiToken.MAX_NAME_LENGTH);
         name.setWidthFull();
         name.addKeyPressListener(Key.ENTER, event -> create());
-        Button create = new Button("Create token", VaadinIcon.KEY.create(), event -> create());
+        Button create = new Button(I18n.t("tokens.create"), VaadinIcon.KEY.create(), event -> create());
         create.setId("create-token");
         create.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         Div form = new Div(name, create);
@@ -52,7 +53,7 @@ public final class ApiTokensDialog extends Dialog {
         reveal.setVisible(false);
         list.addClassName("tokens__list");
         add(form, reveal, list);
-        getFooter().add(new Button("Close", event -> close()));
+        getFooter().add(new Button(I18n.t("common.close"), event -> close()));
         showList();
     }
 
@@ -71,7 +72,7 @@ public final class ApiTokensDialog extends Dialog {
 
     private void showSecret(ApiTokenService.Issued issued) {
         reveal.removeAll();
-        Span note = new Span("Copy the token for \"" + issued.token().name() + "\" now; it will not be shown again.");
+        Span note = new Span(I18n.t("tokens.copyNow", issued.token().name()));
         note.addClassName("tokens__note");
         TextField secret = new TextField();
         secret.setId("token-secret");
@@ -80,10 +81,10 @@ public final class ApiTokensDialog extends Dialog {
         secret.setWidthFull();
         Button copy = new Button(VaadinIcon.COPY_O.create(), event -> {
             secret.getElement().executeJs("navigator.clipboard && navigator.clipboard.writeText($0)", issued.secret());
-            Toasts.success("Token copied");
+            Toasts.success(I18n.t("tokens.copied"));
         });
         copy.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        copy.setAriaLabel("Copy token");
+        copy.setAriaLabel(I18n.t("tokens.copy"));
         secret.setSuffixComponent(copy);
         reveal.add(note, secret);
         reveal.setVisible(true);
@@ -93,7 +94,7 @@ public final class ApiTokensDialog extends Dialog {
         list.removeAll();
         List<ApiTokenSnapshot> mine = tokens.forUser(login);
         if (mine.isEmpty()) {
-            Span empty = new Span("You have no tokens yet.");
+            Span empty = new Span(I18n.t("tokens.empty"));
             empty.addClassName("tokens__empty");
             list.add(empty);
             return;
@@ -109,12 +110,12 @@ public final class ApiTokensDialog extends Dialog {
         Span prefix = new Span(token.prefix() + "…");
         prefix.addClassName("tokens__prefix");
         Span usage = new Span(token.lastUsedAt() == null
-                ? "never used · created " + Durations.ago(token.createdAt(), clock.instant())
-                : "last used " + Durations.ago(token.lastUsedAt(), clock.instant()));
+                ? I18n.t("tokens.neverUsed", Durations.ago(token.createdAt(), clock.instant()))
+                : I18n.t("tokens.lastUsed", Durations.ago(token.lastUsedAt(), clock.instant())));
         usage.addClassName("tokens__usage");
-        Button revoke = new Button("Revoke", event -> {
+        Button revoke = new Button(I18n.t("tokens.revoke"), event -> {
             tokens.revoke(token.id(), login);
-            Toasts.info("Token \"" + token.name() + "\" revoked");
+            Toasts.info(I18n.t("tokens.revoked", token.name()));
             showList();
         });
         revoke.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);

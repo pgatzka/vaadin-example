@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -20,8 +22,8 @@ import java.util.function.Consumer;
 final class DeleteLaneDialog extends Dialog {
 
     enum Fate {
-        MOVE("Move them to another lane"),
-        DELETE("Delete them too");
+        MOVE("deleteLane.moveThem"),
+        DELETE("deleteLane.deleteThem");
 
         private final String label;
 
@@ -34,21 +36,21 @@ final class DeleteLaneDialog extends Dialog {
      * @param onDelete receives the lane the cards should move to, or {@code null} to delete them
      */
     DeleteLaneDialog(LaneSnapshot lane, BoardSnapshot board, Consumer<LaneSnapshot> onDelete) {
-        setHeaderTitle("Delete \"%s\"?".formatted(lane.name()));
+        setHeaderTitle(I18n.t("home.deleteTitle", lane.name()));
         setWidth("min(460px, 95vw)");
 
         int cardCount = lane.cards().size();
         List<LaneSnapshot> otherLanes = board.lanes().stream().filter(other -> other.id() != lane.id()).toList();
 
-        RadioButtonGroup<Fate> fate = new RadioButtonGroup<>("What happens to its %d card%s?".formatted(cardCount, cardCount == 1 ? "" : "s"));
+        RadioButtonGroup<Fate> fate = new RadioButtonGroup<>(I18n.t("deleteLane.question", cardCount));
         fate.setItems(Fate.values());
-        fate.setItemLabelGenerator(choice -> choice.label);
+        fate.setItemLabelGenerator(choice -> I18n.t(choice.label));
         fate.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
         fate.setItemEnabledProvider(choice -> choice == Fate.DELETE || !otherLanes.isEmpty());
         fate.setValue(otherLanes.isEmpty() ? Fate.DELETE : Fate.MOVE);
 
         Select<LaneSnapshot> target = new Select<>();
-        target.setLabel("Move cards to");
+        target.setLabel(I18n.t("deleteLane.moveTo"));
         target.setItems(otherLanes);
         target.setItemLabelGenerator(LaneSnapshot::name);
         target.setWidthFull();
@@ -61,17 +63,17 @@ final class DeleteLaneDialog extends Dialog {
         Div content = new Div();
         content.addClassName("delete-lane");
         if (cardCount == 0) {
-            content.add(new Paragraph("The lane is empty and will be removed for everyone."));
+            content.add(new Paragraph(I18n.t("deleteLane.empty")));
         } else {
             content.add(fate, target);
         }
         add(content);
 
-        Button delete = new Button("Delete lane", event -> {
+        Button delete = new Button(I18n.t("lane.delete"), event -> {
             onDelete.accept(cardCount > 0 && fate.getValue() == Fate.MOVE ? target.getValue() : null);
             close();
         });
         delete.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
-        getFooter().add(new Button("Cancel", event -> close()), delete);
+        getFooter().add(new Button(I18n.t("common.cancel"), event -> close()), delete);
     }
 }

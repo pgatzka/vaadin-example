@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import dev.gatzka.flowboard.domain.DependencyGraph;
 import dev.gatzka.flowboard.domain.DependencyGraph.Edge;
 import dev.gatzka.flowboard.domain.DependencyGraph.Node;
@@ -30,7 +32,7 @@ final class DependencyChart {
         StringBuilder svg = new StringBuilder();
         svg.append("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ").append(width).append(' ').append(height)
                 .append("\" width=\"").append(width).append("\" height=\"").append(height)
-                .append("\" role=\"img\" aria-label=\"Dependencies between cards\" class=\"depgraph\">");
+                .append("\" role=\"img\" aria-label=\"").append(I18n.t("depgraph.aria")).append("\" class=\"depgraph\">");
         svg.append("<defs><marker id=\"depgraph-arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\">")
                 .append("<path d=\"M 0 0 L 10 5 L 0 10 z\" class=\"depgraph__arrow\"/></marker>")
                 .append("<marker id=\"depgraph-arrow-critical\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto-start-reverse\">")

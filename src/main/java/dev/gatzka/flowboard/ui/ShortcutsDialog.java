@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
@@ -9,36 +11,36 @@ import com.vaadin.flow.component.html.Span;
 final class ShortcutsDialog extends Dialog {
 
     private static final String[][] SHORTCUTS = {
-            {"Ctrl + K", "Command palette: search all boards, open a board, run an action"},
-            {"Ctrl + /", "Show this list"},
-            {"/", "Focus the card filter on a board"},
-            {"Enter", "Add the card typed into a lane's composer"},
-            {"Paste", "Several lines pasted into a composer become several cards"},
-            {"!high @mara #ui ~3", "In a composer: priority, assignee, tag and points for the new card"},
-            {"due:fri every:week", "In a composer: due date (today, tomorrow, a weekday, +3, a date) and repetition"},
-            {"start:mon", "In a composer: start date, drawn as a bar on the timeline"},
-            {"Ctrl + Enter", "Save the open dialog"},
-            {"Esc", "Close a dialog or the composer"},
-            {"Drag", "Move cards between lanes, drag a lane header to reorder lanes"},
-            {"Tab, ↑ ↓ ← →", "Move the keyboard focus between cards"},
-            {"Enter / Space", "Open the focused card"},
-            {"Shift + ↑ ↓ ← →", "Move the focused card within its lane or to the next lane"},
-            {"N", "Add a card to the focused card's lane"},
-            {"Ctrl + click", "Select several cards, then move, assign, tag, prioritise or archive them together"},
+            {"Ctrl + K", "shortcuts.palette"},
+            {"Ctrl + /", "shortcuts.thisList"},
+            {"/", "shortcuts.filter"},
+            {"Enter", "shortcuts.enter"},
+            {"Paste", "shortcuts.paste"},
+            {"!high @mara #ui ~3", "shortcuts.shorthand"},
+            {"due:fri every:week", "shortcuts.due"},
+            {"start:mon", "shortcuts.start"},
+            {"Ctrl + Enter", "shortcuts.saveDialog"},
+            {"Esc", "shortcuts.esc"},
+            {"Drag", "shortcuts.drag"},
+            {"Tab, \u2191 \u2193 \u2190 \u2192", "shortcuts.focus"},
+            {"Enter / Space", "shortcuts.open"},
+            {"Shift + \u2191 \u2193 \u2190 \u2192", "shortcuts.move"},
+            {"N", "shortcuts.add"},
+            {"Ctrl + click", "shortcuts.select"},
     };
 
     ShortcutsDialog() {
-        setHeaderTitle("Keyboard shortcuts");
+        setHeaderTitle(I18n.t("shortcuts.title"));
         setWidth("min(460px, 95vw)");
         Div list = new Div();
         list.addClassName("shortcuts");
         for (String[] shortcut : SHORTCUTS) {
             Span keys = new Span(shortcut[0]);
             keys.addClassName("shortcuts__keys");
-            Span what = new Span(shortcut[1]);
+            Span what = new Span(I18n.t(shortcut[1]));
             list.add(keys, what);
         }
         add(list);
-        getFooter().add(new Button("Close", event -> close()));
+        getFooter().add(new Button(I18n.t("common.close"), event -> close()));
     }
 }

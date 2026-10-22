@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -30,11 +32,11 @@ final class DependenciesSection extends Div {
         this.onChanged = onChanged;
         addClassName("dependencies");
 
-        Span label = new Span("Blocked by");
+        Span label = new Span(I18n.t("dependencies.blockedBy"));
         label.addClassName("field-label");
         blockers.addClassName("dependencies__list");
 
-        picker.setPlaceholder("Add a card this one waits for");
+        picker.setPlaceholder(I18n.t("dependencies.pickerPlaceholder"));
         picker.setItemLabelGenerator(CardSnapshot::title);
         picker.setClearButtonVisible(true);
         picker.setWidthFull();
@@ -45,7 +47,7 @@ final class DependenciesSection extends Div {
             }
         });
 
-        Span blocksLabel = new Span("Blocks");
+        Span blocksLabel = new Span(I18n.t("dependencies.blocks"));
         blocksLabel.addClassName("field-label");
         blocks.addClassName("dependencies__list");
 
@@ -57,7 +59,7 @@ final class DependenciesSection extends Div {
         this.card = card;
         blockers.removeAll();
         if (card.blockers().isEmpty()) {
-            blockers.add(hint("Nothing. This card can move freely."));
+            blockers.add(hint(I18n.t("dependencies.noBlockers")));
         }
         for (BlockerSnapshot blocker : card.blockers()) {
             blockers.add(blockerRow(blocker));
@@ -73,18 +75,18 @@ final class DependenciesSection extends Div {
                 .filter(other -> other.blockers().stream().anyMatch(blocker -> blocker.id() == card.id()))
                 .toList();
         if (blocked.isEmpty()) {
-            blocks.add(hint("No other card waits for this one."));
+            blocks.add(hint(I18n.t("dependencies.blocksNothing")));
         }
         blocked.forEach(other -> blocks.add(new Span(other.title())));
     }
 
     private Div blockerRow(BlockerSnapshot blocker) {
         Span title = new Span(blocker.title());
-        Span state = new Span(blocker.resolved() ? "done" : "open");
+        Span state = new Span(I18n.t(blocker.resolved() ? "dependencies.done" : "dependencies.open"));
         state.addClassName("dependencies__state");
         Button remove = new Button(VaadinIcon.CLOSE_SMALL.create(), event -> update(actions.removeBlocker(card.id(), blocker.id())));
         remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
-        remove.setAriaLabel("Remove dependency on \"" + blocker.title() + "\"");
+        remove.setAriaLabel(I18n.t("dependencies.removeAria", blocker.title()));
         Div row = new Div(title, state, remove);
         row.addClassName("dependencies__row");
         if (blocker.resolved()) {

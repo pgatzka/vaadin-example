@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.support;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Span;
@@ -35,7 +37,7 @@ public final class Toasts {
         notification.setPosition(Notification.Position.BOTTOM_START);
         notification.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
         notification.addClassName("toast--undoable");
-        Button button = new Button("Undo", event -> {
+        Button button = new Button(I18n.t("common.undo"), event -> {
             notification.close();
             undo.run();
         });

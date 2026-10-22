@@ -1,5 +1,8 @@
 package dev.gatzka.flowboard.ui.assistant;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
+
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -25,13 +28,13 @@ import java.util.function.BiConsumer;
 /** Paste notes, let the assistant extract cards, review them, create the ones you want. */
 public final class NotesToCardsDialog extends Dialog {
 
-    private final TextArea notes = new TextArea("Notes");
-    private final Button extract = new Button("Extract cards");
+    private final TextArea notes = new TextArea(I18n.t("notes.notes"));
+    private final Button extract = new Button(I18n.t("notes.extract"));
     private final ProgressBar progress = new ProgressBar();
     private final Span status = new Span();
-    private final CheckboxGroup<CardDraft> proposals = new CheckboxGroup<>("Proposed cards");
+    private final CheckboxGroup<CardDraft> proposals = new CheckboxGroup<>(I18n.t("notes.proposed"));
     private final Select<LaneSnapshot> lane = new Select<>();
-    private final Button create = new Button("Create selected");
+    private final Button create = new Button(I18n.t("notes.createSelected"));
     private List<CardDraft> drafts = List.of();
 
     /**
@@ -39,11 +42,11 @@ public final class NotesToCardsDialog extends Dialog {
      */
     public NotesToCardsDialog(BoardSnapshot board, AssistantService assistant, Executor executor,
             BiConsumer<List<CardDraft>, LaneSnapshot> onCreate) {
-        setHeaderTitle("Cards from notes");
+        setHeaderTitle(I18n.t("notes.title"));
         setWidth("min(680px, 95vw)");
         addClassName("assistant-dialog");
 
-        notes.setPlaceholder("Paste meeting notes, an email, a brain dump… The assistant turns the actionable parts into cards.");
+        notes.setPlaceholder(I18n.t("notes.placeholder"));
         notes.setMinHeight("10em");
         notes.setWidthFull();
         notes.setMaxLength(8000);
@@ -60,7 +63,7 @@ public final class NotesToCardsDialog extends Dialog {
         proposals.setRenderer(new ComponentRenderer<>(NotesToCardsDialog::proposal));
         proposals.setVisible(false);
 
-        lane.setLabel("Add to lane");
+        lane.setLabel(I18n.t("notes.addToLane"));
         lane.setItems(board.lanes());
         lane.setItemLabelGenerator(LaneSnapshot::name);
         if (!board.lanes().isEmpty()) {
@@ -76,7 +79,7 @@ public final class NotesToCardsDialog extends Dialog {
             onCreate.accept(drafts.stream().filter(proposals.getSelectedItems()::contains).toList(), lane.getValue());
             close();
         });
-        getFooter().add(new Button("Cancel", event -> close()), create);
+        getFooter().add(new Button(I18n.t("common.cancel"), event -> close()), create);
     }
 
     private void extract(BoardSnapshot board, AssistantService assistant, Executor executor) {
@@ -87,7 +90,7 @@ public final class NotesToCardsDialog extends Dialog {
         }
         extract.setEnabled(false);
         progress.setVisible(true);
-        status.setText("Reading your notes…");
+        status.setText(I18n.t("notes.reading"));
         status.setVisible(true);
         UI ui = UI.getCurrent();
         Background.run(executor, ui, () -> assistant.cardsFromNotes(text, board), this::show, this::showError);
@@ -98,10 +101,10 @@ public final class NotesToCardsDialog extends Dialog {
         extract.setEnabled(true);
         progress.setVisible(false);
         if (drafts.isEmpty()) {
-            status.setText("No actionable items found in these notes.");
+            status.setText(I18n.t("notes.nothingFound"));
             return;
         }
-        status.setText(drafts.size() + (drafts.size() == 1 ? " card proposed." : " cards proposed.") + " Untick what you do not want.");
+        status.setText(I18n.t("notes.proposedCount", drafts.size()));
         proposals.setItems(drafts);
         proposals.setValue(Set.copyOf(drafts));
         proposals.setVisible(true);
@@ -126,7 +129,7 @@ public final class NotesToCardsDialog extends Dialog {
             description.addClassName("proposal__description");
             item.add(description);
         }
-        Span meta = new Span(draft.priority().label() + (draft.assignee() == null ? "" : " · " + draft.assignee()));
+        Span meta = new Span(Labels.priority(draft.priority()) + (draft.assignee() == null ? "" : " \u00b7 " + draft.assignee()));
         meta.addClassName("proposal__meta");
         item.add(meta);
         return item;

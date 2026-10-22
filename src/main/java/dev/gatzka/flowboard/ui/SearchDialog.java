@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -32,7 +34,7 @@ final class SearchDialog extends Dialog {
     private final TextField query = new TextField();
     private final Div actions = new Div();
     private final Div results = new Div();
-    private final Span hint = new Span("Type to search titles, descriptions, assignees and tags on all boards.");
+    private final Span hint = new Span(I18n.t("search.hint"));
 
     SearchDialog(WorkService workService, Supplier<List<Command>> commands, Predicate<CardLocation> visible, Clock clock) {
         this.visible = visible;
@@ -42,7 +44,7 @@ final class SearchDialog extends Dialog {
         addClassName("search-dialog");
         setWidth("min(640px, 95vw)");
 
-        query.setPlaceholder("Search boards and cards, or type a command");
+        query.setPlaceholder(I18n.t("search.placeholder"));
         query.setPrefixComponent(VaadinIcon.SEARCH.create());
         query.setClearButtonVisible(true);
         query.setAutofocus(true);
@@ -73,11 +75,11 @@ final class SearchDialog extends Dialog {
         LocalDate today = LocalDate.now(clock);
         hits.forEach(hit -> results.add(new CardLocationRow(hit, today)));
         if (text.isBlank()) {
-            hint.setText("Type to search titles, descriptions, assignees and tags on all boards.");
+            hint.setText(I18n.t("search.hint"));
         } else if (hits.isEmpty()) {
-            hint.setText("Nothing matches \"" + text + "\".");
+            hint.setText(I18n.t("search.nothing", text));
         } else {
-            hint.setText(hits.size() == WorkService.SEARCH_LIMIT ? "Showing the first " + hits.size() + " matches." : hits.size() + (hits.size() == 1 ? " match" : " matches"));
+            hint.setText(hits.size() == WorkService.SEARCH_LIMIT ? I18n.t("search.first", hits.size()) : I18n.t("search.matches", hits.size()));
         }
     }
 

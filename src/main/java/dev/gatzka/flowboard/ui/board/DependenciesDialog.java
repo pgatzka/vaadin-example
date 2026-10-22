@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.Svg;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -23,14 +25,14 @@ final class DependenciesDialog extends Dialog {
     DependenciesDialog(LongConsumer onOpenCard) {
         this.onOpenCard = onOpenCard;
         addClassName("dependencies");
-        setHeaderTitle("Dependencies");
+        setHeaderTitle(I18n.t("board.menu.dependencies"));
         setWidth("min(900px, 95vw)");
         setModal(false);
         setDraggable(true);
 
         Button close = new Button(VaadinIcon.CLOSE_SMALL.create(), event -> close());
         close.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        close.setAriaLabel("Close dependencies");
+        close.setAriaLabel(I18n.t("depgraph.close"));
         getHeader().add(close);
 
         content.addClassName("dependencies__content");
@@ -40,8 +42,7 @@ final class DependenciesDialog extends Dialog {
     void show(DependencyGraph graph) {
         content.removeAll();
         if (graph.isEmpty()) {
-            Span empty = new Span("No card on this board is blocked by another yet. "
-                    + "Open a card and add a blocker on its Dependencies tab to see the chain here.");
+            Span empty = new Span(I18n.t("depgraph.empty"));
             empty.addClassName("dependencies__empty");
             content.add(empty);
             return;
@@ -67,10 +68,7 @@ final class DependenciesDialog extends Dialog {
     }
 
     private static Div summary(DependencyGraph graph) {
-        Span text = new Span("%d %s between %d cards · %d %s still open · %d %s blocked right now".formatted(
-                graph.edges().size(), plural(graph.edges().size(), "link", "links"), graph.nodes().size(),
-                graph.openLinkCount(), plural(graph.openLinkCount(), "link", "links"),
-                graph.blockedCount(), plural(graph.blockedCount(), "card", "cards")));
+        Span text = new Span(I18n.t("depgraph.summary", graph.edges().size(), graph.nodes().size(), graph.openLinkCount(), graph.blockedCount()));
         Div summary = new Div(text);
         summary.addClassName("dependencies__summary");
         return summary;
@@ -78,11 +76,11 @@ final class DependenciesDialog extends Dialog {
 
     private Div keyBlocker(DependencyGraph graph, Node blocker) {
         int count = graph.holdsUp(blocker.id());
-        Span label = new Span("Clearing ");
+        Span label = new Span(I18n.t("depgraph.clearing"));
         Button card = new Button(blocker.title(), event -> onOpenCard.accept(blocker.id()));
         card.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         card.addClassName("dependencies__key-blocker");
-        Span tail = new Span(" unblocks %d %s.".formatted(count, plural(count, "card", "cards")));
+        Span tail = new Span(I18n.t("depgraph.unblocks", count));
         Div row = new Div(VaadinIcon.LIGHTBULB.create(), label, card, tail);
         row.addClassName("dependencies__hint");
         return row;
@@ -91,7 +89,7 @@ final class DependenciesDialog extends Dialog {
     private Div criticalPath(DependencyGraph graph) {
         Div chain = new Div();
         chain.addClassName("dependencies__chain");
-        Span label = new Span("Longest open chain");
+        Span label = new Span(I18n.t("depgraph.longestChain"));
         label.addClassName("dependencies__chain-label");
         chain.add(label);
         for (int i = 0; i < graph.criticalPath().size(); i++) {
@@ -110,7 +108,7 @@ final class DependenciesDialog extends Dialog {
     }
 
     private static Div legend() {
-        Div legend = new Div(swatch("done", "Done"), swatch("open", "Open"), swatch("blocked", "Blocked"), swatch("critical", "Longest chain"));
+        Div legend = new Div(swatch("done", I18n.t("depgraph.done")), swatch("open", I18n.t("dependencies.open")), swatch("blocked", I18n.t("card.blocked")), swatch("critical", I18n.t("depgraph.chain")));
         legend.addClassName("dependencies__legend");
         return legend;
     }
@@ -124,7 +122,4 @@ final class DependenciesDialog extends Dialog {
         return item;
     }
 
-    private static String plural(long count, String one, String many) {
-        return count == 1 ? one : many;
-    }
 }

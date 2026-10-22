@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import dev.gatzka.flowboard.domain.CumulativeFlow;
 import dev.gatzka.flowboard.domain.CumulativeFlow.Series;
 import java.time.format.DateTimeFormatter;
@@ -27,7 +29,7 @@ final class CumulativeFlowChart {
         int max = flow.maxTotal();
         StringBuilder svg = new StringBuilder();
         svg.append("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ").append(width).append(' ').append(height)
-                .append("\" width=\"100%\" role=\"img\" aria-label=\"Cumulative flow diagram\" class=\"cfd\">");
+                .append("\" width=\"100%\" role=\"img\" aria-label=\"").append(I18n.t("insights.flow")).append("\" class=\"cfd\">");
 
         // Stack from the last lane (bottom) upwards so finished work forms the base.
         int[] cumulative = new int[days];

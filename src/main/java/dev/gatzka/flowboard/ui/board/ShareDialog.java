@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -21,21 +23,20 @@ final class ShareDialog extends Dialog {
     private final SharingService sharing;
     private final BoardSnapshot board;
     private final Supplier<String> actor;
-    private final Checkbox enabled = new Checkbox("Anyone with the link can view this board");
+    private final Checkbox enabled = new Checkbox(I18n.t("share.enabled"));
     private final TextField link = new TextField();
-    private final TextField calendar = new TextField("Calendar feed");
+    private final TextField calendar = new TextField(I18n.t("share.calendar"));
     private final Div linkRow = new Div();
 
     ShareDialog(BoardSnapshot board, SharingService sharing, Supplier<String> actor) {
         this.sharing = sharing;
         this.board = board;
         this.actor = actor;
-        setHeaderTitle("Share \"" + board.name() + "\"");
+        setHeaderTitle(I18n.t("share.title", board.name()));
         setWidth("min(520px, 95vw)");
         addClassName("share-dialog");
 
-        Span explanation = new Span("Viewers see the board live, including every change as it happens, "
-                + "but cannot edit anything and do not need an account. Turning the link off makes it stop working.");
+        Span explanation = new Span(I18n.t("share.hint"));
         explanation.addClassName("share-dialog__hint");
 
         link.setReadOnly(true);
@@ -43,8 +44,8 @@ final class ShareDialog extends Dialog {
         link.addClassName("share-dialog__link");
         Button copy = new Button(VaadinIcon.COPY.create(), event -> copy());
         copy.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        copy.setAriaLabel("Copy link");
-        copy.setTooltipText("Copy link");
+        copy.setAriaLabel(I18n.t("editor.copyLink"));
+        copy.setTooltipText(I18n.t("editor.copyLink"));
         HorizontalLayout row = new HorizontalLayout(link, copy);
         row.setWidthFull();
         row.setFlexGrow(1, link);
@@ -53,7 +54,7 @@ final class ShareDialog extends Dialog {
 
         calendar.setReadOnly(true);
         calendar.setWidthFull();
-        calendar.setHelperText("Subscribe to this address in your calendar app to see the board's due dates.");
+        calendar.setHelperText(I18n.t("share.calendarHelper"));
         calendar.addClassName("share-dialog__calendar");
         linkRow.add(calendar);
 
@@ -63,17 +64,17 @@ final class ShareDialog extends Dialog {
             }
             if (event.getValue()) {
                 show(sharing.enable(board.id(), actor.get()));
-                Toasts.success("Public link is on");
+                Toasts.success(I18n.t("share.on"));
             } else {
                 sharing.disable(board.id(), actor.get());
                 show(null);
-                Toasts.info("Public link is off");
+                Toasts.info(I18n.t("share.off"));
             }
         });
         show(sharing.token(board.id()).orElse(null));
 
         add(explanation, enabled, linkRow);
-        getFooter().add(new Button("Close", event -> close()));
+        getFooter().add(new Button(I18n.t("common.close"), event -> close()));
     }
 
     private void show(String token) {
@@ -96,6 +97,6 @@ final class ShareDialog extends Dialog {
     private void copy() {
         String value = link.getValue();
         getUI().ifPresent(ui -> ui.getPage().executeJs("navigator.clipboard.writeText($0)", value));
-        Toasts.success("Link copied");
+        Toasts.success(I18n.t("common.linkCopied"));
     }
 }

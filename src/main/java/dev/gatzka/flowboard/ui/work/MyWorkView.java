@@ -9,7 +9,7 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.shared.Registration;
@@ -30,17 +30,21 @@ import java.util.stream.Collectors;
 /** Everything assigned to the current user, across boards, grouped by urgency. */
 @Route("my-work")
 @PermitAll
-@PageTitle("My work · Flowboard")
-public class MyWorkView extends VerticalLayout {
+public class MyWorkView extends VerticalLayout implements HasDynamicTitle {
+
+    @Override
+    public String getPageTitle() {
+        return getTranslation("nav.myWork") + " \u00b7 Flowboard";
+    }
 
     /** Urgency buckets in display order. */
     enum Bucket {
-        OVERDUE("Overdue"),
-        TODAY("Due today"),
-        THIS_WEEK("Due this week"),
-        LATER("Later"),
-        UNDATED("No due date"),
-        COMPLETED("Completed");
+        OVERDUE("home.overdue"),
+        TODAY("work.dueToday"),
+        THIS_WEEK("work.dueThisWeek"),
+        LATER("work.later"),
+        UNDATED("work.noDueDate"),
+        COMPLETED("card.completed");
 
         private final String label;
 
@@ -86,7 +90,7 @@ public class MyWorkView extends VerticalLayout {
 
         addClassName("boards-view");
         setSizeFull();
-        H2 heading = new H2("My work");
+        H2 heading = new H2(getTranslation("nav.myWork"));
         subtitle.addClassName("page-subtitle");
         groups.addClassName("work-groups");
         add(new Div(heading, subtitle), groups);
@@ -116,8 +120,8 @@ public class MyWorkView extends VerticalLayout {
 
         long open = mine.stream().filter(location -> !location.isCompleted()).count();
         subtitle.setText(open == 0
-                ? "Nothing is assigned to " + me + " right now. Assign cards to this name to see them here."
-                : open + (open == 1 ? " open card" : " open cards") + " assigned to " + me + " across all boards.");
+                ? getTranslation("work.nothing", me)
+                : getTranslation("work.summary", open, me));
 
         groups.removeAll();
         for (Bucket bucket : Bucket.values()) {
@@ -129,7 +133,7 @@ public class MyWorkView extends VerticalLayout {
     }
 
     private Div group(Bucket bucket, List<CardLocation> locations, LocalDate today) {
-        H3 title = new H3(bucket.label + " · " + locations.size());
+        H3 title = new H3(getTranslation(bucket.label) + " \u00b7 " + locations.size());
         Div list = new Div();
         list.addClassName("work-list");
         locations.forEach(location -> list.add(new CardLocationRow(location, today)));

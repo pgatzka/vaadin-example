@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -30,27 +32,27 @@ final class ChecklistSection extends Div {
         this.onChanged = onChanged;
         addClassName("checklist");
 
-        Span label = new Span("Checklist");
+        Span label = new Span(I18n.t("card.checklist"));
         label.addClassName("field-label");
         summary.addClassName("checklist__summary");
         Div header = new Div(label, summary);
         header.addClassName("checklist__header");
         if (actions.assistantAvailable()) {
-            Button suggest = new Button("Suggest steps", VaadinIcon.MAGIC.create(), event -> actions.suggestChecklist(this.card));
+            Button suggest = new Button(I18n.t("checklist.suggest"), VaadinIcon.MAGIC.create(), event -> actions.suggestChecklist(this.card));
             suggest.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-            suggest.setTooltipText("Let the assistant propose checklist items");
+            suggest.setTooltipText(I18n.t("checklist.suggestTooltip"));
             header.add(suggest);
         }
 
         progress.addClassName("checklist__progress");
         items.addClassName("checklist__items");
 
-        newItem.setPlaceholder("Add an item and press Enter");
+        newItem.setPlaceholder(I18n.t("checklist.placeholder"));
         newItem.setMaxLength(200);
         newItem.setWidthFull();
         newItem.setValueChangeMode(ValueChangeMode.EAGER);
         newItem.addKeyPressListener(Key.ENTER, event -> addItem());
-        Button add = new Button("Add", event -> addItem());
+        Button add = new Button(I18n.t("composer.add"), event -> addItem());
         add.addThemeVariants(ButtonVariant.LUMO_SMALL);
         Div composer = new Div(newItem, add);
         composer.addClassName("checklist__composer");
@@ -63,7 +65,7 @@ final class ChecklistSection extends Div {
         this.card = card;
         long done = card.checklistDone();
         int total = card.checklist().size();
-        summary.setText(total == 0 ? "" : done + " of " + total + " done");
+        summary.setText(total == 0 ? "" : I18n.t("checklist.summary", done, total));
         progress.setVisible(total > 0);
         progress.setValue(total == 0 ? 0 : (double) done / total);
         items.removeAll();
@@ -81,7 +83,7 @@ final class ChecklistSection extends Div {
         });
         Button remove = new Button(VaadinIcon.TRASH.create(), event -> update(actions.removeChecklistItem(item.id())));
         remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
-        remove.setAriaLabel("Remove \"" + item.text() + "\"");
+        remove.setAriaLabel(I18n.t("checklist.removeAria", item.text()));
         Div row = new Div(checkbox, remove);
         row.addClassName("checklist__item");
         if (item.done()) {

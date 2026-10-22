@@ -10,6 +10,7 @@ import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.exchange.BoardExport;
 import dev.gatzka.flowboard.exchange.InvalidBoardFileException;
+import dev.gatzka.flowboard.ui.i18n.I18n;
 import java.util.function.Consumer;
 
 /** Creates a board from an uploaded JSON export. */
@@ -18,7 +19,7 @@ final class ImportDialog extends Dialog {
     private final Span error = new Span();
 
     ImportDialog(BoardExchangeService exchange, String actor, Consumer<BoardSnapshot> onImported) {
-        setHeaderTitle("Import a board");
+        setHeaderTitle(I18n.t("import.title"));
         setWidth("min(460px, 95vw)");
 
         Upload upload = new Upload(UploadHandler.inMemory((metadata, bytes) -> {
@@ -34,14 +35,13 @@ final class ImportDialog extends Dialog {
         }));
         upload.setMaxFiles(1);
         upload.setAcceptedFileTypes("application/json", ".json");
-        upload.setDropLabel(new Span("Drop a Flowboard or Trello .json file here"));
+        upload.setDropLabel(new Span(I18n.t("import.drop")));
 
         error.addClassName("danger");
         error.setVisible(false);
 
-        add(new Paragraph("Pick a file exported from Flowboard, or a board exported from Trello (Menu → Print and export → "
-                + "Export as JSON). A new board is created; nothing existing is changed."),
+        add(new Paragraph(I18n.t("import.text")),
                 upload, error);
-        getFooter().add(new Button("Cancel", event -> close()));
+        getFooter().add(new Button(I18n.t("common.cancel"), event -> close()));
     }
 }

@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -20,12 +22,12 @@ final class MoveCardDialog extends Dialog {
     private static final String MOVE = "Move";
     private static final String COPY = "Copy";
 
-    private final ComboBox<BoardSummary> board = new ComboBox<>("Board");
-    private final ComboBox<LaneSnapshot> lane = new ComboBox<>("Lane");
-    private final RadioButtonGroup<String> mode = new RadioButtonGroup<>("What to do");
+    private final ComboBox<BoardSummary> board = new ComboBox<>(I18n.t("move.board"));
+    private final ComboBox<LaneSnapshot> lane = new ComboBox<>(I18n.t("move.lane"));
+    private final RadioButtonGroup<String> mode = new RadioButtonGroup<>(I18n.t("move.what"));
 
     MoveCardDialog(CardSnapshot card, BoardSnapshot current, CardEditorActions actions, Consumer<CardSnapshot> onDone) {
-        setHeaderTitle("Move or copy \"" + card.title() + "\"");
+        setHeaderTitle(I18n.t("move.title", card.title()));
         setWidth("min(460px, 95vw)");
         addClassName("move-card-dialog");
 
@@ -46,26 +48,26 @@ final class MoveCardDialog extends Dialog {
         boards.stream().filter(summary -> summary.id() == current.id()).findFirst().ifPresent(board::setValue);
 
         mode.setItems(MOVE, COPY);
+        mode.setItemLabelGenerator(value -> I18n.t(MOVE.equals(value) ? "move.move" : "move.copy"));
         mode.setValue(MOVE);
         mode.setId("move-mode");
-        Span hint = new Span("Moving to another board drops the card's dependencies, which are board-local. "
-                + "Copying takes the fields, checklist and repetition; comments, files and history stay with the original.");
+        Span hint = new Span(I18n.t("move.hint"));
         hint.addClassName("share-dialog__hint");
 
         add(board, lane, mode, hint);
-        Button confirm = new Button("Go", event -> {
+        Button confirm = new Button(I18n.t("move.go"), event -> {
             if (lane.getValue() == null) {
-                Toasts.error("Pick a lane");
+                Toasts.error(I18n.t("move.pickLane"));
                 return;
             }
             boolean copy = COPY.equals(mode.getValue());
             CardSnapshot result = actions.transferCard(card.id(), lane.getValue().id(), copy);
-            Toasts.success((copy ? "Copied \"" : "Moved \"") + card.title() + "\" to " + board.getValue().name() + " · " + lane.getValue().name());
+            Toasts.success(I18n.t(copy ? "move.copied" : "move.moved", card.title(), board.getValue().name() + " \u00b7 " + lane.getValue().name()));
             close();
             onDone.accept(result);
         });
         confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         confirm.setId("move-confirm");
-        getFooter().add(new Button("Cancel", event -> close()), confirm);
+        getFooter().add(new Button(I18n.t("common.cancel"), event -> close()), confirm);
     }
 }

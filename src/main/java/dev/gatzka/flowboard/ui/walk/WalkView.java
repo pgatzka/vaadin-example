@@ -1,5 +1,8 @@
 package dev.gatzka.flowboard.ui.walk;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+import dev.gatzka.flowboard.ui.i18n.Labels;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.Key;
@@ -51,7 +54,6 @@ import dev.gatzka.flowboard.ui.support.UiAccess;
 import jakarta.annotation.security.PermitAll;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -90,7 +92,6 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
     record Stop(LaneSnapshot lane, CardSnapshot card) {
     }
 
-    private static final DateTimeFormatter DUE = DateTimeFormatter.ofPattern("EEE, MMM d");
 
     private final BoardService boardService;
     private final CommentService comments;
@@ -102,7 +103,7 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
 
     private final H2 boardName = new H2();
     private final Select<Order> order = new Select<>();
-    private final Checkbox skipDone = new Checkbox("Skip the done lane", true);
+    private final Checkbox skipDone = new Checkbox(I18n.t("walk.skipDone"), true);
     private final Span progress = new Span();
     private final Span clock_ = new Span("0:00");
     private final Span total = new Span("0:00");
@@ -114,7 +115,7 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
     private final TextField note = new TextField();
     private final Button advance = new Button();
     private final Anchor openOnBoard = new Anchor();
-    private final Anchor exit = new Anchor("", "Back to the board");
+    private final Anchor exit = new Anchor("", I18n.t("walk.exit"));
     private final Div stage = new Div();
     private final List<Registration> arrowKeys = new ArrayList<>();
 
@@ -136,12 +137,12 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
 
         H1 brand = new H1("Flowboard");
         brand.addClassName("walk__brand");
-        Badge mode = new Badge("Standup", VaadinIcon.MEGAPHONE.create());
+        Badge mode = new Badge(I18n.t("walk.standup"), VaadinIcon.MEGAPHONE.create());
         mode.addThemeVariants(BadgeVariant.CONTRAST);
         boardName.addClassName("walk__board");
         order.setId("walk-order");
         order.setItems(Order.values());
-        order.setItemLabelGenerator(Order::label);
+        order.setItemLabelGenerator(value -> I18n.t(value == Order.LANE ? "groupBy.LANE" : "groupBy.PERSON"));
         order.setValue(Order.LANE);
         order.addValueChangeListener(event -> rebuild(currentCardId()));
         skipDone.setId("walk-skip-done");
@@ -156,9 +157,9 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
         progress.addClassName("walk__progress");
         clock_.setId("walk-clock");
         clock_.addClassName("walk__clock");
-        clock_.getElement().setAttribute("title", "Time on this card");
+        clock_.getElement().setAttribute("title", I18n.t("walk.timeOnCard"));
         total.addClassName("walk__total");
-        total.getElement().setAttribute("title", "Time since the standup started");
+        total.getElement().setAttribute("title", I18n.t("walk.timeTotal"));
         Div clocks = new Div(VaadinIcon.CLOCK.create(), clock_, new Span("·"), total);
         clocks.addClassName("walk__clocks");
         progressBar.addClassName("walk__bar");
@@ -170,17 +171,17 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
 
         slide.addClassName("walk__slide");
         empty.addClassName("walk__empty");
-        empty.add(new H2("Nothing to walk through"), new Span("Every open card on this board is in the done lane, or the board is empty."));
+        empty.add(new H2(I18n.t("walk.emptyTitle")), new Span(I18n.t("walk.emptyText")));
         empty.setVisible(false);
 
         previous.addThemeVariants(ButtonVariant.LUMO_LARGE, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
-        previous.setAriaLabel("Previous card");
+        previous.setAriaLabel(I18n.t("walk.previous"));
         previous.setId("walk-previous");
         next.addThemeVariants(ButtonVariant.LUMO_LARGE, ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ICON);
-        next.setAriaLabel("Next card");
+        next.setAriaLabel(I18n.t("walk.next"));
         next.setId("walk-next");
         note.setId("walk-note");
-        note.setPlaceholder("Add a note to this card and press Enter");
+        note.setPlaceholder(I18n.t("walk.notePlaceholder"));
         note.setClearButtonVisible(true);
         note.addKeyPressListener(Key.ENTER, event -> addNote());
         advance.setId("walk-advance");
@@ -188,7 +189,7 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
         advance.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         advance.addClickListener(event -> advanceCard());
         openOnBoard.setId("walk-open");
-        openOnBoard.setText("Open on the board");
+        openOnBoard.setText(I18n.t("walk.openOnBoard"));
         openOnBoard.addClassName("walk__open");
         Div actions = new Div(previous, note, advance, openOnBoard, next);
         actions.addClassName("walk__actions");
@@ -223,7 +224,7 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
         Optional<BoardSnapshot> found = event.getRouteParameters().getLong(BOARD_ID).flatMap(boardService::findBoard)
                 .filter(snapshot -> access.canAccess(snapshot.id(), session.login()));
         if (found.isEmpty()) {
-            Toasts.error("That board does not exist or is not open to you");
+            Toasts.error(I18n.t("board.notFound"));
             event.forwardTo(BoardsView.class);
             return;
         }
@@ -234,7 +235,7 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
 
     @Override
     public String getPageTitle() {
-        return (board == null ? "Standup" : "Standup · " + board.name()) + " · Flowboard";
+        return (board == null ? I18n.t("walk.standup") : I18n.t("walk.standup") + " \u00b7 " + board.name()) + " \u00b7 Flowboard";
     }
 
     @Override
@@ -341,17 +342,17 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
         openOnBoard.setVisible(any);
         slide.removeAll();
         if (!any) {
-            progress.setText("0 cards");
+            progress.setText(I18n.t("unit.cards", 0));
             progressBar.getStyle().set("--walk-progress", "0%");
             return;
         }
         Stop stop = stops.get(index);
-        progress.setText((index + 1) + " of " + stops.size());
+        progress.setText(I18n.t("walk.progress", index + 1, stops.size()));
         progressBar.getStyle().set("--walk-progress", Math.round(100.0 * (index + 1) / stops.size()) + "%");
         slide.add(slideFor(stop));
         openOnBoard.setHref(BoardView.pathTo(board.id(), stop.card().id()));
         nextLane(stop.lane()).ifPresent(lane -> {
-            advance.setText("Move to " + lane.name());
+            advance.setText(I18n.t("walk.moveTo", lane.name()));
             advance.setVisible(true);
         });
         if (restartClock) {
@@ -390,7 +391,7 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
             name.addClassName("walk__assignee");
             who.add(avatar, name);
         } else {
-            Span name = new Span("Unassigned");
+            Span name = new Span(I18n.t("filter.unassigned"));
             name.addClassName("walk__assignee");
             name.addClassName("walk__assignee--none");
             who.add(VaadinIcon.USER_CLOCK.create(), name);
@@ -406,12 +407,13 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
 
         Div facts = new Div();
         facts.addClassName("walk__facts");
-        Badge priority = new Badge(card.priority().label());
+        Badge priority = new Badge(Labels.priority(card.priority()));
         priority.addClassName("walk__priority");
         priority.getElement().setAttribute("data-priority", card.priority().name().toLowerCase(Locale.ROOT));
         facts.add(priority);
         if (card.dueDate() != null) {
-            Badge due = new Badge((card.isOverdue(today) ? "Overdue · " : "Due ") + DUE.format(card.dueDate()), VaadinIcon.CALENDAR_O.create());
+            String when = I18n.formatter("EEE, MMM d").format(card.dueDate());
+            Badge due = new Badge(I18n.t(card.isOverdue(today) ? "walk.overdue" : "walk.due", when), VaadinIcon.CALENDAR_O.create());
             if (card.isOverdue(today)) {
                 due.addThemeVariants(BadgeVariant.ERROR);
             } else if (card.isDueSoon(today)) {
@@ -420,10 +422,10 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
             facts.add(due);
         }
         if (card.isEstimated()) {
-            facts.add(new Badge(card.estimate() + " pt"));
+            facts.add(new Badge(I18n.t("unit.points", card.estimate())));
         }
         if (card.hasChecklist()) {
-            Badge checklist = new Badge(card.checklistDone() + "/" + card.checklist().size() + " done", VaadinIcon.CHECK_SQUARE_O.create());
+            Badge checklist = new Badge(I18n.t("walk.checklist", card.checklistDone(), card.checklist().size()), VaadinIcon.CHECK_SQUARE_O.create());
             if (card.checklistDone() == card.checklist().size()) {
                 checklist.addThemeVariants(BadgeVariant.SUCCESS);
             }
@@ -434,7 +436,7 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
             chip.addThemeVariants(BadgeVariant.CONTRAST);
             facts.add(chip);
         });
-        Badge age = new Badge(stop.lane().name() + " for " + Durations.ago(card.laneEnteredAt(), clock.instant()).replace(" ago", ""), VaadinIcon.HOURGLASS.create());
+        Badge age = new Badge(I18n.t("walk.inLaneFor", stop.lane().name(), Durations.since(card.laneEnteredAt(), clock.instant())), VaadinIcon.HOURGLASS.create());
         age.addThemeVariants(BadgeVariant.CONTRAST);
         facts.add(age);
 
@@ -449,9 +451,9 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
             content.addComponentAsFirst(image);
         });
         if (card.isBlocked()) {
-            Div blocked = new Div(VaadinIcon.BAN.create(), new Span("Blocked by " + card.blockers().stream()
+            Div blocked = new Div(VaadinIcon.BAN.create(), new Span(I18n.t("walk.blockedBy", card.blockers().stream()
                     .filter(blocker -> !blocker.resolved()).map(BlockerSnapshot::title).map(t -> "\"" + t + "\"")
-                    .reduce((a, b) -> a + ", " + b).orElse("")));
+                    .reduce((a, b) -> a + ", " + b).orElse(""))));
             blocked.addClassName("walk__blocked");
             content.add(blocked);
         }
@@ -476,7 +478,7 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
         }
         comments.add(stops.get(index).card().id(), session.getDisplayName(), text);
         note.clear();
-        Toasts.success("Note added");
+        Toasts.success(I18n.t("walk.noteAdded"));
     }
 
     private void advanceCard() {
@@ -486,7 +488,7 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
         Stop stop = stops.get(index);
         nextLane(stop.lane()).ifPresent(lane -> {
             boardService.moveCard(stop.card().id(), lane.id(), Integer.MAX_VALUE, session.getDisplayName());
-            Toasts.success("\"" + stop.card().title() + "\" moved to " + lane.name());
+            Toasts.success(I18n.t("board.movedTo", stop.card().title(), lane.name()));
         });
     }
 }

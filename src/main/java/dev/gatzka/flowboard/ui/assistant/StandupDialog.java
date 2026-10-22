@@ -1,5 +1,7 @@
 package dev.gatzka.flowboard.ui.assistant;
 
+import dev.gatzka.flowboard.ui.i18n.I18n;
+
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -20,13 +22,13 @@ import java.util.concurrent.Executor;
 public final class StandupDialog extends Dialog {
 
     private final ProgressBar progress = new ProgressBar();
-    private final Span status = new Span("Reading the board…");
+    private final Span status = new Span(I18n.t("standup.reading"));
     private final Markdown summary = new Markdown();
-    private final Button copy = new Button("Copy as Markdown", VaadinIcon.COPY_O.create());
+    private final Button copy = new Button(I18n.t("common.copyMarkdown"), VaadinIcon.COPY_O.create());
     private String markdown = "";
 
     public StandupDialog(BoardSnapshot board, List<ActivityEntry> recentActivity, AssistantService assistant, Executor executor) {
-        setHeaderTitle("Standup for " + board.name());
+        setHeaderTitle(I18n.t("standup.title", board.name()));
         setWidth("min(640px, 95vw)");
         addClassName("assistant-dialog");
 
@@ -40,9 +42,9 @@ public final class StandupDialog extends Dialog {
         copy.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         copy.addClickListener(event -> {
             getUI().ifPresent(ui -> ui.getPage().executeJs("navigator.clipboard.writeText($0)", markdown));
-            Toasts.success("Summary copied");
+            Toasts.success(I18n.t("standup.copied"));
         });
-        getFooter().add(new Button("Close", event -> close()), copy);
+        getFooter().add(new Button(I18n.t("common.close"), event -> close()), copy);
 
         UI ui = UI.getCurrent();
         Background.run(executor, ui, () -> assistant.standupSummary(board, recentActivity), this::show, this::showError);
