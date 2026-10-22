@@ -52,6 +52,7 @@ final class LaneDialog extends Dialog {
     private void addAutomation(Automation automation) {
         H3 heading = new H3("When a card enters this lane");
         heading.addClassName("dashboard__heading");
+        heading.addClassName("rules__heading");
         Div list = new Div();
         list.addClassName("rules__list");
         Select<RuleAction> action = new Select<>();

@@ -23,6 +23,8 @@ Java on top of Vaadin Flow's server push.
 | ![Templates](docs/templates.png) | ![Views](docs/views.png) | ![Time](docs/time.png) |
 | Members-only boards | Move or copy across boards | Public link with calendar feed |
 | ![Members](docs/members.png) | ![Move](docs/move.png) | ![Share](docs/share.png) |
+| Bulk actions | Lane automations | Quick-add shorthand |
+| ![Bulk](docs/bulk.png) | ![Rules](docs/rules.png) | ![Quick add](docs/quick-add.png) |
 
 ## Features
 
