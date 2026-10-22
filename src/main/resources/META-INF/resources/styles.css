@@ -2255,3 +2255,81 @@ vaadin-dialog.activity-sheet::part(content) {
     --fb-swimlane-label-width: 6rem;
   }
 }
+
+/* ---------------------------------------------------------------- API tokens */
+
+.tokens__form {
+  display: flex;
+  gap: var(--lumo-space-s);
+  align-items: flex-end;
+}
+
+.tokens__form vaadin-text-field {
+  flex: 1;
+}
+
+.tokens__reveal {
+  margin-top: var(--lumo-space-m);
+  padding: var(--lumo-space-s) var(--lumo-space-m);
+  border-radius: var(--lumo-border-radius-m);
+  background: var(--lumo-warning-color-10pct);
+  border: 1px solid var(--lumo-warning-color-50pct);
+}
+
+.tokens__note {
+  display: block;
+  font-size: var(--lumo-font-size-s);
+  margin-bottom: var(--lumo-space-xs);
+}
+
+.tokens__reveal input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.tokens__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-xs);
+  margin-top: var(--lumo-space-m);
+}
+
+.tokens__empty {
+  color: var(--lumo-secondary-text-color);
+  font-size: var(--lumo-font-size-s);
+}
+
+.tokens__row {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  padding: var(--lumo-space-s) var(--lumo-space-m);
+  border: 1px solid var(--lumo-contrast-10pct);
+  border-radius: var(--lumo-border-radius-m);
+}
+
+.tokens__row > vaadin-icon {
+  color: var(--lumo-tertiary-text-color);
+  flex: none;
+}
+
+.tokens__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.tokens__name {
+  font-weight: 600;
+  margin-inline-end: var(--lumo-space-s);
+}
+
+.tokens__prefix {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--lumo-font-size-s);
+  color: var(--lumo-secondary-text-color);
+}
+
+.tokens__usage {
+  display: block;
+  font-size: var(--lumo-font-size-xs);
+  color: var(--lumo-secondary-text-color);
+}

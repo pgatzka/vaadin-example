@@ -21,6 +21,9 @@ class AccountViewsTest extends FlowboardUiTest {
     @Autowired
     private AccountService accounts;
 
+    @Autowired
+    private dev.gatzka.flowboard.security.ApiTokenService tokenService;
+
     @Test
     void registrationCreatesTheAccountAndLeadsToSignIn() {
         navigate(RegisterView.class);
@@ -51,6 +54,35 @@ class AccountViewsTest extends FlowboardUiTest {
         assertThat($(Span.class).withClassName("account-page__error").single().getText()).contains("8 characters");
         assertThat(getCurrentView()).isInstanceOf(RegisterView.class);
         assertThat(accounts.find("someone")).isEmpty();
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser(username = "mara")
+    void apiTokensDialogMintsAndRevokesTokens() {
+        if (accounts.find("mara").isEmpty()) {
+            accounts.register("mara", "Mara", "longenough");
+        }
+        navigate(dev.gatzka.flowboard.ui.boards.BoardsView.class);
+        test($(Button.class).withCondition(b -> "Search all boards".equals(b.getAriaLabel().orElse(null))).single()).click();
+        test($(TextField.class).withPlaceholder("Search boards and cards, or type a command").single()).setValue("API tokens");
+        test($(Button.class).withClassName("palette__command").withText("API tokens").single()).click();
+
+        ApiTokensDialog dialog = $(ApiTokensDialog.class).single();
+        assertThat($(Span.class, dialog).withClassName("tokens__empty").all()).hasSize(1);
+
+        test($(TextField.class).withId("token-name").single()).setValue("Laptop script");
+        test($(Button.class).withId("create-token").single()).click();
+
+        String secret = $(TextField.class).withId("token-secret").single().getValue();
+        assertThat(secret).startsWith("fb_");
+        assertThat($(com.vaadin.flow.component.html.Div.class, dialog).withClassName("tokens__row").all()).hasSize(1);
+        assertThat($(Span.class, dialog).withClassName("tokens__name").single().getText()).isEqualTo("Laptop script");
+        assertThat(tokenService.authenticate(secret)).isPresent();
+
+        test($(Button.class, dialog).withClassName("tokens__revoke").single()).click();
+
+        assertThat($(Span.class, dialog).withClassName("tokens__empty").all()).hasSize(1);
+        assertThat(tokenService.authenticate(secret)).isEmpty();
     }
 
     @Test

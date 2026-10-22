@@ -6,6 +6,7 @@ import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.security.AccountService;
+import dev.gatzka.flowboard.security.ApiTokenService;
 import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.BoardService;
 import java.io.IOException;
@@ -46,6 +47,9 @@ class BoardsApiTest {
     private AccountService accounts;
 
     @Autowired
+    private ApiTokenService tokenService;
+
+    @Autowired
     private dev.gatzka.flowboard.service.AccessService access;
 
     @Autowired
@@ -72,6 +76,25 @@ class BoardsApiTest {
                 .header("Authorization", basic("deploy-bot", "wrong")).GET().build();
         HttpResponse<String> refused = http.send(wrongPassword, HttpResponse.BodyHandlers.ofString());
         assertThat(refused.statusCode()).as(refused.headers().map() + refused.body()).isEqualTo(401);
+    }
+
+    @Test
+    void acceptsPersonalApiTokensAsBearerTokens() throws Exception {
+        ApiTokenService.Issued issued = tokenService.issue("deploy-bot", "test");
+        HttpRequest withToken = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/boards"))
+                .header("Authorization", "Bearer " + issued.secret()).GET().build();
+        HttpResponse<String> accepted = http.send(withToken, HttpResponse.BodyHandlers.ofString());
+        assertThat(accepted.statusCode()).as(accepted.body()).isEqualTo(200);
+        assertThat(json.readTree(accepted.body()).get(0).get("name").asString()).isEqualTo("Api board");
+
+        tokenService.revoke(issued.token().id(), "deploy-bot");
+        HttpResponse<String> revoked = http.send(withToken, HttpResponse.BodyHandlers.ofString());
+        assertThat(revoked.statusCode()).isEqualTo(401);
+        assertThat(revoked.body()).contains("Bearer");
+
+        HttpRequest garbage = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/boards"))
+                .header("Authorization", "Bearer nonsense").GET().build();
+        assertThat(http.send(garbage, HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(401);
     }
 
     @Test

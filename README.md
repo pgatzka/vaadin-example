@@ -27,6 +27,8 @@ Java on top of Vaadin Flow's server push.
 | ![Bulk](docs/bulk.png) | ![Rules](docs/rules.png) | ![Quick add](docs/quick-add.png) |
 | Dependency graph | Team workload | Swimlanes |
 | ![Dependencies](docs/dependencies.png) | ![Team](docs/team.png) | ![Swimlanes](docs/swimlanes.png) |
+| API tokens | | |
+| ![API tokens](docs/api-tokens.png) | | |
 
 ## Features
 
@@ -155,7 +157,9 @@ including dialogs and server push, without a browser or servlet container.
 
 A small JSON API under `/api` lets scripts and other tools work with boards. Changes made through
 it are pushed to open browsers like any other change. Requests authenticate with HTTP Basic using
-a Flowboard account; the account's display name is what the activity feed shows.
+a Flowboard account, or with a **personal API token** sent as `Authorization: Bearer fb_…`; tokens
+are minted and revoked from the account menu (API tokens…), stored hashed and shown once. The
+account's display name is what the activity feed shows.
 
 | Method and path | Purpose |
 |---|---|

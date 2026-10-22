@@ -12,10 +12,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Two filter chains: the JSON API authenticates each request with HTTP Basic and keeps no
+ * Two filter chains: the JSON API authenticates each request with HTTP Basic or a personal API token and keeps no
  * session, everything else is the Vaadin application behind the login view.
  */
 @Configuration
@@ -29,11 +30,13 @@ class SecurityConfiguration {
 
     @Bean
     @Order(1)
-    SecurityFilterChain apiSecurity(HttpSecurity http) throws Exception {
+    SecurityFilterChain apiSecurity(HttpSecurity http, ApiTokenService tokens) throws Exception {
         AuthenticationEntryPoint entryPoint = apiEntryPoint();
+        ApiTokenFilter apiTokens = new ApiTokenFilter(tokens);
         http.securityMatcher("/api/**")
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sessions -> sessions.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(apiTokens, BasicAuthenticationFilter.class)
                 .httpBasic(basic -> basic.authenticationEntryPoint(entryPoint))
                 .exceptionHandling(handling -> handling.authenticationEntryPoint(entryPoint))
                 .authorizeHttpRequests(requests -> requests
@@ -48,7 +51,7 @@ class SecurityConfiguration {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setHeader("WWW-Authenticate", "Basic realm=\"Flowboard\"");
             response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Sign in with a Flowboard account using HTTP Basic\"}");
+            response.getWriter().write("{\"error\": \"Sign in with a Flowboard account using HTTP Basic, or send an API token as a Bearer token\"}");
         };
     }
 

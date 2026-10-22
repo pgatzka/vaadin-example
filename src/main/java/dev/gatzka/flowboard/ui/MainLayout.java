@@ -46,6 +46,8 @@ import dev.gatzka.flowboard.service.WorkService;
 import dev.gatzka.flowboard.ui.board.BoardView;
 import dev.gatzka.flowboard.ui.boards.BoardsView;
 import dev.gatzka.flowboard.ui.support.UiAccess;
+import dev.gatzka.flowboard.security.ApiTokenService;
+import dev.gatzka.flowboard.ui.account.ApiTokensDialog;
 import dev.gatzka.flowboard.ui.team.TeamView;
 import dev.gatzka.flowboard.ui.work.MyWorkView;
 import java.time.Clock;
@@ -66,6 +68,8 @@ public class MainLayout extends AppLayout {
     private final VisitService visits;
     private final TimeService timeService;
     private final AccessService access;
+    private final ApiTokenService apiTokens;
+    private final Clock clock;
     private final InboxBroadcaster inboxBroadcaster;
     private final InboxDialog inboxDialog;
     private final Button inboxButton = new Button();
@@ -83,8 +87,10 @@ public class MainLayout extends AppLayout {
 
     public MainLayout(BoardService boardService, WorkService workService, NotificationService notificationService,
             BoardChangeBroadcaster broadcaster, InboxBroadcaster inboxBroadcaster, VisitService visits, TimeService timeService,
-            AccessService access, UserSession session, Clock clock) {
+            AccessService access, ApiTokenService apiTokens, UserSession session, Clock clock) {
         this.boardService = boardService;
+        this.apiTokens = apiTokens;
+        this.clock = clock;
         this.access = access;
         this.visits = visits;
         this.timeService = timeService;
@@ -137,6 +143,7 @@ public class MainLayout extends AppLayout {
         }));
         list.add(new Command("Keyboard shortcuts", VaadinIcon.QUESTION_CIRCLE_O, () -> new ShortcutsDialog().open()));
         list.add(new Command("Change display name", VaadinIcon.USER, () -> new ProfileDialog(session, this::onProfileSaved).open()));
+        list.add(new Command("API tokens", VaadinIcon.KEY, () -> new ApiTokensDialog(apiTokens, session.login(), clock).open()));
         list.add(new Command("Sign out", VaadinIcon.SIGN_OUT, session::signOut));
         for (BoardSummary board : access.visibleBoards(session.login())) {
             RouteParameters parameters = new RouteParameters(BoardView.BOARD_ID, Long.toString(board.id()));
@@ -160,6 +167,7 @@ public class MainLayout extends AppLayout {
         ContextMenu userMenu = new ContextMenu(userButton);
         userMenu.setOpenOnClick(true);
         userMenu.addItem("Change display name", event -> new ProfileDialog(session, this::onProfileSaved).open());
+        userMenu.addItem("API tokens…", event -> new ApiTokensDialog(apiTokens, session.login(), clock).open()).setId("api-tokens");
         userMenu.addItem("Sign out", event -> session.signOut()).setId("sign-out");
 
         Button search = new Button(VaadinIcon.SEARCH.create(), event -> searchDialog.open());
