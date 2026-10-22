@@ -31,6 +31,8 @@ Java on top of Vaadin Flow's server push.
 | ![API tokens](docs/api-tokens.png) | ![Walk](docs/walk.png) | ![Timeline](docs/timeline.png) |
 | Card covers | Focus session | Watching a card |
 | ![Covers](docs/covers.png) | ![Focus](docs/focus.png) | ![Watch](docs/watch.png) |
+| Auf Deutsch | | |
+| ![German](docs/german.png) | | |
 
 ## Features
 
