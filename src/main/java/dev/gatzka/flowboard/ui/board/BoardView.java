@@ -5,6 +5,7 @@ import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.avatar.AvatarGroup;
 import com.vaadin.flow.component.avatar.AvatarGroup.AvatarGroupItem;
@@ -31,6 +32,7 @@ import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.shared.Registration;
 import dev.gatzka.flowboard.assistant.AssistantService;
 import dev.gatzka.flowboard.domain.ActivityEntry;
@@ -41,6 +43,7 @@ import dev.gatzka.flowboard.domain.CardFilter;
 import dev.gatzka.flowboard.domain.CardFilterCodec;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.DependencyGraph;
+import dev.gatzka.flowboard.domain.Grouping;
 import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.LaneRuleSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
@@ -143,6 +146,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final Span description = new Span();
     private final TextField search = new TextField();
     private final FilterMenu filters = new FilterMenu(filter -> onFilterChanged());
+    private final Select<Grouping> grouping = new Select<>();
     private final ViewsBar viewsBar = new ViewsBar(new ViewsBar.Actions() {
         @Override
         public void applyView(SavedViewSnapshot view) {
@@ -314,7 +318,22 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         Button addLane = new Button("Add lane", VaadinIcon.PLUS.create(), event -> addLane());
         addLane.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        Div toolbar = new Div(titles, search, filters, participants, activity, insights, moreMenu());
+        grouping.setId("board-grouping");
+        grouping.setItems(Grouping.values());
+        grouping.setItemLabelGenerator(Grouping::label);
+        grouping.setValue(Grouping.NONE);
+        grouping.setPrefixComponent(VaadinIcon.LINES_LIST.create());
+        grouping.setTooltipText("Split the board into swimlanes");
+        grouping.setAriaLabel("Group by");
+        grouping.addClassName("board-toolbar__grouping");
+        grouping.addValueChangeListener(event -> {
+            if (event.isFromClient()) {
+                rememberGrouping(event.getValue());
+                render(board);
+            }
+        });
+
+        Div toolbar = new Div(titles, search, filters, grouping, participants, activity, insights, moreMenu());
         if (assistant.isAvailable()) {
             toolbar.add(assistantMenu());
         }
@@ -508,14 +527,16 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         Instant now = clock.instant();
         lanes.removeAll();
         laneComponents.clear();
+        LaneComponent.Swimlanes swimlanes = swimlanes(snapshot);
         for (LaneSnapshot lane : snapshot.lanes()) {
-            LaneComponent component = new LaneComponent(lane, snapshot.lanes().size(), today, now, this);
+            LaneComponent component = new LaneComponent(lane, snapshot.lanes().size(), today, now, this, swimlanes);
             laneComponents.add(component);
             lanes.add(component);
             if (openComposerLaneId != null && openComposerLaneId == lane.id()) {
                 component.openComposer();
             }
         }
+        layoutSwimlanes(snapshot, swimlanes);
         filters.setOptions(snapshot.tags(), snapshot.assignees());
         applyFilter();
         showViews();
@@ -542,6 +563,56 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         if (openEditor != null) {
             openEditor.cardId().flatMap(this::findCard).ifPresent(openEditor::refresh);
         }
+    }
+
+    // ------------------------------------------------------------- swimlanes
+
+    private static final String GROUPING_ATTRIBUTE = BoardView.class.getName() + ".grouping.";
+
+    private LaneComponent.Swimlanes swimlanes(BoardSnapshot snapshot) {
+        Grouping remembered = (Grouping) VaadinSession.getCurrent().getAttribute(GROUPING_ATTRIBUTE + snapshot.id());
+        Grouping active = remembered == null ? Grouping.NONE : remembered;
+        grouping.setValue(active);
+        return active.isActive() ? new LaneComponent.Swimlanes(active, active.rows(snapshot)) : LaneComponent.Swimlanes.NONE;
+    }
+
+    private void rememberGrouping(Grouping value) {
+        VaadinSession.getCurrent().setAttribute(GROUPING_ATTRIBUTE + board.id(), value == null ? Grouping.NONE : value);
+    }
+
+    /** With a grouping active the lanes become a grid: one column per lane, one row per group, labels in the first column. */
+    private void layoutSwimlanes(BoardSnapshot snapshot, LaneComponent.Swimlanes swimlanes) {
+        if (!swimlanes.isActive()) {
+            lanes.removeClassName("lanes--grouped");
+            lanes.getStyle().remove("grid-template-columns");
+            return;
+        }
+        lanes.addClassName("lanes--grouped");
+        lanes.getStyle().set("grid-template-columns", "var(--fb-swimlane-label-width) repeat(" + snapshot.lanes().size() + ", var(--fb-lane-width))");
+        for (int i = 0; i < swimlanes.rows().size(); i++) {
+            String row = swimlanes.rows().get(i);
+            long count = snapshot.lanes().stream().flatMap(lane -> lane.cards().stream())
+                    .filter(card -> swimlanes.grouping().keyOf(card).equalsIgnoreCase(row)).count();
+            Span name = new Span(row);
+            name.addClassName("swimlane__name");
+            Span total = new Span(Long.toString(count));
+            total.addClassName("swimlane__count");
+            Div label = new Div(name, total);
+            label.addClassName("swimlane__label");
+            label.getElement().setAttribute("data-row", row);
+            label.getStyle().set("grid-row", Integer.toString(i + 2)).set("grid-column", "1");
+            lanes.add(label);
+        }
+    }
+
+    @Override
+    public void moveCardToRow(long cardId, long targetLaneId, int targetIndex, String row) {
+        Grouping active = grouping.getValue();
+        Optional<CardSnapshot> card = findCard(cardId);
+        if (card.isPresent() && active != null && active.isActive() && !active.keyOf(card.get()).equalsIgnoreCase(row)) {
+            perform(() -> boardService.updateCard(cardId, active.moveInto(card.get().toDraft(), row), actor()));
+        }
+        moveCard(cardId, targetLaneId, targetIndex);
     }
 
     private Optional<CardSnapshot> findCard(long cardId) {

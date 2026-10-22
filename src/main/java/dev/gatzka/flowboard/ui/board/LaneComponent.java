@@ -17,6 +17,7 @@ import com.vaadin.flow.component.menubar.MenuBarVariant;
 import dev.gatzka.flowboard.domain.CardFilter;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
+import dev.gatzka.flowboard.domain.Grouping;
 import dev.gatzka.flowboard.domain.LaneRuleSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import java.time.Instant;
@@ -30,15 +31,31 @@ import java.util.List;
  */
 final class LaneComponent extends Div {
 
+    /** The swimlane rows of a grouped board; {@code rows} is empty when the board is not grouped. */
+    record Swimlanes(Grouping grouping, List<String> rows) {
+
+        static final Swimlanes NONE = new Swimlanes(Grouping.NONE, List.of());
+
+        boolean isActive() {
+            return grouping.isActive() && !rows.isEmpty();
+        }
+    }
+
     private final LaneSnapshot lane;
     private final List<CardComponent> cardComponents = new ArrayList<>();
     private final Instant now;
+    private final Swimlanes swimlanes;
 
     private final QuickAddComposer composer;
 
     LaneComponent(LaneSnapshot lane, int laneCount, LocalDate today, Instant now, BoardActions actions) {
+        this(lane, laneCount, today, now, actions, Swimlanes.NONE);
+    }
+
+    LaneComponent(LaneSnapshot lane, int laneCount, LocalDate today, Instant now, BoardActions actions, Swimlanes swimlanes) {
         this.now = now;
         this.lane = lane;
+        this.swimlanes = swimlanes;
         addClassName("lane");
         if (lane.isOverWipLimit()) {
             addClassName("lane--over-limit");
@@ -56,8 +73,27 @@ final class LaneComponent extends Div {
                 () -> actions.composerClosed(lane));
         composer.addClassName("lane__add");
 
-        add(header(laneCount, actions), cards(today, actions), composer);
+        Component header = header(laneCount, actions);
+        if (swimlanes.isActive()) {
+            int column = lane.position() + 2;
+            placeInGrid(header, 1, column);
+            for (int row = 0; row < swimlanes.rows().size(); row++) {
+                String key = swimlanes.rows().get(row);
+                Component body = cards(today, actions, key);
+                placeInGrid(body, row + 2, column);
+                add(body);
+            }
+            placeInGrid(composer, swimlanes.rows().size() + 2, column);
+            addComponentAsFirst(header);
+            add(composer);
+        } else {
+            add(header, cards(today, actions, null), composer);
+        }
         makeReorderable(actions);
+    }
+
+    private static void placeInGrid(Component component, int row, int column) {
+        component.getElement().getStyle().set("grid-row", Integer.toString(row)).set("grid-column", Integer.toString(column));
     }
 
     /** The header drags the lane; dropping anything on the lane outside its card list lands here. */
@@ -122,6 +158,13 @@ final class LaneComponent extends Div {
         handle.setDragData(new LaneDrag(lane.id()));
         handle.addDragStartListener(event -> addClassName("lane--dragging"));
         handle.addDragEndListener(event -> removeClassName("lane--dragging"));
+        DropTarget<Div> landing = DropTarget.create(header);
+        landing.setDropEffect(DropEffect.MOVE);
+        landing.addDropListener(event -> {
+            if (event.getDragData().orElse(null) instanceof LaneDrag dragged && dragged.laneId() != lane.id()) {
+                actions.moveLaneTo(dragged.laneId(), lane.position());
+            }
+        });
         return header;
     }
 
@@ -167,16 +210,25 @@ final class LaneComponent extends Div {
         return menu;
     }
 
-    private Component cards(LocalDate today, BoardActions actions) {
+    /** The card list; with swimlanes active, only the cards of the given {@code row}, and drops land in that row. */
+    private Component cards(LocalDate today, BoardActions actions, String row) {
         Div body = new Div();
         body.addClassName("lane__cards");
+        if (row != null) {
+            body.addClassName("lane__cards--row");
+            body.getElement().setAttribute("data-row", row);
+        }
 
         DropTarget<Div> appendTarget = DropTarget.create(body);
         appendTarget.setDropEffect(DropEffect.MOVE);
         appendTarget.addDropListener(event -> draggedCardId(event.getDragData().orElse(null))
-                .ifPresent(cardId -> actions.moveCard(cardId, lane.id(), lane.cards().size())));
+                .ifPresent(cardId -> drop(actions, cardId, lane.cards().size(), row)));
 
+        int shown = 0;
         for (CardSnapshot card : lane.cards()) {
+            if (row != null && !swimlanes.grouping().keyOf(card).equalsIgnoreCase(row)) {
+                continue;
+            }
             CardComponent component = new CardComponent(card, today, now, lane.done(), () -> actions.openCard(card),
                     new CardComponent.Voting(card.hasVoteFrom(actions.currentUser()), () -> actions.toggleVote(card)),
                     () -> actions.toggleSelection(card));
@@ -185,17 +237,26 @@ final class LaneComponent extends Div {
                 component.markChanged();
             }
             makeDraggable(component, card);
-            makeInsertTarget(component, card, actions);
+            makeInsertTarget(component, card, actions, row);
             component.enableKeyboardActions(key -> actions.moveCardByKeyboard(card, key), () -> actions.addCardNear(card));
             cardComponents.add(component);
             body.add(component);
+            shown++;
         }
-        if (lane.cards().isEmpty()) {
-            Span hint = new Span("Drop cards here");
+        if (shown == 0) {
+            Span hint = new Span(row == null ? "Drop cards here" : "Drop here");
             hint.addClassName("lane__empty");
             body.add(hint);
         }
         return body;
+    }
+
+    private void drop(BoardActions actions, long cardId, int targetIndex, String row) {
+        if (row == null) {
+            actions.moveCard(cardId, lane.id(), targetIndex);
+        } else {
+            actions.moveCardToRow(cardId, lane.id(), targetIndex, row);
+        }
     }
 
     private static void makeDraggable(CardComponent component, CardSnapshot card) {
@@ -204,12 +265,12 @@ final class LaneComponent extends Div {
         source.setDragData(card.id());
     }
 
-    private void makeInsertTarget(CardComponent component, CardSnapshot card, BoardActions actions) {
+    private void makeInsertTarget(CardComponent component, CardSnapshot card, BoardActions actions, String row) {
         DropTarget<CardComponent> target = DropTarget.create(component);
         target.setDropEffect(DropEffect.MOVE);
         target.addDropListener(event -> draggedCardId(event.getDragData().orElse(null))
                 .filter(cardId -> cardId != card.id())
-                .ifPresent(cardId -> actions.moveCard(cardId, lane.id(), card.position())));
+                .ifPresent(cardId -> drop(actions, cardId, card.position(), row)));
     }
 
     private static java.util.Optional<Long> draggedCardId(Object dragData) {

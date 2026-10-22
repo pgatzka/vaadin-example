@@ -2162,3 +2162,96 @@ vaadin-dialog.activity-sheet::part(content) {
     flex-wrap: wrap;
   }
 }
+
+/* ---------------------------------------------------------------- Swimlanes */
+
+:root {
+  --fb-swimlane-label-width: 9rem;
+}
+
+.board-toolbar__grouping {
+  width: 10rem;
+}
+
+.lanes--grouped {
+  display: grid;
+  align-items: stretch;
+  column-gap: var(--lumo-space-m);
+  row-gap: 0;
+}
+
+.lanes--grouped > .lane {
+  display: contents;
+}
+
+.lanes--grouped .lane__header {
+  background: var(--fb-lane-background);
+  border: 1px solid var(--fb-lane-border);
+  border-bottom: none;
+  border-radius: var(--lumo-border-radius-l) var(--lumo-border-radius-l) 0 0;
+  box-shadow: var(--lumo-box-shadow-xs);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.lanes--grouped .lane--over-limit .lane__header {
+  border-color: var(--lumo-error-color-50pct);
+}
+
+.lanes--grouped .lane__cards--row {
+  background: var(--fb-lane-background);
+  border-inline: 1px solid var(--fb-lane-border);
+  border-top: 1px dashed var(--lumo-contrast-20pct);
+  min-height: 3.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.lanes--grouped .lane__cards--row .lane__empty {
+  padding: var(--lumo-space-s);
+  font-size: var(--lumo-font-size-xs);
+  opacity: 0.6;
+}
+
+.lanes--grouped .lane__add {
+  background: var(--fb-lane-background);
+  border: 1px solid var(--fb-lane-border);
+  border-top: none;
+  border-radius: 0 0 var(--lumo-border-radius-l) var(--lumo-border-radius-l);
+}
+
+.swimlane__label {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-xs);
+  padding: var(--lumo-space-s) var(--lumo-space-xs) var(--lumo-space-s) 0;
+  border-top: 1px dashed var(--lumo-contrast-20pct);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--fb-board-background);
+  min-width: 0;
+}
+
+.swimlane__name {
+  font-weight: 600;
+  font-size: var(--lumo-font-size-s);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.swimlane__count {
+  font-size: var(--lumo-font-size-xs);
+  color: var(--lumo-secondary-text-color);
+  background: var(--lumo-contrast-10pct);
+  border-radius: 1em;
+  padding: 0 0.5em;
+}
+
+@media (max-width: 600px) {
+  :root {
+    --fb-swimlane-label-width: 6rem;
+  }
+}

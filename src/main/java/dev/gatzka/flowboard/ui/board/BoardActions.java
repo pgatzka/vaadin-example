@@ -28,6 +28,9 @@ interface BoardActions {
     /** Moves a card so that it ends up at {@code targetIndex} in the target lane. */
     void moveCard(long cardId, long targetLaneId, int targetIndex);
 
+    /** Like {@link #moveCard} but also moves the card into the swimlane {@code row} of the active grouping. */
+    void moveCardToRow(long cardId, long targetLaneId, int targetIndex, String row);
+
     void editLane(LaneSnapshot lane);
 
     /** The automation rules of a lane, for the lightning badge and the lane dialog. */

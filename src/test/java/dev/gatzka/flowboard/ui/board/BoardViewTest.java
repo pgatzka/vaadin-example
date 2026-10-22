@@ -1,6 +1,7 @@
 package dev.gatzka.flowboard.ui.board;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import dev.gatzka.flowboard.ui.FlowboardUiTest;import static org.awaitility.Awaitility.await;
 
@@ -11,6 +12,7 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.contextmenu.MenuItem;
+import dev.gatzka.flowboard.domain.Grouping;
 import dev.gatzka.flowboard.domain.Recurrence;
 import dev.gatzka.flowboard.domain.RuleAction;
 import com.vaadin.flow.component.select.Select;
@@ -740,6 +742,49 @@ class BoardViewTest extends FlowboardUiTest {
                     .getElement().getTextRecursively()).startsWith("1 link between 2 cards");
         });
         dialog.cardClicked("");
+    }
+
+    @Test
+    void groupingSplitsTheBoardIntoSwimlanesAndDropsMoveCardsBetweenRows() {
+        long backlog = board.lanes().get(0).id();
+        CardSnapshot hers = service.createCard(backlog, new CardDraft("Hers", null, Priority.LOW, null, "Priya", Set.of(), null), SEEDER);
+        CardSnapshot his = service.createCard(backlog, new CardDraft("His", null, Priority.HIGH, null, "Jonas", Set.of("ui"), null), SEEDER);
+        CardSnapshot nobodys = createCard("Nobody's");
+        BoardView view = navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
+        assertThat($(Div.class).withClassName("swimlane__label").all()).isEmpty();
+
+        test($(Select.class).withId("board-grouping").single(), Grouping.class).selectItem("Assignee");
+
+        assertThat($(Div.class).withClassName("swimlane__label").all())
+                .extracting(label -> label.getElement().getAttribute("data-row")).containsExactly("Jonas", "Priya", "Unassigned");
+        assertThat($(Div.class).withClassName("lanes").single().getClassNames()).contains("lanes--grouped");
+        LaneComponent first = $(LaneComponent.class).first();
+        assertThat($(Div.class, first).withClassName("lane__cards--row").all()).hasSize(3);
+        assertThat($(CardComponent.class, first).all()).extracting(c -> c.card().title()).containsExactly("His", "Hers", "Nobody's");
+        assertThat($(CardComponent.class).all()).as("every card appears exactly once").hasSize(3);
+
+        view.moveCardToRow(nobodys.id(), backlog, 0, "Priya");
+
+        BoardSnapshot after = service.findBoard(board.id()).orElseThrow();
+        assertThat(after.lanes().getFirst().cards()).extracting(CardSnapshot::title, CardSnapshot::assignee)
+                .containsExactly(tuple("Nobody's", "Priya"), tuple("Hers", "Priya"), tuple("His", "Jonas"));
+        assertThat($(Div.class).withClassName("swimlane__label").all())
+                .extracting(label -> label.getElement().getAttribute("data-row")).containsExactly("Jonas", "Priya");
+
+        test($(Select.class).withId("board-grouping").single(), Grouping.class).selectItem("Priority");
+        assertThat($(Div.class).withClassName("swimlane__label").all())
+                .extracting(label -> label.getElement().getAttribute("data-row")).containsExactly("Urgent", "High", "Medium", "Low");
+        view.moveCardToRow(hers.id(), backlog, 2, "Urgent");
+        assertThat(service.findBoard(board.id()).orElseThrow().lanes().getFirst().cards())
+                .filteredOn(card -> card.id() == hers.id()).singleElement().extracting(CardSnapshot::priority).isEqualTo(Priority.URGENT);
+
+        // the choice sticks for the board within the session
+        openBoard();
+        assertThat($(Select.class).withId("board-grouping").single().getValue()).isEqualTo(Grouping.PRIORITY);
+        test($(Select.class).withId("board-grouping").single(), Grouping.class).selectItem("None");
+        assertThat($(Div.class).withClassName("swimlane__label").all()).isEmpty();
+        assertThat($(Div.class).withClassName("lanes").single().getClassNames()).doesNotContain("lanes--grouped");
+        assertThat(his.id()).isNotEqualTo(hers.id());
     }
 
     @Test
