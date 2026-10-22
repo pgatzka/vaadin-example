@@ -788,6 +788,27 @@ class BoardViewTest extends FlowboardUiTest {
     }
 
     @Test
+    void watchToggleInTheEditorMarksTheCard() {
+        CardSnapshot card = createCard("Keep an eye on it");
+        openBoard();
+        assertThat($(CardComponent.class).single().getClassNames()).doesNotContain("task-card--watching");
+
+        test($(CardComponent.class).single()).click();
+        Button watch = $(Button.class).withId("watch-card").single();
+        assertThat(watch.getText()).isEqualTo("Watch");
+
+        test(watch).click();
+
+        assertThat(watch.getText()).isEqualTo("Watching");
+        assertThat(context.getBean(dev.gatzka.flowboard.service.WatchService.class).isWatching(card.id(), context.getBean(UserSession.class).getDisplayName())).isTrue();
+        assertThat($(CardComponent.class).single().getClassNames()).contains("task-card--watching");
+
+        test($(Button.class).withId("watch-card").single()).click();
+        assertThat($(Button.class).withId("watch-card").single().getText()).isEqualTo("Watch");
+        assertThat($(CardComponent.class).single().getClassNames()).doesNotContain("task-card--watching");
+    }
+
+    @Test
     void movingABlockedCardToDoneAsksFirst() {
         CardSnapshot design = createCard("Design");
         CardSnapshot build = createCard("Build");

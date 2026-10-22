@@ -56,13 +56,15 @@ public class BoardService {
     private final CardTemplateRepository cardTemplates;
     private final BoardMemberRepository boardMembers;
     private final AutomationService automations;
+    private final WatchService watches;
     private final Clock clock;
 
     BoardService(BoardRepository boards, LaneRepository lanes, CardRepository cards, ActivityLog activityLog,
             NotificationService notifications, VisitService visits, WebhookRepository webhooks,
             SavedViewRepository savedViews, CardTemplateRepository cardTemplates, BoardMemberRepository boardMembers,
-            AutomationService automations, Clock clock) {
+            AutomationService automations, Clock clock, WatchService watches) {
         this.automations = automations;
+        this.watches = watches;
         this.cardTemplates = cardTemplates;
         this.boardMembers = boardMembers;
         this.visits = visits;
@@ -120,6 +122,7 @@ public class BoardService {
         lanes.deleteAllByBoardId(boardId);
         activityLog.forget(boardId);
         notifications.forgetBoard(boardId);
+        watches.forgetBoard(boardId);
         visits.forgetBoard(boardId);
         webhooks.deleteAllByBoardId(boardId);
         savedViews.deleteAllByBoardId(boardId);
@@ -238,6 +241,7 @@ public class BoardService {
         Lane lane = card.getLane();
         Instant now = clock.instant();
         cards.findAllBlockedBy(cardId).forEach(blocked -> blocked.removeBlocker(card, now));
+        watches.forgetCard(cardId);
         cards.delete(card);
         renumberCards(cards.findAllByLaneIdAndArchivedAtIsNullOrderByPositionAsc(lane.getId()));
         activityLog.record(BoardChangedEvent.content(boardIdOf(lane), actor,
@@ -482,6 +486,7 @@ public class BoardService {
     private void notifyAssignment(Card card, String previousAssignee, String actor) {
         String assignee = card.getAssignee();
         if (assignee != null && (previousAssignee == null || !previousAssignee.equalsIgnoreCase(assignee))) {
+            watches.watch(card.getId(), assignee);
             notifications.notify(assignee, actor, "assigned \"%s\" to you".formatted(card.getTitle()), boardIdOf(card.getLane()), card.getId());
         }
     }

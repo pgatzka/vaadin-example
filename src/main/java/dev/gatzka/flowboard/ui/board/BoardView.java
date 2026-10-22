@@ -76,6 +76,7 @@ import dev.gatzka.flowboard.service.SharingService;
 import dev.gatzka.flowboard.service.TimeService;
 import dev.gatzka.flowboard.service.VisitService;
 import dev.gatzka.flowboard.service.VoteService;
+import dev.gatzka.flowboard.service.WatchService;
 import dev.gatzka.flowboard.ui.ProfileChangedEvent;
 import dev.gatzka.flowboard.ui.TimerChangedEvent;
 import dev.gatzka.flowboard.ui.UserSession;
@@ -176,6 +177,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final Div lanes = new Div();
     private final ActivityDialog activityDialog = new ActivityDialog();
     private final InsightsDialog insightsDialog;
+    private final WatchService watchService;
     private final DependenciesDialog dependenciesDialog = new DependenciesDialog(
             cardId -> findCard(cardId).ifPresent(this::openCard));
     private final ArchiveDialog archiveDialog;
@@ -229,6 +231,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private BoardSnapshot board;
     private List<CardTemplateSnapshot> boardTemplates = List.of();
     private Instant lastVisit;
+    private Set<Long> watchedCards = Set.of();
     /** Card to focus after the next renders, so keyboard moves keep the keyboard focus. */
     private Long focusCardId;
     /** Own changes render twice (directly and again through the push), so the focus survives both. */
@@ -246,7 +249,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             BoardChangeBroadcaster broadcaster, PresenceTracker presence, SharingService sharing, VisitService visits,
             WebhookService webhookService, WebhookDispatcher webhookDispatcher, SavedViewService savedViews,
             TimeService timeService, CardTemplateService templateService, AccessService access, AccountService accounts,
-            AutomationService automations, UserSession session, Clock clock) {
+            AutomationService automations, UserSession session, Clock clock,
+            WatchService watchService) {
         this.access = access;
         this.automations = automations;
         this.accounts = accounts;
@@ -259,6 +263,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         this.webhookDispatcher = webhookDispatcher;
         this.insightsDialog = new InsightsDialog(clock::instant);
         this.boardService = boardService;
+        this.watchService = watchService;
         this.checklistService = checklistService;
         this.commentService = commentService;
         this.voteService = voteService;
@@ -531,6 +536,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         lanes.removeAll();
         laneComponents.clear();
         LaneComponent.Swimlanes swimlanes = swimlanes(snapshot);
+        watchedCards = watchService.watchedOn(snapshot.id(), actor());
         for (LaneSnapshot lane : snapshot.lanes()) {
             LaneComponent component = new LaneComponent(lane, snapshot.lanes().size(), today, now, this, swimlanes);
             laneComponents.add(component);
@@ -1037,6 +1043,23 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Override
     public CardSnapshot addComment(long cardId, String text) {
         return changeCard(() -> commentService.add(cardId, actor(), text));
+    }
+
+    @Override
+    public boolean isWatching(long cardId) {
+        return watchedCards.contains(cardId) || watchService.isWatching(cardId, actor());
+    }
+
+    @Override
+    public boolean toggleWatch(long cardId) {
+        boolean watching = watchService.toggle(cardId, actor());
+        reload();
+        return watching;
+    }
+
+    @Override
+    public boolean isWatching(CardSnapshot card) {
+        return watchedCards.contains(card.id());
     }
 
     @Override

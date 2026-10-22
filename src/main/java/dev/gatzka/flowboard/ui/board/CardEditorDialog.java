@@ -129,7 +129,16 @@ final class CardEditorDialog extends Dialog {
         copyLink.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
         copyLink.setAriaLabel("Copy link to this card");
         copyLink.setTooltipText("Copy link");
-        getHeader().add(copyLink);
+        Button watch = new Button();
+        watch.setId("watch-card");
+        watch.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        showWatchState(watch, actions.isWatching(card.id()));
+        watch.addClickListener(event -> {
+            boolean watching = actions.toggleWatch(card.id());
+            showWatchState(watch, watching);
+            Toasts.info(watching ? "You will hear about changes to this card in your inbox" : "You stopped watching this card");
+        });
+        getHeader().add(watch, copyLink);
         checklistSection = new ChecklistSection(card, actions, this::refresh);
         dependenciesSection = new DependenciesSection(card, board, actions, this::refresh);
         attachmentsSection = new AttachmentsSection(card, actions, this::refresh);
@@ -149,6 +158,18 @@ final class CardEditorDialog extends Dialog {
         tabs.add("History", historySection);
         tabs.setWidthFull();
         add(checklistSection, tabs);
+    }
+
+    private static void showWatchState(Button watch, boolean watching) {
+        watch.setText(watching ? "Watching" : "Watch");
+        watch.setIcon((watching ? VaadinIcon.EYE : VaadinIcon.EYE_SLASH).create());
+        watch.setTooltipText(watching ? "Stop getting inbox notifications for this card" : "Get inbox notifications for comments, moves and edits");
+        watch.getElement().setAttribute("data-watching", Boolean.toString(watching));
+        if (watching) {
+            watch.addClassName("card-editor__watching");
+        } else {
+            watch.removeClassName("card-editor__watching");
+        }
     }
 
     private void copyLink(CardSnapshot card) {

@@ -21,11 +21,13 @@ public class CommentService {
     private final CommentRepository comments;
     private final ActivityLog activityLog;
     private final NotificationService notifications;
+    private final WatchService watches;
     private final Clock clock;
 
     CommentService(CardRepository cards, CommentRepository comments, ActivityLog activityLog, NotificationService notifications,
-            Clock clock) {
+            WatchService watches, Clock clock) {
         this.cards = cards;
+        this.watches = watches;
         this.comments = comments;
         this.activityLog = activityLog;
         this.notifications = notifications;
@@ -36,6 +38,7 @@ public class CommentService {
         Card card = cards.findById(cardId).orElseThrow(() -> new NotFoundException("Card", cardId));
         Comment comment = card.addComment(author, text, clock.instant());
         comments.saveAndFlush(comment);
+        watches.watch(cardId, author);
         long boardId = card.getLane().getBoard().getId();
         String excerpt = excerpt(comment.getText());
         activityLog.record(BoardChangedEvent.content(boardId, author,

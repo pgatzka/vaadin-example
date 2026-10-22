@@ -20,6 +20,12 @@ interface CardEditorActions {
 
     CardSnapshot addComment(long cardId, String text);
 
+    /** Whether the current user follows the card's changes in their inbox. */
+    boolean isWatching(long cardId);
+
+    /** Starts or stops following the card; returns the new state. */
+    boolean toggleWatch(long cardId);
+
     CardSnapshot setRecurrence(long cardId, Recurrence recurrence);
 
     /** Boards the current user may move or copy cards to, including this one. */

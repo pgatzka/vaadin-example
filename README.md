@@ -68,6 +68,7 @@ Java on top of Vaadin Flow's server push.
 - **Inbox.** Mention somebody with `@name` in a comment, assign them a card or comment on their card
   and they get a notification, live, with a link to the card.
 - **Dependencies** between cards ("blocked by", acyclic, with a nudge before finishing a blocked card)
+- **Watch cards**: a Watch toggle in the card editor puts comments, moves, edits, archiving and new blockers on that card into your inbox (never your own changes); assignees and people who comment watch automatically, and a small eye marks watched cards on the board
 - **Walk the board** (More → Walk the board): a standup mode that shows one open card at a time, big enough for a shared screen, by lane or by person; arrow keys move on, a clock shows how long each card has been talked about, notes become comments and a button moves the card to the next lane
 - **Swimlanes**: group a board by assignee, priority or tag and the lanes turn into a grid with one row per group; dropping a card into another row reassigns, re-prioritises or tags it on the way, and the choice is remembered per board
 - **Team workload** page: every open card across your boards bucketed by person and week, in story points (or cards when nobody estimates); cells go red above a capacity you set, and an "Even it out" list proposes concrete reassignments (largest card that fits, to whoever has the most room) that apply with one click

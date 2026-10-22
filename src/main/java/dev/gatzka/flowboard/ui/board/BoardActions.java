@@ -76,6 +76,9 @@ interface BoardActions {
     /** The current user's display name, to show their own vote as such. */
     String currentUser();
 
+    /** Whether the current user watches the card, for the eye marker. */
+    boolean isWatching(CardSnapshot card);
+
     /** When the current user last opened this board before now, or {@code null} on their first visit. */
     java.time.Instant lastVisit();
 }

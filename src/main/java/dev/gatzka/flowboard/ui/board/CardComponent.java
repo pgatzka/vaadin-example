@@ -112,6 +112,11 @@ public final class CardComponent extends Div {
         getElement().setAttribute("title", "Changed since your last visit");
     }
 
+    /** Shows the small eye for a card the current user watches. */
+    void markWatching() {
+        addClassName("task-card--watching");
+    }
+
     private Div meta(LocalDate today, boolean completed, CardAge age, Voting voting) {
         Div meta = new Div();
         meta.addClassName("task-card__meta");
