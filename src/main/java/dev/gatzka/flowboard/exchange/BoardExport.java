@@ -61,6 +61,7 @@ public record BoardExport(
             String title,
             String description,
             Priority priority,
+            LocalDate startDate,
             LocalDate dueDate,
             String assignee,
             Set<String> tags,

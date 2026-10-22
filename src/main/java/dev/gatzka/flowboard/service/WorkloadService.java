@@ -38,7 +38,6 @@ public class WorkloadService {
         CardSnapshot card = cards.findById(cardId).map(CardSnapshot::of).orElseThrow(() -> new NotFoundException("Card", cardId));
         CardDraft draft = card.toDraft();
         String name = assignee == null || assignee.isBlank() ? null : assignee.strip();
-        return boards.updateCard(cardId, new CardDraft(draft.title(), draft.description(), draft.priority(), draft.dueDate(),
-                name, draft.tags(), draft.estimate()), actor);
+        return boards.updateCard(cardId, draft.withAssignee(name), actor);
     }
 }

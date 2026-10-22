@@ -432,8 +432,9 @@ public class BoardService {
         Recurrence recurrence = finished.getRecurrence();
         CardDraft draft = finished.toDraft();
         LocalDate nextDue = recurrence.next(draft.dueDate(), LocalDate.ofInstant(now, clock.getZone()));
-        Card next = new Card(lane, new CardDraft(draft.title(), draft.description(), draft.priority(), nextDue,
-                draft.assignee(), draft.tags(), draft.estimate()), position, now);
+        LocalDate nextStart = draft.startDate() == null || draft.dueDate() == null || nextDue == null
+                ? null : draft.startDate().plusDays(java.time.temporal.ChronoUnit.DAYS.between(draft.dueDate(), nextDue));
+        Card next = new Card(lane, draft.withDates(nextStart, nextDue), position, now);
         next.setRecurrence(recurrence, now);
         finished.setRecurrence(Recurrence.NONE, now);
         cards.save(next);

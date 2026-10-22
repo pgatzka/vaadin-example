@@ -35,7 +35,7 @@ public record QuickAdd(CardDraft draft, Recurrence recurrence) {
 
     /** Whether the text uses any of the shorthand at all. */
     public static boolean usesShorthand(String text) {
-        return text != null && text.matches("(?s).*(^|\\s)([!@#~][^\\s]|due:|every:).*");
+        return text != null && text.matches("(?s).*(^|\\s)([!@#~][^\\s]|due:|start:|every:).*");
     }
 
     public static QuickAdd parse(String text, LocalDate today) {
@@ -45,6 +45,7 @@ public record QuickAdd(CardDraft draft, Recurrence recurrence) {
         Set<String> tags = new LinkedHashSet<>();
         Integer estimate = null;
         LocalDate due = null;
+        LocalDate start = null;
         Recurrence recurrence = Recurrence.NONE;
 
         for (String word : (text == null ? "" : text).strip().split("\\s+")) {
@@ -62,6 +63,8 @@ public record QuickAdd(CardDraft draft, Recurrence recurrence) {
                 estimate = points(word.substring(1));
             } else if (lower.startsWith("due:") && date(lower.substring(4), today) != null) {
                 due = date(lower.substring(4), today);
+            } else if (lower.startsWith("start:") && date(lower.substring(6), today) != null) {
+                start = date(lower.substring(6), today);
             } else if (lower.startsWith("every:") && PERIODS.containsKey(lower.substring(6))) {
                 recurrence = PERIODS.get(lower.substring(6));
             } else {
@@ -72,7 +75,10 @@ public record QuickAdd(CardDraft draft, Recurrence recurrence) {
         if (title.isBlank()) {
             title = text == null ? "" : text.strip();
         }
-        return new QuickAdd(new CardDraft(title, null, priority, due, assignee, tags, estimate), recurrence);
+        if (start != null && due != null && start.isAfter(due)) {
+            start = null;
+        }
+        return new QuickAdd(new CardDraft(title, null, priority, start, due, assignee, tags, estimate), recurrence);
     }
 
     private static Priority priority(String value) {

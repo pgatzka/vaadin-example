@@ -27,8 +27,8 @@ Java on top of Vaadin Flow's server push.
 | ![Bulk](docs/bulk.png) | ![Rules](docs/rules.png) | ![Quick add](docs/quick-add.png) |
 | Dependency graph | Team workload | Swimlanes |
 | ![Dependencies](docs/dependencies.png) | ![Team](docs/team.png) | ![Swimlanes](docs/swimlanes.png) |
-| API tokens | Walk the board | |
-| ![API tokens](docs/api-tokens.png) | ![Walk](docs/walk.png) | |
+| API tokens | Walk the board | Timeline |
+| ![API tokens](docs/api-tokens.png) | ![Walk](docs/walk.png) | ![Timeline](docs/timeline.png) |
 
 ## Features
 
@@ -68,6 +68,7 @@ Java on top of Vaadin Flow's server push.
 - **Inbox.** Mention somebody with `@name` in a comment, assign them a card or comment on their card
   and they get a notification, live, with a link to the card.
 - **Dependencies** between cards ("blocked by", acyclic, with a nudge before finishing a blocked card)
+- **Timeline** (More → Timeline): every dated card as a bar on an eight-week axis, grouped by lane or person, with weekends shaded and today marked; cards with only a due date are milestone dots, cards with only a start date run open-ended. Drag a bar to move it, pull its ends to change the start or due date, click it to open the card. Cards gained an optional **start date** (editor, API, export, quick-add `start:`).
 - **Watch cards**: a Watch toggle in the card editor puts comments, moves, edits, archiving and new blockers on that card into your inbox (never your own changes); assignees and people who comment watch automatically, and a small eye marks watched cards on the board
 - **Walk the board** (More → Walk the board): a standup mode that shows one open card at a time, big enough for a shared screen, by lane or by person; arrow keys move on, a clock shows how long each card has been talked about, notes become comments and a button moves the card to the next lane
 - **Swimlanes**: group a board by assignee, priority or tag and the lanes turn into a grid with one row per group; dropping a card into another row reassigns, re-prioritises or tags it on the way, and the choice is remembered per board
@@ -82,8 +83,9 @@ Java on top of Vaadin Flow's server push.
 - **Move or copy cards across boards** from the editor, checklist and repetition included.
 - **Desktop alerts.** Turn on browser notifications from the inbox and hear about mentions and
   reminders while the tab is in the background.
-- **Quick-add shorthand.** Type `Fix login !high @mara #backend ~3 due:fri every:week` into a lane
-  and the card comes out with priority, assignee, tag, estimate, due date and repetition set.
+- **Quick-add shorthand.** Type `Fix login !high @mara #backend ~3 start:mon due:fri every:week` into
+  a lane and the card comes out with priority, assignee, tag, estimate, start and due date and
+  repetition set.
 - **Card templates.** Define ready-made cards per board, checklist included, create them from a
   lane's menu, or turn any existing card into a template from its editor.
 - **Time tracking.** Start a timer on a card (one per person, shown pulsing in the header while it

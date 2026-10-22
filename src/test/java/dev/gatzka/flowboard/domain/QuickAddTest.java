@@ -56,4 +56,15 @@ class QuickAddTest {
         assertThat(QuickAdd.date("someday", WEDNESDAY)).isNull();
         assertThat(QuickAdd.date("mo", WEDNESDAY)).as("too short to be a weekday").isNull();
     }
+
+    @Test
+    void startDatesAreParsedAndDroppedWhenAfterTheDueDate() {
+        LocalDate today = LocalDate.of(2026, 10, 22);
+        QuickAdd parsed = QuickAdd.parse("Plan the launch start:+1 due:+5", today);
+        assertThat(parsed.draft().title()).isEqualTo("Plan the launch");
+        assertThat(parsed.draft().startDate()).isEqualTo(today.plusDays(1));
+        assertThat(parsed.draft().dueDate()).isEqualTo(today.plusDays(5));
+        assertThat(QuickAdd.usesShorthand("x start:today")).isTrue();
+        assertThat(QuickAdd.parse("Odd start:+9 due:+2", today).draft().startDate()).isNull();
+    }
 }

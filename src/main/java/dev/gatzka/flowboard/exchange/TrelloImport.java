@@ -112,7 +112,7 @@ final class TrelloImport {
             String description = text(card, "desc");
             cardsByList.computeIfAbsent(text(card, "idList"), id -> new ArrayList<>()).add(new CardExport(
                     text(card, "name"), description == null || description.isBlank() ? null : description, priority,
-                    dueDate(text(card, "due")), assignee, tags, null, Recurrence.NONE,
+                    dueDate(text(card, "start")), dueDate(text(card, "due")), assignee, tags, null, Recurrence.NONE,
                     checklists.getOrDefault(cardId, List.of()), comments.getOrDefault(cardId, List.of())));
         }
         List<LaneExport> lanes = new ArrayList<>();

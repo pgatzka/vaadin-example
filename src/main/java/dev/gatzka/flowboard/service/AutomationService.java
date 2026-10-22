@@ -100,7 +100,7 @@ public class AutomationService {
             switch (rule.getAction()) {
                 case ASSIGN -> {
                     if (!argument.equalsIgnoreCase(draft.assignee())) {
-                        card.update(new CardDraft(draft.title(), draft.description(), draft.priority(), draft.dueDate(), argument, draft.tags(), draft.estimate()), now);
+                        card.update(draft.withAssignee(argument), now);
                         notifications.notify(argument, actor, "assigned \"%s\" to you".formatted(card.getTitle()), lane.getBoard().getId(), card.getId());
                         done.add("assigned to " + argument);
                     }
@@ -109,25 +109,25 @@ public class AutomationService {
                     if (draft.tags().stream().noneMatch(argument::equalsIgnoreCase)) {
                         Set<String> tags = new LinkedHashSet<>(draft.tags());
                         tags.add(argument);
-                        card.update(new CardDraft(draft.title(), draft.description(), draft.priority(), draft.dueDate(), draft.assignee(), tags, draft.estimate()), now);
+                        card.update(draft.withTags(tags), now);
                         done.add("tagged " + argument);
                     }
                 }
                 case SET_PRIORITY -> {
                     Priority priority = Priority.valueOf(argument);
                     if (draft.priority() != priority) {
-                        card.update(new CardDraft(draft.title(), draft.description(), priority, draft.dueDate(), draft.assignee(), draft.tags(), draft.estimate()), now);
+                        card.update(draft.withPriority(priority), now);
                         done.add("priority " + priority.label().toLowerCase(java.util.Locale.ROOT));
                     }
                 }
                 case DUE_IN_DAYS -> {
                     LocalDate due = today.plusDays(Integer.parseInt(argument));
-                    card.update(new CardDraft(draft.title(), draft.description(), draft.priority(), due, draft.assignee(), draft.tags(), draft.estimate()), now);
+                    card.update(draft.withDueDate(due), now);
                     done.add("due " + due);
                 }
                 case CLEAR_DUE -> {
                     if (draft.dueDate() != null) {
-                        card.update(new CardDraft(draft.title(), draft.description(), draft.priority(), null, draft.assignee(), draft.tags(), draft.estimate()), now);
+                        card.update(draft.withDueDate(null), now);
                         done.add("due date cleared");
                     }
                 }

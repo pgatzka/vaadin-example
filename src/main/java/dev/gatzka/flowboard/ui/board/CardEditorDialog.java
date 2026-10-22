@@ -49,6 +49,7 @@ final class CardEditorDialog extends Dialog {
     private final TextArea description = new TextArea();
     private final Markdown preview = new Markdown();
     private final Select<Priority> priority = new Select<>();
+    private final DatePicker startDate = new DatePicker("Start date");
     private final DatePicker dueDate = new DatePicker("Due date");
     private final IntegerField estimate = new IntegerField("Estimate");
     private final Select<Recurrence> recurrence = new Select<>();
@@ -228,6 +229,10 @@ final class CardEditorDialog extends Dialog {
         priority.setRenderer(new ComponentRenderer<>(CardEditorDialog::priorityOption));
 
         dueDate.setClearButtonVisible(true);
+        startDate.setClearButtonVisible(true);
+        startDate.setTooltipText("Optional; drawn as a bar on the timeline");
+        startDate.addValueChangeListener(event -> dueDate.setMin(event.getValue()));
+        dueDate.addValueChangeListener(event -> startDate.setMax(event.getValue()));
 
         estimate.setMin(0);
         estimate.setMax(CardDraft.MAX_ESTIMATE);
@@ -283,6 +288,10 @@ final class CardEditorDialog extends Dialog {
                 .bind("description");
         binder.forField(priority).asRequired("Pick a priority").bind("priority");
         binder.forField(dueDate).bind("dueDate");
+        binder.forField(startDate)
+                .withValidator(start -> start == null || dueDate.getValue() == null || !start.isAfter(dueDate.getValue()),
+                        "The start date cannot be after the due date")
+                .bind("startDate");
         binder.forField(estimate)
                 .withValidator(new IntegerRangeValidator("Between 0 and " + CardDraft.MAX_ESTIMATE + " points", 0, CardDraft.MAX_ESTIMATE))
                 .bind("estimate");
@@ -306,7 +315,7 @@ final class CardEditorDialog extends Dialog {
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("480px", 2));
         form.add(title, 2);
         form.add(descriptionSection, 2);
-        form.add(priority, dueDate, assignee, estimate);
+        form.add(priority, assignee, startDate, dueDate, estimate);
         form.add(tags, 2);
         form.add(recurrence, 2);
         return form;

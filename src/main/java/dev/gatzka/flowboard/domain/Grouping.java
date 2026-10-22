@@ -82,10 +82,8 @@ public enum Grouping {
     public CardDraft moveInto(CardDraft draft, String row) {
         return switch (this) {
             case NONE -> draft;
-            case ASSIGNEE -> new CardDraft(draft.title(), draft.description(), draft.priority(), draft.dueDate(),
-                    UNASSIGNED.equals(row) ? null : row, draft.tags(), draft.estimate());
-            case PRIORITY -> new CardDraft(draft.title(), draft.description(), priorityOf(row), draft.dueDate(),
-                    draft.assignee(), draft.tags(), draft.estimate());
+            case ASSIGNEE -> draft.withAssignee(UNASSIGNED.equals(row) ? null : row);
+            case PRIORITY -> draft.withPriority(priorityOf(row));
             case TAG -> {
                 Set<String> tags = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
                 if (draft.tags() != null) {
@@ -96,8 +94,7 @@ public enum Grouping {
                 } else {
                     tags.add(row);
                 }
-                yield new CardDraft(draft.title(), draft.description(), draft.priority(), draft.dueDate(),
-                        draft.assignee(), tags, draft.estimate());
+                yield draft.withTags(tags);
             }
         };
     }

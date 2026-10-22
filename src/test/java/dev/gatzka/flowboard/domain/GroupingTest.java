@@ -54,7 +54,7 @@ class GroupingTest {
     }
 
     private static CardSnapshot card(long id, String assignee, Priority priority, Set<String> tags) {
-        return new CardSnapshot(id, 10, "Card " + id, "", priority, null, assignee, tags, null, null, 0, Set.of(),
+        return new CardSnapshot(id, 10, "Card " + id, "", priority, null, null, assignee, tags, null, null, 0, Set.of(),
                 List.of(), List.of(), List.of(), List.of(), 0, NOW, null, NOW);
     }
 }

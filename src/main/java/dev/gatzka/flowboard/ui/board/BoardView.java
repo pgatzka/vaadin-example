@@ -88,6 +88,7 @@ import dev.gatzka.flowboard.ui.calendar.CalendarView;
 import dev.gatzka.flowboard.ui.digest.DigestView;
 import dev.gatzka.flowboard.ui.support.Celebration;
 import dev.gatzka.flowboard.ui.support.Toasts;
+import dev.gatzka.flowboard.ui.timeline.TimelineView;
 import dev.gatzka.flowboard.ui.walk.WalkView;
 import dev.gatzka.flowboard.ui.support.UiAccess;
 import dev.gatzka.flowboard.webhook.WebhookDispatcher;
@@ -193,13 +194,13 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
 
         @Override
         public void assignSelected(String assignee) {
-            changeSelected(draft -> new CardDraft(draft.title(), draft.description(), draft.priority(), draft.dueDate(), assignee, draft.tags(), draft.estimate()),
+            changeSelected(draft -> draft.withAssignee(assignee),
                     "assigned to " + assignee.strip());
         }
 
         @Override
         public void prioritiseSelected(Priority priority) {
-            changeSelected(draft -> new CardDraft(draft.title(), draft.description(), priority, draft.dueDate(), draft.assignee(), draft.tags(), draft.estimate()),
+            changeSelected(draft -> draft.withPriority(priority),
                     "set to " + priority.label().toLowerCase(java.util.Locale.ROOT));
         }
 
@@ -208,7 +209,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             changeSelected(draft -> {
                 Set<String> tags = new LinkedHashSet<>(draft.tags());
                 tags.add(tag.strip());
-                return new CardDraft(draft.title(), draft.description(), draft.priority(), draft.dueDate(), draft.assignee(), tags, draft.estimate());
+                return draft.withTags(tags);
             }, "tagged " + tag.strip());
         }
 
@@ -358,6 +359,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         SubMenu items = root.getSubMenu();
         items.addItem(entry(VaadinIcon.CALENDAR, "Calendar"), event -> getUI().ifPresent(ui -> ui.navigate(
                 CalendarView.class, new RouteParameters(BOARD_ID, Long.toString(board.id())))));
+        items.addItem(entry(VaadinIcon.TIMER, "Timeline"), event -> getUI().ifPresent(ui -> ui.navigate(
+                TimelineView.class, new RouteParameters(BOARD_ID, Long.toString(board.id()))))).setId("board-timeline");
         items.addItem(entry(VaadinIcon.NEWSPAPER, "Weekly digest"), event -> getUI().ifPresent(ui -> ui.navigate(
                 DigestView.class, new RouteParameters(BOARD_ID, Long.toString(board.id()))))).setId("board-digest");
         items.addItem(entry(VaadinIcon.ARCHIVE, "Archive"), event -> openArchive()).setId("board-archive");

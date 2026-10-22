@@ -15,6 +15,7 @@ public record CardSnapshot(
         String title,
         String description,
         Priority priority,
+        LocalDate startDate,
         LocalDate dueDate,
         String assignee,
         Set<String> tags,
@@ -55,6 +56,7 @@ public record CardSnapshot(
                 card.getTitle(),
                 card.getDescription(),
                 card.getPriority(),
+                card.getStartDate(),
                 card.getDueDate(),
                 card.getAssignee(),
                 Collections.unmodifiableSet(sortedTags),
@@ -150,6 +152,6 @@ public record CardSnapshot(
     }
 
     public CardDraft toDraft() {
-        return new CardDraft(title, description, priority, dueDate, assignee, tags, estimate);
+        return new CardDraft(title, description, priority, startDate, dueDate, assignee, tags, estimate);
     }
 }

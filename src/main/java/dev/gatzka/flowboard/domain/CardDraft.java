@@ -12,6 +12,7 @@ public record CardDraft(
         String title,
         String description,
         Priority priority,
+        LocalDate startDate,
         LocalDate dueDate,
         String assignee,
         Set<String> tags,
@@ -24,6 +25,7 @@ public record CardDraft(
         return new CardDraft(title, null, null, null, null, null, null);
     }
 
+    // Declared before the other constructor on purpose: Vaadin's Binder builds records through the first declared one.
     public CardDraft {
         title = Text.require(title, "Card title");
         description = Text.clean(description);
@@ -33,6 +35,36 @@ public record CardDraft(
         if (estimate != null && (estimate < 0 || estimate > MAX_ESTIMATE)) {
             throw new IllegalArgumentException("Estimate must be between 0 and " + MAX_ESTIMATE);
         }
+        if (startDate != null && dueDate != null && startDate.isAfter(dueDate)) {
+            throw new IllegalArgumentException("The start date cannot be after the due date");
+        }
+    }
+
+    /** A draft without a start date. */
+    public CardDraft(String title, String description, Priority priority, LocalDate dueDate, String assignee, Set<String> tags,
+            Integer estimate) {
+        this(title, description, priority, null, dueDate, assignee, tags, estimate);
+    }
+
+    public CardDraft withAssignee(String assignee) {
+        return new CardDraft(title, description, priority, startDate, dueDate, assignee, tags, estimate);
+    }
+
+    public CardDraft withPriority(Priority priority) {
+        return new CardDraft(title, description, priority, startDate, dueDate, assignee, tags, estimate);
+    }
+
+    public CardDraft withTags(Set<String> tags) {
+        return new CardDraft(title, description, priority, startDate, dueDate, assignee, tags, estimate);
+    }
+
+    public CardDraft withDueDate(LocalDate dueDate) {
+        return new CardDraft(title, description, priority, startDate, dueDate, assignee, tags, estimate);
+    }
+
+    /** Both dates at once, e.g. when a bar on the timeline is dragged. */
+    public CardDraft withDates(LocalDate startDate, LocalDate dueDate) {
+        return new CardDraft(title, description, priority, startDate, dueDate, assignee, tags, estimate);
     }
 
     private static Set<String> normaliseTags(Set<String> tags) {

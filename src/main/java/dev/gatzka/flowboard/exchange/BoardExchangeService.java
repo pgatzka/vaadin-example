@@ -208,6 +208,7 @@ public class BoardExchangeService {
                 card.getTitle(),
                 card.getDescription(),
                 card.getPriority(),
+                card.getStartDate(),
                 card.getDueDate(),
                 card.getAssignee(),
                 card.getTags().stream().collect(Collectors.toCollection(java.util.TreeSet::new)),
@@ -218,6 +219,7 @@ public class BoardExchangeService {
     }
 
     private static CardDraft draft(CardExport card) {
-        return new CardDraft(card.title(), card.description(), card.priority(), card.dueDate(), card.assignee(), card.tags(), card.estimate());
+        return new CardDraft(card.title(), card.description(), card.priority(), card.startDate(), card.dueDate(), card.assignee(),
+                card.tags(), card.estimate());
     }
 }

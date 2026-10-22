@@ -81,25 +81,25 @@ class SampleDataInitializer implements ApplicationRunner {
         long review = lane(board, 2);
         long done = lane(board, 3);
 
-        CardSnapshot guide = card(backlog, "Write the onboarding guide", """
+        CardSnapshot guide = cardSpanning(backlog, "Write the onboarding guide", """
                 A short guide for first-time users.
 
                 - How to create a board
                 - Lanes, WIP limits and what *done* means
                 - Keyboard shortcuts
-                """, Priority.MEDIUM, today.plusDays(10), "Mara", "docs");
+                """, Priority.MEDIUM, today.plusDays(4), today.plusDays(10), "Mara", "docs");
         CardSnapshot export = card(backlog, "Export a board as JSON", null, Priority.LOW, null, null, "feature");
         card(backlog, "Polish dark mode contrast", "Check badges and lane headers against WCAG AA.",
                 Priority.LOW, null, "Priya", "design");
 
-        CardSnapshot sync = card(inProgress, "Real-time sync via server push", """
+        CardSnapshot sync = cardSpanning(inProgress, "Real-time sync via server push", """
                 Every mutation goes through `BoardService`, which records an activity entry and
                 publishes a `BoardChangedEvent` **after commit**. Open browsers subscribe through
                 `BoardChangeBroadcaster` and reload the snapshot.
-                """, Priority.HIGH, today.plusDays(3), "Jonas", "backend", "feature");
-        CardSnapshot dragAndDrop = card(inProgress, "Drag & drop between lanes",
+                """, Priority.HIGH, today.minusDays(4), today.plusDays(3), "Jonas", "backend", "feature");
+        CardSnapshot dragAndDrop = cardSpanning(inProgress, "Drag & drop between lanes",
                 "Dropping on a card inserts before it, dropping on empty space appends.",
-                Priority.HIGH, today.plusDays(1), "Mara", "ui", "feature");
+                Priority.HIGH, today.minusDays(2), today.plusDays(1), "Mara", "ui", "feature");
         checklist(dragAndDrop, "Cards are drag sources", true);
         checklist(dragAndDrop, "Lanes accept drops", true);
         checklist(dragAndDrop, "Keyboard alternative", false);
@@ -131,6 +131,12 @@ class SampleDataInitializer implements ApplicationRunner {
     private static long lane(BoardSnapshot board, int index) {
         LaneSnapshot lane = board.lanes().get(index);
         return lane.id();
+    }
+
+    private CardSnapshot cardSpanning(long laneId, String title, String description, Priority priority, LocalDate start, LocalDate due,
+            String assignee, String... tags) {
+        Integer estimate = ESTIMATES.get(title);
+        return boardService.createCard(laneId, new CardDraft(title, description, priority, start, due, assignee, Set.of(tags), estimate), ACTOR);
     }
 
     private CardSnapshot card(long laneId, String title, String description, Priority priority, LocalDate due,

@@ -55,6 +55,9 @@ public class Card {
 
     private LocalDate dueDate;
 
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
     @Column(length = 60)
     private String assignee;
 
@@ -135,6 +138,7 @@ public class Card {
         this.title = draft.title();
         this.description = draft.description();
         this.priority = draft.priority();
+        this.startDate = draft.startDate();
         this.dueDate = draft.dueDate();
         this.assignee = draft.assignee();
         this.estimate = draft.estimate();
@@ -170,7 +174,7 @@ public class Card {
 
     /** The fields a user edits, e.g. to create the next occurrence of a recurring card. */
     public CardDraft toDraft() {
-        return new CardDraft(title, description, priority, dueDate, assignee, getTags(), estimate);
+        return new CardDraft(title, description, priority, startDate, dueDate, assignee, getTags(), estimate);
     }
 
     public void markCompletion(boolean done, Instant now) {
@@ -329,6 +333,10 @@ public class Card {
 
     public LocalDate getDueDate() {
         return dueDate;
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
     }
 
     public String getAssignee() {
