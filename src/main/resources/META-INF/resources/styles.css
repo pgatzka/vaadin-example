@@ -1703,6 +1703,61 @@ html {
   background: var(--lumo-success-color);
 }
 
+.insights__forecast-tile[data-confidence="50"] .insights__tile-value {
+  color: var(--lumo-success-text-color);
+}
+
+.insights__forecast-tile[data-confidence="85"] .insights__tile-value {
+  color: var(--lumo-primary-text-color);
+}
+
+.insights__forecast-tile[data-confidence="95"] .insights__tile-value {
+  color: var(--lumo-secondary-text-color);
+}
+
+.insights__forecast-chart {
+  margin-top: var(--lumo-space-s);
+}
+
+.insights__forecast-chart .insights__column-fill {
+  background: var(--lumo-contrast-30pct);
+}
+
+.insights__forecast-chart .insights__column[data-confidence] .insights__column-fill {
+  background: var(--lumo-primary-color);
+  min-height: 4px;
+}
+
+.insights__forecast-chart .insights__column[data-confidence="50"] .insights__column-fill {
+  background: var(--lumo-success-color);
+}
+
+.insights__forecast-chart .insights__column[data-confidence="95"] .insights__column-fill {
+  background: var(--lumo-contrast-60pct);
+}
+
+.insights__forecast-basis {
+  margin-top: var(--lumo-space-xs);
+}
+
+.insights__forecast-target {
+  font-size: var(--lumo-font-size-s);
+  font-weight: 600;
+  padding: var(--lumo-space-xs) var(--lumo-space-s);
+  border-radius: var(--lumo-border-radius-m);
+  background: var(--lumo-contrast-5pct);
+}
+
+.insights__forecast-target[data-state="ok"] {
+  color: var(--lumo-success-text-color);
+  background: var(--lumo-success-color-10pct);
+}
+
+.insights__forecast-target[data-state="warn"] {
+  color: var(--lumo-error-text-color);
+  background: var(--lumo-error-color-10pct);
+}
+
 .insights__axis {
   display: flex;
   justify-content: space-between;

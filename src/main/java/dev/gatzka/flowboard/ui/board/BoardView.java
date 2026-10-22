@@ -686,7 +686,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     private void showInsights() {
-        insightsDialog.show(insightsService.forBoard(board.id()), flowSnapshots.cumulativeFlow(board.id()), insightsService.pulse(board.id()));
+        insightsDialog.show(insightsService.forBoard(board.id()), flowSnapshots.cumulativeFlow(board.id()), insightsService.pulse(board.id()),
+                insightsService.forecast(board.id()));
     }
 
     private void openArchive() {

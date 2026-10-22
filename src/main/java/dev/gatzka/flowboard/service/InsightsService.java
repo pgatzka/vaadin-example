@@ -7,6 +7,7 @@ import dev.gatzka.flowboard.domain.BoardInsights.AssigneeLoad;
 import dev.gatzka.flowboard.domain.BoardInsights.DailyCount;
 import dev.gatzka.flowboard.domain.BoardInsights.LaneLoad;
 import dev.gatzka.flowboard.domain.Card;
+import dev.gatzka.flowboard.domain.Forecast;
 import dev.gatzka.flowboard.domain.Lane;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.repository.ActivityRepository;
@@ -17,12 +18,15 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
 import org.springframework.stereotype.Service;
@@ -74,6 +78,25 @@ public class InsightsService {
                 .limit(8)
                 .toList();
         return new ActivityPulse(days, contributors);
+    }
+
+    /** When the open cards will be done, simulated from the board's completions of the last {@value Forecast#HISTORY_DAYS} days. */
+    public Forecast forecast(long boardId) {
+        ZoneId zone = clock.getZone();
+        LocalDate today = LocalDate.now(clock);
+        LocalDate firstDay = today.minusDays(Forecast.HISTORY_DAYS - 1L);
+        int[] perDay = new int[Forecast.HISTORY_DAYS];
+        for (Card card : cards.findAllByLaneBoardIdAndCompletedAtGreaterThanEqual(boardId, firstDay.atStartOfDay(zone).toInstant())) {
+            int index = (int) ChronoUnit.DAYS.between(firstDay, LocalDate.ofInstant(card.getCompletedAt(), zone));
+            if (index >= 0 && index < perDay.length) {
+                perDay[index]++;
+            }
+        }
+        List<Card> open = cards.findAllByLaneBoardIdAndArchivedAtIsNullOrderByPositionAsc(boardId).stream()
+                .filter(card -> !card.getLane().isDone())
+                .toList();
+        LocalDate target = open.stream().map(Card::getDueDate).filter(Objects::nonNull).max(Comparator.naturalOrder()).orElse(null);
+        return Forecast.of(open.size(), Arrays.stream(perDay).boxed().toList(), today, target, boardId);
     }
 
     public BoardInsights forBoard(long boardId) {

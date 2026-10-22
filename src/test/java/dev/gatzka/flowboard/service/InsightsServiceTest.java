@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import dev.gatzka.flowboard.domain.ActivityPulse;
 import dev.gatzka.flowboard.domain.BoardDraft;
 import dev.gatzka.flowboard.domain.BoardInsights;
+import dev.gatzka.flowboard.domain.Forecast;
 import dev.gatzka.flowboard.domain.BoardInsights.AssigneeLoad;
 import dev.gatzka.flowboard.domain.BoardInsights.LaneLoad;
 import dev.gatzka.flowboard.domain.BoardSnapshot;
@@ -14,6 +15,7 @@ import dev.gatzka.flowboard.domain.LaneDraft;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.repository.CardRepository;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -111,6 +113,32 @@ class InsightsServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> new CardDraft("x", null, null, null, null, null, 1000))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void forecastLearnsFromCompletionsIncludingArchivedOnes() {
+        assertThat(insightsService.forecast(board.id()).reason()).contains(Forecast.Reason.NOTHING_OPEN);
+        card(backlog, "open one", Priority.MEDIUM, LocalDate.now().plusDays(3), null);
+        card(backlog, "open two", Priority.MEDIUM, LocalDate.now().plusDays(10), null);
+        assertThat(insightsService.forecast(board.id()).reason()).contains(Forecast.Reason.TOO_LITTLE_HISTORY);
+
+        for (String title : List.of("done a", "done b", "done c", "done d")) {
+            CardSnapshot finished = card(inProgress, title, Priority.LOW, null, null);
+            boardService.moveCard(finished.id(), done, 0, ACTOR);
+        }
+        long archived = boardService.findBoard(board.id()).orElseThrow().lane(done).orElseThrow().cards().getFirst().id();
+        boardService.archiveCard(archived, ACTOR);
+
+        Forecast forecast = insightsService.forecast(board.id());
+
+        assertThat(forecast.remaining()).isEqualTo(2);
+        assertThat(forecast.completions()).as("archived cards still count as delivered").isEqualTo(4);
+        assertThat(forecast.throughput()).hasSize(Forecast.HISTORY_DAYS);
+        assertThat(forecast.throughput().getLast()).isEqualTo(4);
+        assertThat(forecast.target()).isEqualTo(LocalDate.now().plusDays(10));
+        assertThat(forecast.hasForecast()).isTrue();
+        assertThat(forecast.outcome(50).days()).isGreaterThanOrEqualTo(1);
+        assertThat(forecast).isEqualTo(insightsService.forecast(board.id()));
     }
 
     @Test

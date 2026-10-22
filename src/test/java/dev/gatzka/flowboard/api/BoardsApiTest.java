@@ -212,6 +212,12 @@ class BoardsApiTest {
         assertThat(send("DELETE", "/api/templates/" + templateId, null).statusCode()).isEqualTo(204);
         assertThat(send("GET", "/api/boards/999999/templates", null).statusCode()).isEqualTo(404);
         assertThat(send("GET", "/api/boards/999999/digest", null).statusCode()).isEqualTo(404);
+
+        JsonNode forecast = json.readTree(send("GET", "/api/boards/" + board.id() + "/forecast", null).body());
+        assertThat(forecast.get("remaining").asInt()).isEqualTo(1);
+        assertThat(forecast.get("throughput").size()).isEqualTo(60);
+        assertThat(forecast.get("outcomes").size()).as("one completion is too little history").isZero();
+        assertThat(send("GET", "/api/boards/999999/forecast", null).statusCode()).isEqualTo(404);
     }
 
     @Test

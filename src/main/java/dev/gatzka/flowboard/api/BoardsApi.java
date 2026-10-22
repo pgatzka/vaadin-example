@@ -7,6 +7,7 @@ import dev.gatzka.flowboard.domain.ActivityEntry;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.CardTemplateDraft;
 import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
+import dev.gatzka.flowboard.domain.Forecast;
 import dev.gatzka.flowboard.domain.WeeklyDigest;
 import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.exchange.BoardExport;
@@ -18,6 +19,7 @@ import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.CardTemplateService;
 import dev.gatzka.flowboard.service.DigestService;
+import dev.gatzka.flowboard.service.InsightsService;
 import dev.gatzka.flowboard.service.TimeService;
 import dev.gatzka.flowboard.service.NotFoundException;
 import dev.gatzka.flowboard.service.SharingService;
@@ -52,6 +54,7 @@ public class BoardsApi {
     private final BoardExchangeService exchange;
     private final AccountService accounts;
     private final DigestService digests;
+    private final InsightsService insights;
     private final TimeService time;
     private final CardTemplateService templates;
     private final ActivityLog activityLog;
@@ -60,9 +63,10 @@ public class BoardsApi {
     private final Clock clock;
 
     BoardsApi(BoardService boardService, BoardExchangeService exchange, AccountService accounts, DigestService digests,
-            TimeService time, CardTemplateService templates, ActivityLog activityLog, AccessService access, SharingService sharing,
-            Clock clock) {
+            InsightsService insights, TimeService time, CardTemplateService templates, ActivityLog activityLog, AccessService access,
+            SharingService sharing, Clock clock) {
         this.access = access;
+        this.insights = insights;
         this.sharing = sharing;
         this.boardService = boardService;
         this.exchange = exchange;
@@ -152,6 +156,13 @@ public class BoardsApi {
     public WeeklyDigest digest(@PathVariable long boardId, @RequestParam(required = false) LocalDate week, Principal caller) {
         requireAccess(boardId, caller);
         return digests.weekly(boardId, week == null ? LocalDate.now(clock) : week);
+    }
+
+    /** When the open cards will be done: the Monte Carlo forecast with its dates, spread and inputs. */
+    @GetMapping("/boards/{boardId}/forecast")
+    public Forecast forecast(@PathVariable long boardId, Principal caller) {
+        requireAccess(boardId, caller);
+        return insights.forecast(boardId);
     }
 
     /** The same digest as Markdown, ready to paste into a chat. */

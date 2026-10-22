@@ -27,6 +27,15 @@ public interface CardRepository extends JpaRepository<Card, Long> {
 
     long countByLaneBoardIdAndArchivedAtIsNull(long boardId);
 
+    /** Cards completed since {@code since}, archived ones included: they were still delivered. */
+    List<Card> findAllByLaneBoardIdAndCompletedAtGreaterThanEqual(long boardId, java.time.Instant since);
+
+    /** Rewrites the lifecycle timestamps of a card, for seeding history that did not really happen now. */
+    @Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("update Card c set c.createdAt = :created, c.laneEnteredAt = :completed, c.completedAt = :completed, c.updatedAt = :completed where c.id = :id")
+    void backdate(long id, java.time.Instant created, java.time.Instant completed);
+
     long countByLaneBoardIdAndArchivedAtIsNotNull(long boardId);
 
     long countByLaneBoardIdAndLaneDoneFalseAndArchivedAtIsNullAndDueDateBefore(long boardId, LocalDate date);

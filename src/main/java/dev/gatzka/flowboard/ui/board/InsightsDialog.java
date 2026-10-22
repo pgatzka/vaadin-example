@@ -22,6 +22,7 @@ import dev.gatzka.flowboard.domain.BoardInsights.AssigneeLoad;
 import dev.gatzka.flowboard.domain.BoardInsights.DailyCount;
 import dev.gatzka.flowboard.domain.BoardInsights.LaneLoad;
 import dev.gatzka.flowboard.domain.CumulativeFlow;
+import dev.gatzka.flowboard.domain.Forecast;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.ui.support.Durations;
@@ -54,9 +55,78 @@ final class InsightsDialog extends Dialog {
         add(content);
     }
 
-    void show(BoardInsights insights, CumulativeFlow flow, ActivityPulse pulse) {
+    void show(BoardInsights insights, CumulativeFlow flow, ActivityPulse pulse, Forecast forecast) {
         content.removeAll();
-        content.add(tiles(insights), lanes(insights), flowSection(flow), completions(insights), people(insights), pulseSection(pulse));
+        content.add(tiles(insights), forecastSection(forecast), lanes(insights), flowSection(flow), completions(insights), people(insights),
+                pulseSection(pulse));
+    }
+
+    /** The Monte Carlo forecast: three dates with a confidence each, the spread behind them, and what it was fed. */
+    private static Component forecastSection(Forecast forecast) {
+        Div section = section(I18n.t("forecast.title"));
+        section.addClassName("insights__forecast");
+        if (!forecast.hasForecast()) {
+            Span hint = new Span(I18n.t(forecast.reason().orElseThrow() == Forecast.Reason.NOTHING_OPEN ? "forecast.nothingOpen" : "forecast.tooLittle",
+                    Forecast.MIN_COMPLETIONS, Forecast.HISTORY_DAYS, forecast.completions()));
+            hint.addClassName("insights__hint");
+            section.add(hint);
+            return section;
+        }
+        DateTimeFormatter day = I18n.formatter("EEE, MMM d");
+        Div tiles = new Div();
+        tiles.addClassName("insights__tiles");
+        tiles.addClassName("insights__tiles--compact");
+        for (Forecast.Outcome outcome : forecast.outcomes()) {
+            Tile tile = tile(I18n.t("forecast.confidence", outcome.confidence()), day.format(outcome.date()), I18n.t("forecast.inDays", outcome.days()));
+            tile.addClassName("insights__forecast-tile");
+            tile.getElement().setAttribute("data-confidence", Integer.toString(outcome.confidence()));
+            tiles.add(tile);
+        }
+        section.add(tiles, histogram(forecast, day));
+        Span basis = new Span(I18n.t("forecast.basis", forecast.remaining(), forecast.completions(), Forecast.HISTORY_DAYS, formatVelocity(forecast.perWeek())));
+        basis.addClassName("insights__hint");
+        basis.addClassName("insights__forecast-basis");
+        section.add(basis);
+        forecast.targetChance().ifPresent(chance -> {
+            long percent = Math.round(chance * 100);
+            Span target = new Span(I18n.t("forecast.target", day.format(forecast.target()), percent));
+            target.addClassName("insights__forecast-target");
+            target.getElement().setAttribute("data-state", percent >= 85 ? "ok" : percent >= 50 ? "maybe" : "warn");
+            section.add(target);
+        });
+        return section;
+    }
+
+    /** One column per finishing day up to the 95% date; the columns at the three confidence dates are marked. */
+    private static Component histogram(Forecast forecast, DateTimeFormatter day) {
+        Div chart = new Div();
+        chart.addClassName("insights__chart");
+        chart.addClassName("insights__forecast-chart");
+        int peak = Math.max(1, forecast.peak());
+        int cutoff = forecast.outcome(95).days();
+        java.util.Map<Integer, Integer> marks = new java.util.HashMap<>();
+        forecast.outcomes().forEach(outcome -> marks.putIfAbsent(outcome.days(), outcome.confidence()));
+        for (Forecast.Bucket bucket : forecast.distribution()) {
+            if (bucket.days() > cutoff) {
+                break;
+            }
+            Div column = new Div();
+            column.addClassName("insights__column");
+            Div fill = new Div();
+            fill.addClassName("insights__column-fill");
+            fill.getStyle().set("height", (bucket.trials() * 100.0 / peak) + "%");
+            column.add(fill);
+            column.getElement().setAttribute("title", I18n.t("forecast.columnTitle", day.format(bucket.date()), Math.round(bucket.trials() * 100.0 / Forecast.TRIALS),
+                    Math.round(forecast.chanceBy(bucket.date()) * 100)));
+            Integer confidence = marks.get(bucket.days());
+            if (confidence != null) {
+                column.getElement().setAttribute("data-confidence", Integer.toString(confidence));
+            }
+            chart.add(column);
+        }
+        Div axis = new Div(new Span(day.format(forecast.distribution().getFirst().date())), new Span(day.format(forecast.outcome(95).date())));
+        axis.addClassName("insights__axis");
+        return new Div(chart, axis);
     }
 
     private Component pulseSection(ActivityPulse pulse) {

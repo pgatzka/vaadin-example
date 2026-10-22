@@ -497,6 +497,8 @@ class BoardViewTest extends FlowboardUiTest {
                 .extracting(span -> span.getText()).startsWith("1", "0");
         assertThat($(com.vaadin.flow.component.Svg.class, dialog).all()).as("the activity heatmap").isNotEmpty();
         assertThat($(Div.class, dialog).withClassName("insights__bar--person").all()).isNotEmpty();
+        Div forecast = $(Div.class, dialog).withClassName("insights__forecast").single();
+        assertThat($(Span.class, forecast).withClassName("insights__hint").single().getText()).startsWith("The forecast needs at least 3 cards");
     }
 
     @Test

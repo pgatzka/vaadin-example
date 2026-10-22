@@ -22,8 +22,13 @@ import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.CommentService;
 import dev.gatzka.flowboard.service.DependencyService;
+import dev.gatzka.flowboard.repository.CardRepository;
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +54,28 @@ class SampleDataInitializer implements ApplicationRunner {
             "Project skeleton on Spring Boot 4 and Vaadin 25", 2,
             "H2 persistence with Spring Data JPA", 3);
 
+    /** Cards finished before the demo started, with how many days ago each was done: the pace the forecast learns from. */
+    private static final Map<String, Integer> FINISHED_EARLIER = new LinkedHashMap<>();
+
+    static {
+        FINISHED_EARLIER.put("Pick a name and a domain", 41);
+        FINISHED_EARLIER.put("Choose a license", 38);
+        FINISHED_EARLIER.put("Repository, CI and branch rules", 34);
+        FINISHED_EARLIER.put("Logo and favicon", 33);
+        FINISHED_EARLIER.put("Lumo theme tokens", 29);
+        FINISHED_EARLIER.put("Flyway baseline migration", 27);
+        FINISHED_EARLIER.put("Docker image", 23);
+        FINISHED_EARLIER.put("Health endpoint", 23);
+        FINISHED_EARLIER.put("Login page", 19);
+        FINISHED_EARLIER.put("Password hashing", 16);
+        FINISHED_EARLIER.put("Board list page", 13);
+        FINISHED_EARLIER.put("Card entity and lanes", 12);
+        FINISHED_EARLIER.put("Error page", 9);
+        FINISHED_EARLIER.put("Keyboard shortcuts help", 5);
+    }
+
     private final BoardRepository boards;
+    private final CardRepository cards;
     private final BoardService boardService;
     private final ChecklistService checklistService;
     private final CommentService commentService;
@@ -58,10 +84,11 @@ class SampleDataInitializer implements ApplicationRunner {
     private final AccountService accounts;
     private final Clock clock;
 
-    SampleDataInitializer(BoardRepository boards, BoardService boardService, ChecklistService checklistService,
+    SampleDataInitializer(BoardRepository boards, CardRepository cards, BoardService boardService, ChecklistService checklistService,
             CommentService commentService, DependencyService dependencies, AttachmentService attachments, AccountService accounts,
             Clock clock) {
         this.boards = boards;
+        this.cards = cards;
         this.attachments = attachments;
         this.accounts = accounts;
         this.boardService = boardService;
@@ -124,6 +151,15 @@ class SampleDataInitializer implements ApplicationRunner {
 
         CardSnapshot skeleton = card(done, "Project skeleton on Spring Boot 4 and Vaadin 25", null, Priority.HIGH, today.minusDays(6), "Priya", "infra");
         CardSnapshot persistence = card(done, "H2 persistence with Spring Data JPA", null, Priority.MEDIUM, null, "Jonas", "backend");
+        finishedDaysAgo(skeleton, 6, 9);
+        finishedDaysAgo(persistence, 3, 5);
+        String[] people = {"Priya", "Jonas", "Mara"};
+        int i = 0;
+        for (Map.Entry<String, Integer> earlier : FINISHED_EARLIER.entrySet()) {
+            CardSnapshot finished = card(done, earlier.getKey(), null, Priority.MEDIUM, null, people[i++ % people.length]);
+            boardService.archiveCard(finished.id(), ACTOR);
+            finishedDaysAgo(finished, earlier.getValue(), 2 + i % 6);
+        }
 
         dependencies.addBlocker(sync.id(), persistence.id(), ACTOR);
         dependencies.addBlocker(dragAndDrop.id(), skeleton.id(), ACTOR);
@@ -139,6 +175,12 @@ class SampleDataInitializer implements ApplicationRunner {
                 Priority.MEDIUM, today.plusDays(7), null, "decision");
         card(lane(board, 1), "Order the tiles", null, Priority.URGENT, today, "Mara", "order");
         card(lane(board, 3), "Measure the room", null, Priority.HIGH, null, "Mara");
+    }
+
+    /** Pretends the card was created {@code cycleDays} before it was completed, {@code daysAgo} days back. */
+    private void finishedDaysAgo(CardSnapshot card, int daysAgo, int cycleDays) {
+        Instant completed = LocalDate.now(clock).minusDays(daysAgo).atTime(15, 0).atZone(clock.getZone()).toInstant();
+        cards.backdate(card.id(), completed.minus(Duration.ofDays(cycleDays)), completed);
     }
 
     /** A small generated gradient, so the demo has a cover image without shipping a binary. */
