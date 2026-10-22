@@ -11,6 +11,7 @@ import dev.gatzka.flowboard.domain.WeeklyDigest;
 import dev.gatzka.flowboard.exchange.BoardExchangeService;
 import dev.gatzka.flowboard.exchange.BoardExport;
 import dev.gatzka.flowboard.exchange.CalendarFeed;
+import tools.jackson.databind.JsonNode;
 import dev.gatzka.flowboard.security.AccountService;
 import dev.gatzka.flowboard.service.AccessService;
 import dev.gatzka.flowboard.service.ActivityLog;
@@ -95,6 +96,12 @@ public class BoardsApi {
         BoardSnapshot created = exchange.importBoard(exchange.validate(export), actor(caller));
         return ResponseEntity.created(URI.create("/api/boards/" + created.id())).body(created);
     }
+    @PostMapping(path = "/boards/import/trello", consumes = "application/json")
+    public ResponseEntity<BoardSnapshot> importTrello(@RequestBody JsonNode trello, Principal caller) {
+        BoardSnapshot created = exchange.importBoard(exchange.fromTrello(trello), actor(caller));
+        return ResponseEntity.created(URI.create("/api/boards/" + created.id())).body(created);
+    }
+
 
     @DeleteMapping("/boards/{boardId}")
     public ResponseEntity<Void> deleteBoard(@PathVariable long boardId, Principal caller) {

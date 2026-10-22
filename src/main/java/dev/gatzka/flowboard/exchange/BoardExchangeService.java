@@ -45,6 +45,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Turns boards into portable JSON and back. */
@@ -110,13 +111,29 @@ public class BoardExchangeService {
         return json.writerWithDefaultPrettyPrinter().writeValueAsString(export).getBytes(StandardCharsets.UTF_8);
     }
 
-    /** @throws InvalidBoardFileException when the bytes are not a board file this version understands */
+    /**
+     * Reads a Flowboard export, or a Trello board export which is converted on the fly.
+     *
+     * @throws InvalidBoardFileException when the bytes are not a board file this version understands
+     */
     public BoardExport parse(byte[] bytes) {
         try {
-            return validate(json.readValue(bytes, BoardExport.class));
+            JsonNode root = json.readTree(bytes);
+            if (TrelloImport.looksLikeTrello(root)) {
+                return validate(TrelloImport.convert(root));
+            }
+            return validate(json.treeToValue(root, BoardExport.class));
         } catch (JacksonException malformed) {
             throw new InvalidBoardFileException("The file is not valid JSON", malformed);
         }
+    }
+
+    /** Converts a Trello board export into the Flowboard shape without importing it. */
+    public BoardExport fromTrello(JsonNode trello) {
+        if (!TrelloImport.looksLikeTrello(trello)) {
+            throw new InvalidBoardFileException("This is not a Trello board export");
+        }
+        return validate(TrelloImport.convert(trello));
     }
 
     /**

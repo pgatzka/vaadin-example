@@ -132,6 +132,24 @@ class BoardsApiTest {
     }
 
     @Test
+    void importsTrelloExports() throws Exception {
+        String trello;
+        try (var in = getClass().getResourceAsStream("/trello-board.json")) {
+            trello = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        HttpResponse<String> created = send("POST", "/api/boards/import/trello", trello);
+
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        JsonNode snapshot = json.readTree(created.body());
+        assertThat(snapshot.get("name").asString()).isEqualTo("Website relaunch");
+        assertThat(snapshot.get("lanes").size()).isEqualTo(3);
+        assertThat(snapshot.get("lanes").get(0).get("cards").get(0).get("title").asString()).isEqualTo("Fix the header");
+        assertThat(send("POST", "/api/boards/import/trello", "{\"name\": \"not trello\"}").statusCode()).isEqualTo(400);
+        assertThat(send("DELETE", "/api/boards/" + snapshot.get("id").asLong(), null).statusCode()).isEqualTo(204);
+    }
+
+    @Test
     void servesDigestsTimeAndTemplates() throws Exception {
         long backlog = board.lanes().get(0).id();
         HttpResponse<String> template = send("POST", "/api/boards/" + board.id() + "/templates",

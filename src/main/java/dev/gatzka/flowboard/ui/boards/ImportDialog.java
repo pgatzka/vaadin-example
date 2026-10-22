@@ -34,12 +34,13 @@ final class ImportDialog extends Dialog {
         }));
         upload.setMaxFiles(1);
         upload.setAcceptedFileTypes("application/json", ".json");
-        upload.setDropLabel(new Span("Drop a .flowboard.json file here"));
+        upload.setDropLabel(new Span("Drop a Flowboard or Trello .json file here"));
 
         error.addClassName("danger");
         error.setVisible(false);
 
-        add(new Paragraph("Pick a file exported from Flowboard. A new board is created; nothing existing is changed."),
+        add(new Paragraph("Pick a file exported from Flowboard, or a board exported from Trello (Menu → Print and export → "
+                + "Export as JSON). A new board is created; nothing existing is changed."),
                 upload, error);
         getFooter().add(new Button("Cancel", event -> close()));
     }

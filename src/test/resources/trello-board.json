@@ -1,0 +1,44 @@
+{
+  "id": "b1",
+  "name": "Website relaunch",
+  "desc": "Everything for the new site.",
+  "closed": false,
+  "labels": [
+    {"id": "lb-bug", "name": "bug", "color": "red"},
+    {"id": "lb-high", "name": "High", "color": "orange"},
+    {"id": "lb-blank", "name": "", "color": "green"}
+  ],
+  "members": [
+    {"id": "m-mara", "fullName": "Mara K.", "username": "mara"},
+    {"id": "m-jonas", "fullName": "", "username": "jonas"}
+  ],
+  "lists": [
+    {"id": "l-done", "name": "Done ✓", "closed": false, "pos": 300},
+    {"id": "l-todo", "name": "To Do", "closed": false, "pos": 100},
+    {"id": "l-old", "name": "Old stuff", "closed": true, "pos": 50},
+    {"id": "l-doing", "name": "Doing", "closed": false, "pos": 200}
+  ],
+  "cards": [
+    {"id": "c2", "name": "Write copy", "desc": "", "closed": false, "idList": "l-todo", "pos": 200,
+     "due": "2026-11-03T12:00:00.000Z", "idLabels": ["lb-blank"], "idMembers": ["m-jonas"], "idChecklists": []},
+    {"id": "c1", "name": "Fix the header", "desc": "It wraps on tablets.", "closed": false, "idList": "l-todo", "pos": 100,
+     "due": null, "idLabels": ["lb-bug", "lb-high"], "idMembers": ["m-mara", "m-jonas"], "idChecklists": ["ck1"]},
+    {"id": "c3", "name": "Archived card", "desc": "", "closed": true, "idList": "l-todo", "pos": 300, "idLabels": [], "idMembers": []},
+    {"id": "c4", "name": "In the closed list", "desc": "", "closed": false, "idList": "l-old", "pos": 1, "idLabels": [], "idMembers": []},
+    {"id": "c5", "name": "Launched", "desc": "", "closed": false, "idList": "l-done", "pos": 1, "idLabels": [], "idMembers": [],
+     "labels": [{"id": "x", "name": "launch", "color": "blue"}]}
+  ],
+  "checklists": [
+    {"id": "ck1", "name": "Steps", "idCard": "c1", "pos": 1, "checkItems": [
+      {"id": "i2", "name": "Test on iPad", "state": "incomplete", "pos": 2},
+      {"id": "i1", "name": "Reproduce", "state": "complete", "pos": 1}
+    ]}
+  ],
+  "actions": [
+    {"id": "a2", "type": "commentCard", "date": "2026-10-02T09:00:00.000Z", "memberCreator": {"fullName": "Mara K."},
+     "data": {"text": "Second comment", "card": {"id": "c1"}}},
+    {"id": "a1", "type": "commentCard", "date": "2026-10-01T09:00:00.000Z", "memberCreator": {"fullName": "Jonas"},
+     "data": {"text": "First comment", "card": {"id": "c1"}}},
+    {"id": "a3", "type": "updateCard", "date": "2026-10-03T09:00:00.000Z", "data": {"card": {"id": "c1"}}}
+  ]
+}

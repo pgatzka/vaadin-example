@@ -1,6 +1,7 @@
 package dev.gatzka.flowboard.exchange;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.gatzka.flowboard.domain.BoardDraft;
@@ -132,6 +133,25 @@ class BoardExchangeServiceTest {
         assertThat(viewService.forBoard(imported.id()).getFirst().filter()).isEqualTo(CardFilter.none().withPriority(Priority.HIGH).withTag("ui"));
         assertThat(automationService.rulesFor(imported.lanes().get(2).id())).extracting(r -> r.describe()).containsExactly("Assign to Priya");
         assertThat(automationService.rulesFor(imported.lanes().get(0).id())).isEmpty();
+    }
+
+    @Test
+    void importsTrelloExportsAsNewBoards() throws java.io.IOException {
+        byte[] bytes;
+        try (var in = getClass().getResourceAsStream("/trello-board.json")) {
+            bytes = in.readAllBytes();
+        }
+
+        BoardExport parsed = exchange.parse(bytes);
+        BoardSnapshot imported = exchange.importBoard(parsed, "Importer");
+
+        assertThat(imported.name()).isEqualTo("Website relaunch");
+        assertThat(imported.lanes()).extracting(LaneSnapshot::name).containsExactly("To Do", "Doing", "Done ✓");
+        assertThat(imported.lanes().get(2).done()).isTrue();
+        assertThat(imported.lanes().getFirst().cards()).extracting(CardSnapshot::title, CardSnapshot::assignee, CardSnapshot::priority)
+                .containsExactly(tuple("Fix the header", "Mara K.", Priority.HIGH), tuple("Write copy", "jonas", Priority.MEDIUM));
+        assertThat(imported.lanes().getFirst().cards().getFirst().checklist()).hasSize(2);
+        assertThat(imported.lanes().getFirst().cards().getFirst().comments()).hasSize(2);
     }
 
     @Test
