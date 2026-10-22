@@ -17,8 +17,8 @@ class PresenceTrackerTest {
         List<List<Participant>> maraSaw = new ArrayList<>();
         List<List<Participant>> jonasSaw = new ArrayList<>();
 
-        tracker.join(1, Participant.named("Mara"), maraSaw::add);
-        tracker.join(1, Participant.named("jonas"), jonasSaw::add);
+        tracker.join(1, Participant.named("Mara"), presence -> maraSaw.add(presence.participants()));
+        tracker.join(1, Participant.named("jonas"), presence -> jonasSaw.add(presence.participants()));
         tracker.join(1, Participant.named("Mara"), people -> { });
 
         assertThat(maraSaw.getLast()).extracting(Participant::name).containsExactly("jonas", "Mara");
@@ -29,7 +29,7 @@ class PresenceTrackerTest {
     @Test
     void leavingRemovesOnlyThatViewer() {
         List<List<Participant>> observerSaw = new ArrayList<>();
-        tracker.join(7, Participant.named("Observer"), observerSaw::add);
+        tracker.join(7, Participant.named("Observer"), presence -> observerSaw.add(presence.participants()));
         Registration firstTab = tracker.join(7, Participant.named("Priya"), people -> { });
         tracker.join(7, Participant.named("Priya"), people -> { });
 
@@ -47,6 +47,31 @@ class PresenceTrackerTest {
         assertThat(tracker.participants(1)).extracting(Participant::name).containsExactly("A");
         assertThat(tracker.participants(2)).extracting(Participant::name).containsExactly("B");
         assertThat(tracker.participants(3)).isEmpty();
+    }
+
+    @Test
+    void editingACardIsSharedPerCardAndEndsWhenTheViewerLeaves() {
+        List<PresenceTracker.Presence> maraSaw = new ArrayList<>();
+        tracker.join(3, Participant.named("Mara"), maraSaw::add);
+        PresenceTracker.Membership jonas = tracker.join(3, Participant.named("Jonas"), presence -> { });
+        PresenceTracker.Membership priya = tracker.join(3, Participant.named("Priya"), presence -> { });
+
+        jonas.editing(42L);
+        priya.editing(42L);
+        priya.editing(42L);
+        assertThat(maraSaw.getLast().editorsOf(42)).extracting(Participant::name).containsExactly("Jonas", "Priya");
+        assertThat(maraSaw.getLast().editorsOf(7)).isEmpty();
+        int notifications = maraSaw.size();
+
+        priya.editing(7L);
+        assertThat(maraSaw.getLast().editors()).containsOnlyKeys(42L, 7L);
+        jonas.editing(null);
+        assertThat(maraSaw.getLast().editorsOf(42)).isEmpty();
+        assertThat(maraSaw).as("the repeated call changed nothing and was not broadcast").hasSize(notifications + 2);
+
+        priya.remove();
+        assertThat(tracker.presence(3).editors()).isEmpty();
+        assertThat(tracker.presence(3).participants()).extracting(Participant::name).containsExactly("Jonas", "Mara");
     }
 
     @Test

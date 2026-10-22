@@ -35,6 +35,8 @@ import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.domain.MilestoneSnapshot;
 import dev.gatzka.flowboard.domain.Recurrence;
+import java.util.stream.Collectors;
+import dev.gatzka.flowboard.service.Participant;
 import dev.gatzka.flowboard.ui.support.Toasts;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -66,6 +68,7 @@ final class CardEditorDialog extends Dialog {
     private final BiConsumer<CardDraft, Extras> onSave;
     private final BoardSnapshot board;
     private Long cardId;
+    private Div othersBanner;
     private ChecklistSection checklistSection;
     private DependenciesSection dependenciesSection;
     private AttachmentsSection attachmentsSection;
@@ -112,6 +115,23 @@ final class CardEditorDialog extends Dialog {
         dialog.addTemplateButton(card, actions);
         dialog.addMoveButton(card, actions);
         return dialog;
+    }
+
+    /** Warns that other people have the same card open; an empty list removes the warning. */
+    void showOtherEditors(List<Participant> others) {
+        if (othersBanner != null) {
+            remove(othersBanner);
+            othersBanner = null;
+        }
+        if (others.isEmpty()) {
+            return;
+        }
+        String names = others.stream().map(Participant::name).collect(Collectors.joining(", "));
+        Span text = new Span(I18n.t(others.size() == 1 ? "editor.othersEditingOne" : "editor.othersEditingMany", names));
+        othersBanner = new Div(VaadinIcon.USERS.create(), text);
+        othersBanner.addClassName("card-editor__others");
+        othersBanner.getElement().setAttribute("role", "status");
+        addComponentAsFirst(othersBanner);
     }
 
     /** The id of the card being edited, or empty for a new card. */

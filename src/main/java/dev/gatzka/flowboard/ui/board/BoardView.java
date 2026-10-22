@@ -246,7 +246,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private CardEditorDialog openEditor;
     private Long openComposerLaneId;
     private Registration changeSubscription;
-    private Registration presenceSubscription;
+    private PresenceTracker.Membership presenceMembership;
+    private PresenceTracker.Presence lastPresence = PresenceTracker.Presence.EMPTY;
     private Registration profileSubscription;
 
     public BoardView(BoardService boardService, ChecklistService checklistService, CommentService commentService,
@@ -503,15 +504,38 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     private void joinPresence(UI ui) {
-        presenceSubscription = presence.join(board.id(), session.participant(),
-                people -> UiAccess.run(ui, () -> showParticipants(people)));
+        presenceMembership = presence.join(board.id(), session.participant(),
+                state -> UiAccess.run(ui, () -> showPresence(state)));
+        if (openEditor != null) {
+            openEditor.cardId().ifPresent(presenceMembership::editing);
+        }
     }
 
     private void leavePresence() {
-        if (presenceSubscription != null) {
-            presenceSubscription.remove();
-            presenceSubscription = null;
+        if (presenceMembership != null) {
+            presenceMembership.remove();
+            presenceMembership = null;
         }
+    }
+
+    private void showPresence(PresenceTracker.Presence state) {
+        lastPresence = state;
+        showParticipants(state.participants());
+        showEditors();
+    }
+
+    /** Marks the cards somebody else has open, and warns inside the editor when they share it with the viewer. */
+    private void showEditors() {
+        laneComponents.forEach(lane -> lane.lane().cards().forEach(card ->
+                lane.cardComponent(card.id()).ifPresent(component -> component.showEditors(othersEditing(card.id())))));
+        if (openEditor != null) {
+            openEditor.cardId().ifPresent(cardId -> openEditor.showOtherEditors(othersEditing(cardId)));
+        }
+    }
+
+    private List<Participant> othersEditing(long cardId) {
+        Participant me = session.participant();
+        return lastPresence.editorsOf(cardId).stream().filter(person -> !person.equals(me)).toList();
     }
 
     // ------------------------------------------------------------- rendering
@@ -558,6 +582,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             }
         }
         layoutSwimlanes(snapshot, swimlanes);
+        showEditors();
         filters.setOptions(snapshot.tags(), snapshot.assignees());
         applyFilter();
         showViews();
@@ -729,10 +754,17 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
             if (!event.isOpened() && openEditor == editor) {
                 openEditor = null;
                 showPath(currentPath(null));
+                if (presenceMembership != null) {
+                    presenceMembership.editing(null);
+                }
             }
         });
         openEditor = editor;
         editor.open();
+        editor.showOtherEditors(othersEditing(card.id()));
+        if (presenceMembership != null) {
+            presenceMembership.editing(card.id());
+        }
         showPath(currentPath(card.id()));
     }
 

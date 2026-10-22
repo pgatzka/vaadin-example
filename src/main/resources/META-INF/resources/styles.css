@@ -3053,3 +3053,53 @@ vaadin-dialog.activity-sheet::part(content) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---------------------------------------------------------------- live editing */
+
+.task-card--editing {
+  border-color: var(--lumo-primary-color-50pct);
+  box-shadow: 0 0 0 2px var(--lumo-primary-color-10pct), var(--lumo-box-shadow-xs);
+}
+
+.task-card__editors {
+  position: absolute;
+  top: calc(-1 * var(--lumo-space-xs));
+  right: var(--lumo-space-xs);
+  display: flex;
+  gap: 2px;
+  pointer-events: auto;
+  animation: fb-pop 0.25s ease-out;
+}
+
+.task-card__editors vaadin-avatar {
+  box-shadow: 0 0 0 2px var(--fb-card-background);
+}
+
+@keyframes fb-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.card-editor__others {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  margin-bottom: var(--lumo-space-s);
+  padding: var(--lumo-space-xs) var(--lumo-space-s);
+  border-radius: var(--lumo-border-radius-m);
+  background: var(--lumo-warning-color-10pct);
+  color: var(--lumo-warning-text-color);
+  font-size: var(--lumo-font-size-s);
+}
+
+.card-editor__others vaadin-icon {
+  width: 1.1em;
+  height: 1.1em;
+  flex: none;
+}

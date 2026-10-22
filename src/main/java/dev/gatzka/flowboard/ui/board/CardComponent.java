@@ -4,6 +4,8 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.avatar.AvatarVariant;
 import com.vaadin.flow.component.badge.Badge;
+import java.util.stream.Collectors;
+import java.util.List;
 import com.vaadin.flow.component.badge.BadgeVariant;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -40,6 +42,7 @@ public final class CardComponent extends Div {
 
     private final CardSnapshot card;
     private final Div meta;
+    private Div editorsMarker;
 
     /** @param voted whether the current user has voted for the card */
     record Voting(boolean voted, Runnable onToggle) {
@@ -141,6 +144,31 @@ public final class CardComponent extends Div {
     /** The right-click menu, or {@code null} on a read-only card. */
     CardContextMenu contextMenu() {
         return contextMenu;
+    }
+
+    /** Shows the people who have this card open in their editor right now; an empty list clears the marker. */
+    void showEditors(List<Participant> editors) {
+        if (editorsMarker != null) {
+            remove(editorsMarker);
+            editorsMarker = null;
+        }
+        if (editors.isEmpty()) {
+            removeClassName("task-card--editing");
+            return;
+        }
+        Div marker = new Div();
+        marker.addClassName("task-card__editors");
+        for (Participant person : editors) {
+            Avatar avatar = new Avatar(person.name());
+            avatar.setColorIndex(person.colorIndex());
+            avatar.addThemeVariants(AvatarVariant.LUMO_XSMALL);
+            marker.add(avatar);
+        }
+        String names = editors.stream().map(Participant::name).collect(Collectors.joining(", "));
+        marker.getElement().setAttribute("title", I18n.t(editors.size() == 1 ? "presence.editingOne" : "presence.editingMany", names));
+        editorsMarker = marker;
+        addClassName("task-card--editing");
+        add(marker);
     }
 
     /** Shows which milestone the card counts towards. */

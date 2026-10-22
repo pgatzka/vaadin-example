@@ -33,13 +33,15 @@ Java on top of Vaadin Flow's server push.
 | ![Covers](docs/covers.png) | ![Focus](docs/focus.png) | ![Watch](docs/watch.png) |
 | Auf Deutsch | Card context menu | Collapsed lane |
 | ![German](docs/german.png) | ![Context menu](docs/context-menu.png) | ![Collapsed lane](docs/collapsed-lane.png) |
-| Delivery forecast | Milestones | |
-| ![Forecast](docs/forecast.png) | ![Milestones](docs/milestones.png) | |
+| Delivery forecast | Milestones | Who is editing |
+| ![Forecast](docs/forecast.png) | ![Milestones](docs/milestones.png) | ![Live editing](docs/live-editing.png) |
 
 ## Features
 
 - **Boards, lanes and cards** with drag & drop. Drop a card onto another card to insert it before
   that card, or onto empty lane space to append it.
+- **Who is editing.** Open a card and everybody else on the board sees your avatar on it; open a
+  card somebody else already has open and the editor says so, before you overwrite each other.
 - **Live collaboration.** Every change is pushed to everybody looking at the same board. Presence
   avatars in the toolbar show who else is there right now.
 - **WIP limits.** Give a lane a work-in-progress limit and it turns red when the limit is exceeded.

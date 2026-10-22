@@ -1075,6 +1075,42 @@ class BoardViewTest extends FlowboardUiTest {
         assertThat($(Div.class, again).withClassName("milestones__row").all()).isEmpty();
     }
 
+    @Test
+    void otherPeopleEditingACardAreShownOnItAndInsideTheEditor() {
+        CardSnapshot card = createCard("Shared draft");
+        openBoard();
+        dev.gatzka.flowboard.service.PresenceTracker presence = context.getBean(dev.gatzka.flowboard.service.PresenceTracker.class);
+        dev.gatzka.flowboard.service.PresenceTracker.Membership jonas = presence.join(board.id(),
+                dev.gatzka.flowboard.service.Participant.named("Jonas"), state -> { });
+        try {
+            jonas.editing(card.id());
+            pump();
+            CardComponent component = cardComponent(card.id());
+            assertThat(component.hasClassName("task-card--editing")).isTrue();
+            assertThat($(com.vaadin.flow.component.avatar.Avatar.class, component).all()).extracting(a -> a.getName()).containsExactly("Jonas");
+            assertThat($(Div.class, component).withClassName("task-card__editors").single().getElement().getAttribute("title"))
+                    .isEqualTo("Jonas is editing this card");
+
+            test(component).click();
+            CardEditorDialog editor = $(CardEditorDialog.class).single();
+            assertThat($(Div.class, editor).withClassName("card-editor__others").single().getElement().getTextRecursively())
+                    .isEqualTo("Jonas is also editing this card. Whoever saves last wins.");
+            pump();
+            assertThat(presence.presence(board.id()).editorsOf(card.id())).extracting(p -> p.name()).containsExactlyInAnyOrder("Jonas", "mara");
+
+            jonas.editing(null);
+            pump();
+            assertThat($(Div.class, editor).withClassName("card-editor__others").all()).isEmpty();
+            assertThat(cardComponent(card.id()).hasClassName("task-card--editing")).as("my own editing is not shown to me").isFalse();
+
+            editor.close();
+            pump();
+            assertThat(presence.presence(board.id()).editorsOf(card.id())).isEmpty();
+        } finally {
+            jonas.remove();
+        }
+    }
+
     private void chooseFromMenu(CardSnapshot card, String menuClass, String choice) {
         MenuItem parent = $(MenuItem.class, cardComponent(card.id()).contextMenu()).withClassName(menuClass).single();
         click(parent.getSubMenu().getItems().stream().filter(item -> choice.equals(item.getText())).findFirst().orElseThrow());
