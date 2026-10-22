@@ -31,8 +31,8 @@ Java on top of Vaadin Flow's server push.
 | ![API tokens](docs/api-tokens.png) | ![Walk](docs/walk.png) | ![Timeline](docs/timeline.png) |
 | Card covers | Focus session | Watching a card |
 | ![Covers](docs/covers.png) | ![Focus](docs/focus.png) | ![Watch](docs/watch.png) |
-| Auf Deutsch | | |
-| ![German](docs/german.png) | | |
+| Auf Deutsch | Card context menu | Collapsed lane |
+| ![German](docs/german.png) | ![Context menu](docs/context-menu.png) | ![Collapsed lane](docs/collapsed-lane.png) |
 
 ## Features
 
@@ -82,6 +82,8 @@ Java on top of Vaadin Flow's server push.
 - **Timeline** (More → Timeline): every dated card as a bar on an eight-week axis, grouped by lane or person, with weekends shaded and today marked; cards with only a due date are milestone dots, cards with only a start date run open-ended. Drag a bar to move it, pull its ends to change the start or due date, click it to open the card. Cards gained an optional **start date** (editor, API, export, quick-add `start:`).
 - **Watch cards**: a Watch toggle in the card editor puts comments, moves, edits, archiving and new blockers on that card into your inbox (never your own changes); assignees and people who comment watch automatically, and a small eye marks watched cards on the board
 - **Walk the board** (More → Walk the board): a standup mode that shows one open card at a time, big enough for a shared screen, by lane or by person; arrow keys move on, a clock shows how long each card has been talked about, notes become comments and a button moves the card to the next lane
+- **Right-click a card** for the everyday changes without opening it: move it to another lane, hand it to someone, set the priority, watch it, copy its link or archive it
+- **Collapsible lanes**: fold a lane to a narrow strip that still shows its name and count and still takes drops; the fold is remembered per board for your session
 - **Swimlanes**: group a board by assignee, priority or tag and the lanes turn into a grid with one row per group; dropping a card into another row reassigns, re-prioritises or tags it on the way, and the choice is remembered per board
 - **Team workload** page: every open card across your boards bucketed by person and week, in story points (or cards when nobody estimates); cells go red above a capacity you set, and an "Even it out" list proposes concrete reassignments (largest card that fits, to whoever has the most room) that apply with one click
 - **Dependency graph** per board (More → Dependencies): blockers to the left, the cards they hold up to the right, the longest open chain highlighted and the one card whose completion unblocks the most work; click any node to open it

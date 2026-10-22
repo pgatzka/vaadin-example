@@ -978,6 +978,79 @@ class BoardViewTest extends FlowboardUiTest {
         commentService.add(cardId, author, text);
     }
 
+    @Test
+    void contextMenuChangesLaneAssigneeAndPriorityWithoutTheEditor() {
+        CardSnapshot card = createCard("Right-click me");
+        openBoard();
+
+        chooseFromMenu(card, "card-menu__move", "Review");
+        CardSnapshot moved = service.findBoard(board.id()).orElseThrow().lanes().get(2).cards().get(0);
+        assertThat(moved.title()).isEqualTo("Right-click me");
+
+        chooseFromMenu(moved, "card-menu__priority", "Urgent");
+        assertThat(findCard(card.id()).priority()).isEqualTo(Priority.URGENT);
+
+        assertThat($(MenuItem.class, cardComponent(card.id()).contextMenu()).withClassName("card-menu__watch").single().getText()).isEqualTo("Watch");
+        click($(MenuItem.class, cardComponent(card.id()).contextMenu()).withClassName("card-menu__watch").single());
+        assertThat($(MenuItem.class, cardComponent(card.id()).contextMenu()).withClassName("card-menu__watch").single().getText()).isEqualTo("Stop watching");
+
+        CardContextMenu menu = cardComponent(card.id()).contextMenu();
+        MenuItem assign = $(MenuItem.class, menu).withClassName("card-menu__assign").single();
+        MenuItem me = assign.getSubMenu().getItems().get(0);
+        assertThat(me.isChecked()).as("nobody assigned yet").isFalse();
+        MenuItem nobody = $(MenuItem.class, menu).withClassName("card-menu__unassign").single();
+        assertThat(nobody.isEnabled()).as("nothing to unassign").isFalse();
+        click(me);
+        assertThat(findCard(card.id()).assignee()).isEqualTo(me.getText());
+        assertThat($(MenuItem.class, cardComponent(card.id()).contextMenu()).withClassName("card-menu__unassign").single().isEnabled()).isTrue();
+
+        click($(MenuItem.class, cardComponent(card.id()).contextMenu()).withClassName("card-menu__archive").single());
+        assertThat(visibleCardTitles()).doesNotContain("Right-click me");
+        assertThat(service.archivedCards(board.id())).extracting(CardSnapshot::title).containsExactly("Right-click me");
+    }
+
+    @Test
+    void collapsingALaneFoldsItToAStripUntilItIsClickedAgain() {
+        createCard("Hidden while folded");
+        openBoard();
+
+        test($(MenuItem.class, $(LaneComponent.class).first()).withClassName("lane__collapse").single()).click();
+
+        LaneComponent backlog = $(LaneComponent.class).first();
+        assertThat(backlog.hasClassName("lane--collapsed")).isTrue();
+        assertThat($(CardComponent.class, backlog).all()).as("cards are not rendered in a folded lane").isEmpty();
+        Div strip = $(Div.class, backlog).withClassName("lane__collapsed").single();
+        assertThat($(Span.class, strip).withClassName("lane__name").single().getText()).isEqualTo("Backlog");
+        assertThat($(Badge.class, strip).withClassName("lane__count").single().getText()).isEqualTo("1");
+
+        navigate(BoardsView.class);
+        openBoard();
+        assertThat($(LaneComponent.class).first().hasClassName("lane--collapsed")).as("remembered for the session").isTrue();
+
+        test($(Div.class, $(LaneComponent.class).first()).withClassName("lane__collapsed").single()).click();
+        assertThat($(LaneComponent.class).first().hasClassName("lane--collapsed")).isFalse();
+        assertThat(visibleCardTitles()).containsExactly("Hidden while folded");
+    }
+
+    private void chooseFromMenu(CardSnapshot card, String menuClass, String choice) {
+        MenuItem parent = $(MenuItem.class, cardComponent(card.id()).contextMenu()).withClassName(menuClass).single();
+        click(parent.getSubMenu().getItems().stream().filter(item -> choice.equals(item.getText())).findFirst().orElseThrow());
+    }
+
+    private static void click(MenuItem item) {
+        assertThat(item.isEnabled()).as("menu item " + item.getText() + " enabled").isTrue();
+        com.vaadin.flow.component.ComponentUtil.fireEvent(item, new com.vaadin.flow.component.ClickEvent<>(item));
+    }
+
+    private CardComponent cardComponent(long cardId) {
+        return $(CardComponent.class).withCondition(component -> component.card().id() == cardId).single();
+    }
+
+    private CardSnapshot findCard(long cardId) {
+        return service.findBoard(board.id()).orElseThrow().lanes().stream().flatMap(lane -> lane.cards().stream())
+                .filter(card -> card.id() == cardId).findFirst().orElseThrow();
+    }
+
     private void openBoard() {
         navigate(BoardView.class, Map.of(BoardView.BOARD_ID, Long.toString(board.id())));
     }

@@ -1166,9 +1166,73 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         });
     }
 
-    private void archiveCard(CardSnapshot card) {
+    @Override
+    public void archiveCard(CardSnapshot card) {
         perform(() -> boardService.archiveCard(card.id(), actor()));
         Toasts.undoable(getTranslation("board.archived", card.title()), () -> perform(() -> boardService.restoreCard(card.id(), actor())));
+    }
+
+    @Override
+    public List<LaneSnapshot> lanes() {
+        return board == null ? List.of() : board.lanes();
+    }
+
+    @Override
+    public java.util.Collection<String> assignees() {
+        return board == null ? List.of() : board.assignees();
+    }
+
+    @Override
+    public void assignCard(CardSnapshot card, String assignee) {
+        perform(() -> boardService.updateCard(card.id(), card.toDraft().withAssignee(assignee), actor()));
+        Toasts.success(assignee == null ? getTranslation("board.unassigned", card.title()) : getTranslation("board.assigned", card.title(), assignee));
+    }
+
+    @Override
+    public void prioritiseCard(CardSnapshot card, Priority priority) {
+        perform(() -> boardService.updateCard(card.id(), card.toDraft().withPriority(priority), actor()));
+        Toasts.success(getTranslation("board.prioritised", card.title(), Labels.priority(priority).toLowerCase(I18n.locale())));
+    }
+
+    @Override
+    public void toggleWatch(CardSnapshot card) {
+        boolean watching = toggleWatch(card.id());
+        Toasts.info(getTranslation(watching ? "watch.on" : "watch.off"));
+    }
+
+    @Override
+    public void copyLink(CardSnapshot card) {
+        String path = pathTo(board.id(), card.id());
+        getUI().ifPresent(ui -> ui.getPage().executeJs("navigator.clipboard.writeText(location.origin + '/' + $0)", path));
+        Toasts.success(getTranslation("common.linkCopied"));
+    }
+
+    // ------------------------------------------------------------- collapsed lanes
+
+    private static final String COLLAPSED_ATTRIBUTE = BoardView.class.getName() + ".collapsed.";
+
+    @SuppressWarnings("unchecked")
+    private Set<Long> collapsedLanes() {
+        Set<Long> collapsed = (Set<Long>) VaadinSession.getCurrent().getAttribute(COLLAPSED_ATTRIBUTE + board.id());
+        if (collapsed == null) {
+            collapsed = new java.util.HashSet<>();
+            VaadinSession.getCurrent().setAttribute(COLLAPSED_ATTRIBUTE + board.id(), collapsed);
+        }
+        return collapsed;
+    }
+
+    @Override
+    public boolean isCollapsed(LaneSnapshot lane) {
+        return collapsedLanes().contains(lane.id());
+    }
+
+    @Override
+    public void toggleCollapsed(LaneSnapshot lane) {
+        Set<Long> collapsed = collapsedLanes();
+        if (!collapsed.remove(lane.id())) {
+            collapsed.add(lane.id());
+        }
+        render(board);
     }
 
     private void addLane() {

@@ -11,6 +11,7 @@ import com.vaadin.flow.component.dnd.DropTarget;
 import com.vaadin.flow.component.dnd.EffectAllowed;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
@@ -75,6 +76,12 @@ final class LaneComponent extends Div {
                 () -> actions.composerClosed(lane));
         composer.addClassName("lane__add");
 
+        if (!swimlanes.isActive() && actions.isCollapsed(lane)) {
+            addClassName("lane--collapsed");
+            add(collapsedStrip(actions));
+            makeReorderable(actions);
+            return;
+        }
         Component header = header(laneCount, actions);
         if (swimlanes.isActive()) {
             int column = lane.position() + 2;
@@ -170,6 +177,25 @@ final class LaneComponent extends Div {
         return header;
     }
 
+    /** A folded lane: a narrow strip that reads sideways and opens again on a click; drops still land in the lane. */
+    private Component collapsedStrip(BoardActions actions) {
+        Icon expand = VaadinIcon.ANGLE_DOUBLE_RIGHT.create();
+        expand.addClassName("lane__expand");
+        Span name = new Span(lane.name());
+        name.addClassName("lane__name");
+        Div strip = new Div(expand, name, countBadge());
+        strip.addClassName("lane__collapsed");
+        strip.getElement().setAttribute("role", "button");
+        strip.getElement().setAttribute("tabindex", "0");
+        strip.getElement().setAttribute("title", I18n.t("lane.expand"));
+        strip.getElement().setAttribute("aria-label", I18n.t("lane.expandAria", lane.name()));
+        strip.addClickListener(event -> actions.toggleCollapsed(lane));
+        strip.getElement().addEventListener("keydown", event -> actions.toggleCollapsed(lane))
+                .setFilter("event.key === 'Enter' || event.key === ' '")
+                .preventDefault();
+        return strip;
+    }
+
     private Badge countBadge() {
         int count = lane.cards().size();
         Badge badge = new Badge(lane.hasWipLimit() ? count + " / " + lane.wipLimit() : Integer.toString(count));
@@ -197,6 +223,9 @@ final class LaneComponent extends Div {
         MenuItem selectAll = items.addItem(I18n.t("lane.selectAll"), event -> actions.selectAll(lane));
         selectAll.setEnabled(!lane.cards().isEmpty());
         items.addItem(I18n.t("lane.edit"), event -> actions.editLane(lane));
+        MenuItem collapse = items.addItem(I18n.t("lane.collapse"), event -> actions.toggleCollapsed(lane));
+        collapse.addClassName("lane__collapse");
+        collapse.setEnabled(!swimlanes.isActive());
         MenuItem left = items.addItem(I18n.t("lane.moveLeft"), event -> actions.moveLane(lane, -1));
         left.setEnabled(lane.position() > 0);
         MenuItem right = items.addItem(I18n.t("lane.moveRight"), event -> actions.moveLane(lane, 1));
@@ -242,6 +271,7 @@ final class LaneComponent extends Div {
             card.cover().ifPresent(cover -> component.showCover(cover, actions::attachmentContent));
             makeDraggable(component, card);
             makeInsertTarget(component, card, actions, row);
+            component.setContextMenu(new CardContextMenu(component, card, lane, actions));
             component.enableKeyboardActions(key -> actions.moveCardByKeyboard(card, key), () -> actions.addCardNear(card));
             cardComponents.add(component);
             body.add(component);

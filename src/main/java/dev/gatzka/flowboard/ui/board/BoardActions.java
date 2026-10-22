@@ -84,4 +84,28 @@ interface BoardActions {
 
     /** When the current user last opened this board before now, or {@code null} on their first visit. */
     java.time.Instant lastVisit();
+
+    /** The lanes of the board in order, for "move to" menus. */
+    List<LaneSnapshot> lanes();
+
+    /** Everyone assigned to a card on the board, for "assign to" menus. */
+    java.util.Collection<String> assignees();
+
+    /** Hands the card to {@code assignee}; {@code null} leaves it unassigned. */
+    void assignCard(CardSnapshot card, String assignee);
+
+    void prioritiseCard(CardSnapshot card, dev.gatzka.flowboard.domain.Priority priority);
+
+    void archiveCard(CardSnapshot card);
+
+    /** Starts or stops watching the card for the current user. */
+    void toggleWatch(CardSnapshot card);
+
+    /** Puts the card's deep link on the clipboard. */
+    void copyLink(CardSnapshot card);
+
+    /** Whether the lane is folded to a narrow strip for the current user. */
+    boolean isCollapsed(LaneSnapshot lane);
+
+    void toggleCollapsed(LaneSnapshot lane);
 }

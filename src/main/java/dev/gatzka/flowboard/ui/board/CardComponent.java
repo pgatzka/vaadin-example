@@ -129,6 +129,17 @@ public final class CardComponent extends Div {
         addClassName("task-card--with-cover");
     }
 
+    private CardContextMenu contextMenu;
+
+    void setContextMenu(CardContextMenu menu) {
+        this.contextMenu = menu;
+    }
+
+    /** The right-click menu, or {@code null} on a read-only card. */
+    CardContextMenu contextMenu() {
+        return contextMenu;
+    }
+
     /** Flags the card as changed since the viewer last opened the board. */
     void markChanged() {
         addClassName("task-card--changed");
