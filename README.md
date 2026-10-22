@@ -27,8 +27,8 @@ Java on top of Vaadin Flow's server push.
 | ![Bulk](docs/bulk.png) | ![Rules](docs/rules.png) | ![Quick add](docs/quick-add.png) |
 | Dependency graph | Team workload | Swimlanes |
 | ![Dependencies](docs/dependencies.png) | ![Team](docs/team.png) | ![Swimlanes](docs/swimlanes.png) |
-| API tokens | | |
-| ![API tokens](docs/api-tokens.png) | | |
+| API tokens | Walk the board | |
+| ![API tokens](docs/api-tokens.png) | ![Walk](docs/walk.png) | |
 
 ## Features
 
@@ -68,6 +68,7 @@ Java on top of Vaadin Flow's server push.
 - **Inbox.** Mention somebody with `@name` in a comment, assign them a card or comment on their card
   and they get a notification, live, with a link to the card.
 - **Dependencies** between cards ("blocked by", acyclic, with a nudge before finishing a blocked card)
+- **Walk the board** (More → Walk the board): a standup mode that shows one open card at a time, big enough for a shared screen, by lane or by person; arrow keys move on, a clock shows how long each card has been talked about, notes become comments and a button moves the card to the next lane
 - **Swimlanes**: group a board by assignee, priority or tag and the lanes turn into a grid with one row per group; dropping a card into another row reassigns, re-prioritises or tags it on the way, and the choice is remembered per board
 - **Team workload** page: every open card across your boards bucketed by person and week, in story points (or cards when nobody estimates); cells go red above a capacity you set, and an "Even it out" list proposes concrete reassignments (largest card that fits, to whoever has the most room) that apply with one click
 - **Dependency graph** per board (More → Dependencies): blockers to the left, the cards they hold up to the right, the longest open chain highlighted and the one card whose completion unblocks the most work; click any node to open it

@@ -87,6 +87,7 @@ import dev.gatzka.flowboard.ui.calendar.CalendarView;
 import dev.gatzka.flowboard.ui.digest.DigestView;
 import dev.gatzka.flowboard.ui.support.Celebration;
 import dev.gatzka.flowboard.ui.support.Toasts;
+import dev.gatzka.flowboard.ui.walk.WalkView;
 import dev.gatzka.flowboard.ui.support.UiAccess;
 import dev.gatzka.flowboard.webhook.WebhookDispatcher;
 import dev.gatzka.flowboard.webhook.WebhookService;
@@ -356,6 +357,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
                 DigestView.class, new RouteParameters(BOARD_ID, Long.toString(board.id()))))).setId("board-digest");
         items.addItem(entry(VaadinIcon.ARCHIVE, "Archive"), event -> openArchive()).setId("board-archive");
         items.addItem(entry(VaadinIcon.CLUSTER, "Dependencies"), event -> openDependencies()).setId("board-dependencies");
+        items.addItem(entry(VaadinIcon.MEGAPHONE, "Walk the board"), event -> getUI().ifPresent(ui -> ui.navigate(
+                WalkView.class, new RouteParameters(WalkView.BOARD_ID, Long.toString(board.id()))))).setId("board-walk");
         items.addItem(entry(VaadinIcon.USERS, "Members…"), event ->
                 new MembersDialog(board, access, accounts, session).open()).setId("board-members");
         items.addItem(entry(VaadinIcon.COPY_O, "Card templates…"), event ->
