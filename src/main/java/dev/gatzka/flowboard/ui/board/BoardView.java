@@ -40,6 +40,7 @@ import dev.gatzka.flowboard.domain.CardDraft;
 import dev.gatzka.flowboard.domain.CardFilter;
 import dev.gatzka.flowboard.domain.CardFilterCodec;
 import dev.gatzka.flowboard.domain.CardSnapshot;
+import dev.gatzka.flowboard.domain.DependencyGraph;
 import dev.gatzka.flowboard.domain.CardTemplateSnapshot;
 import dev.gatzka.flowboard.domain.LaneRuleSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
@@ -170,6 +171,8 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private final Div lanes = new Div();
     private final ActivityDialog activityDialog = new ActivityDialog();
     private final InsightsDialog insightsDialog;
+    private final DependenciesDialog dependenciesDialog = new DependenciesDialog(
+            cardId -> findCard(cardId).ifPresent(this::openCard));
     private final ArchiveDialog archiveDialog;
     private final List<LaneComponent> laneComponents = new ArrayList<>();
     private final Set<Long> selection = new LinkedHashSet<>();
@@ -333,6 +336,7 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         items.addItem(entry(VaadinIcon.NEWSPAPER, "Weekly digest"), event -> getUI().ifPresent(ui -> ui.navigate(
                 DigestView.class, new RouteParameters(BOARD_ID, Long.toString(board.id()))))).setId("board-digest");
         items.addItem(entry(VaadinIcon.ARCHIVE, "Archive"), event -> openArchive()).setId("board-archive");
+        items.addItem(entry(VaadinIcon.CLUSTER, "Dependencies"), event -> openDependencies()).setId("board-dependencies");
         items.addItem(entry(VaadinIcon.USERS, "Members…"), event ->
                 new MembersDialog(board, access, accounts, session).open()).setId("board-members");
         items.addItem(entry(VaadinIcon.COPY_O, "Card templates…"), event ->
@@ -529,6 +533,9 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
         if (insightsDialog.isOpened()) {
             showInsights();
         }
+        if (dependenciesDialog.isOpened()) {
+            dependenciesDialog.show(DependencyGraph.of(board));
+        }
         if (archiveDialog.isOpened()) {
             archiveDialog.show(boardService.archivedCards(board.id()));
         }
@@ -598,6 +605,11 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     private void openArchive() {
         archiveDialog.show(boardService.archivedCards(board.id()));
         archiveDialog.open();
+    }
+
+    private void openDependencies() {
+        dependenciesDialog.show(DependencyGraph.of(board));
+        dependenciesDialog.open();
     }
 
     private void openInsights() {

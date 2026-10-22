@@ -708,6 +708,41 @@ class BoardViewTest extends FlowboardUiTest {
     }
 
     @Test
+    void dependenciesDialogDrawsTheGraphAndOpensCards() {
+        CardSnapshot design = createCard("Design");
+        CardSnapshot build = createCard("Build");
+        CardSnapshot ship = createCard("Ship");
+        dependencyService.addBlocker(build.id(), design.id(), SEEDER);
+        dependencyService.addBlocker(ship.id(), build.id(), SEEDER);
+        openBoard();
+
+        test($(MenuItem.class).withId("board-dependencies").single()).click();
+
+        DependenciesDialog dialog = $(DependenciesDialog.class).single();
+        assertThat(dialog.isOpened()).isTrue();
+        assertThat($(Span.class, dialog).withClassName("dependencies__summary").all()).isEmpty();
+        assertThat($(Div.class, dialog).withClassName("dependencies__summary").single().getElement().getTextRecursively())
+                .isEqualTo("2 links between 3 cards · 2 links still open · 2 cards blocked right now");
+        assertThat($(Button.class, dialog).withClassName("dependencies__chain-step").all()).extracting(Button::getText)
+                .containsExactly("Design", "Build", "Ship");
+        assertThat($(Button.class, dialog).withClassName("dependencies__key-blocker").single().getText()).isEqualTo("Design");
+        assertThat($(com.vaadin.flow.component.Svg.class, dialog).all()).hasSize(1);
+
+        dialog.cardClicked(Long.toString(ship.id()));
+
+        assertThat($(CardEditorDialog.class).single().cardId()).hasValue(ship.id());
+
+        // a change on the board redraws the open graph
+        dependencyService.removeBlocker(ship.id(), build.id(), SEEDER);
+        await().pollInSameThread().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            pump();
+            assertThat($(Div.class, $(DependenciesDialog.class).single()).withClassName("dependencies__summary").single()
+                    .getElement().getTextRecursively()).startsWith("1 link between 2 cards");
+        });
+        dialog.cardClicked("");
+    }
+
+    @Test
     void movingABlockedCardToDoneAsksFirst() {
         CardSnapshot design = createCard("Design");
         CardSnapshot build = createCard("Build");

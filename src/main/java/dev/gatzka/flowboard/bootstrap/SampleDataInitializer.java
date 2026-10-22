@@ -12,6 +12,7 @@ import dev.gatzka.flowboard.service.ActivityLog;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.CommentService;
+import dev.gatzka.flowboard.service.DependencyService;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Set;
@@ -43,16 +44,18 @@ class SampleDataInitializer implements ApplicationRunner {
     private final BoardService boardService;
     private final ChecklistService checklistService;
     private final CommentService commentService;
+    private final DependencyService dependencies;
     private final AccountService accounts;
     private final Clock clock;
 
     SampleDataInitializer(BoardRepository boards, BoardService boardService, ChecklistService checklistService,
-            CommentService commentService, AccountService accounts, Clock clock) {
+            CommentService commentService, DependencyService dependencies, AccountService accounts, Clock clock) {
         this.boards = boards;
         this.accounts = accounts;
         this.boardService = boardService;
         this.checklistService = checklistService;
         this.commentService = commentService;
+        this.dependencies = dependencies;
         this.clock = clock;
     }
 
@@ -78,18 +81,18 @@ class SampleDataInitializer implements ApplicationRunner {
         long review = lane(board, 2);
         long done = lane(board, 3);
 
-        card(backlog, "Write the onboarding guide", """
+        CardSnapshot guide = card(backlog, "Write the onboarding guide", """
                 A short guide for first-time users.
 
                 - How to create a board
                 - Lanes, WIP limits and what *done* means
                 - Keyboard shortcuts
                 """, Priority.MEDIUM, today.plusDays(10), "Mara", "docs");
-        card(backlog, "Export a board as JSON", null, Priority.LOW, null, null, "feature");
+        CardSnapshot export = card(backlog, "Export a board as JSON", null, Priority.LOW, null, null, "feature");
         card(backlog, "Polish dark mode contrast", "Check badges and lane headers against WCAG AA.",
                 Priority.LOW, null, "Priya", "design");
 
-        card(inProgress, "Real-time sync via server push", """
+        CardSnapshot sync = card(inProgress, "Real-time sync via server push", """
                 Every mutation goes through `BoardService`, which records an activity entry and
                 publishes a `BoardChangedEvent` **after commit**. Open browsers subscribe through
                 `BoardChangeBroadcaster` and reload the snapshot.
@@ -103,11 +106,17 @@ class SampleDataInitializer implements ApplicationRunner {
         commentService.add(dragAndDrop.id(), "Jonas", "Should dropping on a card insert *before* or *after* it?");
         commentService.add(dragAndDrop.id(), "Mara", "Before. That matches how the insertion line is drawn.");
 
-        card(review, "Card editor with Markdown preview", "Uses the Vaadin `Markdown` component in a preview tab.",
+        CardSnapshot editor = card(review, "Card editor with Markdown preview", "Uses the Vaadin `Markdown` component in a preview tab.",
                 Priority.MEDIUM, today.minusDays(1), "Jonas", "ui");
 
-        card(done, "Project skeleton on Spring Boot 4 and Vaadin 25", null, Priority.HIGH, today.minusDays(6), "Priya", "infra");
-        card(done, "H2 persistence with Spring Data JPA", null, Priority.MEDIUM, null, "Jonas", "backend");
+        CardSnapshot skeleton = card(done, "Project skeleton on Spring Boot 4 and Vaadin 25", null, Priority.HIGH, today.minusDays(6), "Priya", "infra");
+        CardSnapshot persistence = card(done, "H2 persistence with Spring Data JPA", null, Priority.MEDIUM, null, "Jonas", "backend");
+
+        dependencies.addBlocker(sync.id(), persistence.id(), ACTOR);
+        dependencies.addBlocker(dragAndDrop.id(), skeleton.id(), ACTOR);
+        dependencies.addBlocker(export.id(), persistence.id(), ACTOR);
+        dependencies.addBlocker(guide.id(), dragAndDrop.id(), ACTOR);
+        dependencies.addBlocker(guide.id(), editor.id(), ACTOR);
     }
 
     private void seedRenovationBoard(LocalDate today) {
