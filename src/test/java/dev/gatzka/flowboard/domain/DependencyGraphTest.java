@@ -92,6 +92,6 @@ class DependencyGraphTest {
 
     private static CardSnapshot card(long id, long laneId, String title, List<BlockerSnapshot> blockers) {
         return new CardSnapshot(id, laneId, title, "", Priority.MEDIUM, null, null, null, Set.of(), null, null, 0, Set.of(),
-                blockers, List.of(), List.of(), List.of(), 0, NOW, null, NOW);
+                blockers, List.of(), List.of(), List.of(), 0, NOW, null, NOW, null);
     }
 }

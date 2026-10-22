@@ -21,6 +21,7 @@ import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardChangedEvent;
+import dev.gatzka.flowboard.service.AttachmentService;
 import dev.gatzka.flowboard.service.SharingService;
 import dev.gatzka.flowboard.ui.account.LoginView;
 import dev.gatzka.flowboard.ui.board.CardComponent;
@@ -42,6 +43,7 @@ public class SharedBoardView extends Div implements BeforeEnterObserver, HasDyna
 
     private final SharingService sharing;
     private final BoardChangeBroadcaster broadcaster;
+    private final AttachmentService attachments;
     private final Clock clock;
 
     private final H2 heading = new H2();
@@ -53,8 +55,9 @@ public class SharedBoardView extends Div implements BeforeEnterObserver, HasDyna
     private BoardSnapshot board;
     private Registration changeSubscription;
 
-    public SharedBoardView(SharingService sharing, BoardChangeBroadcaster broadcaster, Clock clock) {
+    public SharedBoardView(SharingService sharing, BoardChangeBroadcaster broadcaster, AttachmentService attachments, Clock clock) {
         this.sharing = sharing;
+        this.attachments = attachments;
         this.broadcaster = broadcaster;
         this.clock = clock;
         addClassName("shared");
@@ -149,7 +152,11 @@ public class SharedBoardView extends Div implements BeforeEnterObserver, HasDyna
 
         Div cards = new Div();
         cards.addClassName("lane__cards");
-        lane.cards().forEach(card -> cards.add(CardComponent.readOnly(card, today, now, lane.done())));
+        lane.cards().forEach(card -> {
+            CardComponent component = CardComponent.readOnly(card, today, now, lane.done());
+            card.cover().ifPresent(cover -> component.showCover(cover, attachments::content));
+            cards.add(component);
+        });
 
         Div laneDiv = new Div(header, cards);
         laneDiv.addClassName("lane");

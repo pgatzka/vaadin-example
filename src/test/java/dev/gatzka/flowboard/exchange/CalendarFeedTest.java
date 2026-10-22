@@ -56,6 +56,6 @@ class CalendarFeedTest {
 
     private static CardSnapshot card(long id, String title, LocalDate due, String assignee, Set<String> tags, Integer estimate) {
         return new CardSnapshot(id, 1, title, null, Priority.HIGH, null, due, assignee, tags, estimate, Recurrence.NONE, 0, Set.of(),
-                List.of(), List.of(), List.of(), List.of(), 0, Instant.EPOCH, null, Instant.EPOCH);
+                List.of(), List.of(), List.of(), List.of(), 0, Instant.EPOCH, null, Instant.EPOCH, null);
     }
 }

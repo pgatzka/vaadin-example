@@ -97,4 +97,28 @@ class AttachmentServiceTest {
         assertThat(new AttachmentSnapshot(1, "x", "image/png", 3 * 1024 * 1024 + 500_000, "m", java.time.Instant.EPOCH).humanSize()).isEqualTo("3.5 MB");
         assertThat(new AttachmentSnapshot(1, "x", "image/png", 20 * 1024, "m", java.time.Instant.EPOCH).isImage()).isTrue();
     }
+
+    @Test
+    void theFirstImageIsTheCoverUnlessAnotherIsChosen() {
+        attachments.attach(card.id(), "notes.txt", "text/plain", "hello".getBytes(StandardCharsets.UTF_8), "Mara");
+        CardSnapshot withOne = attachments.attach(card.id(), "first.png", "image/png", new byte[] {1}, "Mara");
+        assertThat(withOne.cover()).map(AttachmentSnapshot::fileName).hasValue("first.png");
+
+        CardSnapshot withTwo = attachments.attach(card.id(), "second.jpg", "image/jpeg", new byte[] {2}, "Mara");
+        assertThat(withTwo.cover()).map(AttachmentSnapshot::fileName).as("the first image stays the default").hasValue("first.png");
+        long second = withTwo.attachments().stream().filter(a -> a.fileName().equals("second.jpg")).findFirst().orElseThrow().id();
+        long text = withTwo.attachments().stream().filter(a -> a.fileName().equals("notes.txt")).findFirst().orElseThrow().id();
+
+        CardSnapshot chosen = attachments.setCover(card.id(), second, "Mara");
+        assertThat(chosen.cover()).map(AttachmentSnapshot::fileName).hasValue("second.jpg");
+        assertThat(chosen.isCover(second)).isTrue();
+        assertThat(activityLog.recent(board.id()).getFirst().message()).isEqualTo("set the cover of \"With files\"");
+        assertThatThrownBy(() -> attachments.setCover(card.id(), text, "Mara")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> attachments.setCover(card.id(), 999_999L, "Mara")).isInstanceOf(IllegalArgumentException.class);
+
+        CardSnapshot removed = attachments.remove(second, "Mara");
+        assertThat(removed.coverAttachmentId()).as("removing the cover image clears the choice").isNull();
+        assertThat(removed.cover()).map(AttachmentSnapshot::fileName).hasValue("first.png");
+        assertThat(attachments.setCover(card.id(), null, "Mara").cover()).map(AttachmentSnapshot::fileName).hasValue("first.png");
+    }
 }

@@ -32,6 +32,11 @@ import dev.gatzka.flowboard.domain.BoardSnapshot;
 import dev.gatzka.flowboard.domain.CardSnapshot;
 import dev.gatzka.flowboard.domain.LaneSnapshot;
 import dev.gatzka.flowboard.service.AccessService;
+import dev.gatzka.flowboard.service.AttachmentService;
+import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.server.streams.DownloadHandler;
+import com.vaadin.flow.server.streams.DownloadResponse;
+import java.io.ByteArrayInputStream;
 import dev.gatzka.flowboard.service.BoardChangeBroadcaster;
 import dev.gatzka.flowboard.service.BoardChangedEvent;
 import dev.gatzka.flowboard.service.BoardService;
@@ -89,6 +94,7 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
 
     private final BoardService boardService;
     private final CommentService comments;
+    private final AttachmentService attachments;
     private final BoardChangeBroadcaster broadcaster;
     private final AccessService access;
     private final UserSession session;
@@ -118,8 +124,9 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
     private Registration changeSubscription;
 
     public WalkView(BoardService boardService, CommentService comments, BoardChangeBroadcaster broadcaster, AccessService access,
-            UserSession session, Clock clock) {
+            AttachmentService attachments, UserSession session, Clock clock) {
         this.boardService = boardService;
+        this.attachments = attachments;
         this.comments = comments;
         this.broadcaster = broadcaster;
         this.access = access;
@@ -433,6 +440,14 @@ public class WalkView extends Div implements BeforeEnterObserver, HasDynamicTitl
 
         Div content = new Div(who, title, facts);
         content.addClassName("walk__content");
+        card.cover().ifPresent(cover -> {
+            DownloadHandler handler = DownloadHandler.fromInputStream(event -> attachments.content(cover.id())
+                    .map(bytes -> new DownloadResponse(new ByteArrayInputStream(bytes), cover.fileName(), cover.contentType(), bytes.length))
+                    .orElseGet(() -> DownloadResponse.error(404)), cover.fileName()).inline();
+            Image image = new Image(handler, "");
+            image.addClassName("walk__cover");
+            content.addComponentAsFirst(image);
+        });
         if (card.isBlocked()) {
             Div blocked = new Div(VaadinIcon.BAN.create(), new Span("Blocked by " + card.blockers().stream()
                     .filter(blocker -> !blocker.resolved()).map(BlockerSnapshot::title).map(t -> "\"" + t + "\"")

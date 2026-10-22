@@ -30,7 +30,8 @@ public record CardSnapshot(
         int position,
         Instant updatedAt,
         Instant archivedAt,
-        Instant laneEnteredAt) {
+        Instant laneEnteredAt,
+        Long coverAttachmentId) {
 
     public CardSnapshot {
         blockers = List.copyOf(blockers);
@@ -72,7 +73,8 @@ public record CardSnapshot(
                 card.getPosition(),
                 card.getUpdatedAt(),
                 card.getArchivedAt(),
-                card.getLaneEnteredAt());
+                card.getLaneEnteredAt(),
+                card.getCoverAttachmentId());
     }
 
     public boolean hasChecklist() {
@@ -101,6 +103,23 @@ public record CardSnapshot(
 
     public boolean isArchived() {
         return archivedAt != null;
+    }
+
+    /** The image shown on the card: the chosen cover, or else the first image attachment. */
+    public java.util.Optional<AttachmentSnapshot> cover() {
+        if (coverAttachmentId != null) {
+            java.util.Optional<AttachmentSnapshot> chosen = attachments.stream()
+                    .filter(a -> a.id() == coverAttachmentId && a.isImage()).findFirst();
+            if (chosen.isPresent()) {
+                return chosen;
+            }
+        }
+        return attachments.stream().filter(AttachmentSnapshot::isImage).findFirst();
+    }
+
+    /** Whether the given attachment is shown as the cover, chosen or by default. */
+    public boolean isCover(long attachmentId) {
+        return cover().map(c -> c.id() == attachmentId).orElse(false);
     }
 
     public boolean hasAttachments() {

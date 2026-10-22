@@ -76,6 +76,6 @@ class TimelineTest {
 
     private static CardSnapshot card(long id, String title, String assignee, LocalDate start, LocalDate due) {
         return new CardSnapshot(id, 10, title, "", Priority.MEDIUM, start, due, assignee, Set.of(), null, null, 0, Set.of(),
-                List.of(), List.of(), List.of(), List.of(), 0, NOW, null, NOW);
+                List.of(), List.of(), List.of(), List.of(), 0, NOW, null, NOW, null);
     }
 }

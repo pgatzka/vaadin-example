@@ -2828,3 +2828,27 @@ vaadin-dialog.activity-sheet::part(content) {
     --timeline-label-width: 9rem;
   }
 }
+
+/* ---------------------------------------------------------------- Card covers */
+
+.task-card__cover {
+  display: block;
+  width: calc(100% + var(--lumo-space-m) * 2 + 4px);
+  margin: calc(-1 * var(--lumo-space-s)) 0 var(--lumo-space-xs) calc(-1 * (var(--lumo-space-m) + 4px));
+  height: 7rem;
+  object-fit: cover;
+  border-radius: var(--lumo-border-radius-m) var(--lumo-border-radius-m) 0 0;
+  pointer-events: none;
+}
+
+.attachments__cover--on {
+  color: var(--lumo-primary-text-color);
+}
+
+.walk__cover {
+  display: block;
+  width: 100%;
+  max-height: 18rem;
+  object-fit: cover;
+  border-radius: var(--lumo-border-radius-m);
+}

@@ -71,12 +71,26 @@ final class AttachmentsSection extends Div {
         Span meta = new Span(attachment.humanSize() + " · " + attachment.uploadedBy() + " · " + WHEN.format(attachment.uploadedAt().atZone(ZoneId.systemDefault())));
         meta.addClassName("attachments__meta");
 
+        Div text = new Div(name, meta);
+        text.addClassName("attachments__text");
+        if (attachment.isImage()) {
+            boolean cover = card.isCover(attachment.id());
+            Button useAsCover = new Button(cover ? "Cover" : "Use as cover", event -> update(actions.setCover(card.id(), cover ? null : attachment.id())));
+            useAsCover.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+            useAsCover.addClassName("attachments__cover");
+            if (cover) {
+                useAsCover.setIcon(VaadinIcon.CHECK.create());
+                useAsCover.addClassName("attachments__cover--on");
+                useAsCover.setTooltipText("Shown on the card; click to stop using it as the cover");
+            } else {
+                useAsCover.setTooltipText("Show this image on the card");
+            }
+            text.add(useAsCover);
+        }
         Button remove = new Button(VaadinIcon.TRASH.create(), event -> update(actions.removeAttachment(attachment.id())));
         remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
         remove.setAriaLabel("Remove " + attachment.fileName());
 
-        Div text = new Div(name, meta);
-        text.addClassName("attachments__text");
         Div row = new Div(icon, text, remove);
         row.addClassName("attachments__row");
         return row;

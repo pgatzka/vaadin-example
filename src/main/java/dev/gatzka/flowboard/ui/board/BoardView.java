@@ -1097,6 +1097,11 @@ public class BoardView extends VerticalLayout implements BeforeEnterObserver, Ha
     }
 
     @Override
+    public CardSnapshot setCover(long cardId, Long attachmentId) {
+        return changeCard(() -> attachmentService.setCover(cardId, attachmentId, actor()));
+    }
+
+    @Override
     public CardSnapshot addBlocker(long cardId, long blockerId) {
         try {
             return changeCard(() -> dependencyService.addBlocker(cardId, blockerId, actor()));

@@ -94,7 +94,7 @@ class WorkloadTest {
 
     private static CardLocation card(long id, String assignee, LocalDate due, Integer estimate) {
         CardSnapshot card = new CardSnapshot(id, 10, "Card " + id, "", Priority.MEDIUM, null, due, assignee, Set.of(), estimate, null, 0,
-                Set.of(), List.of(), List.of(), List.of(), List.of(), 0, NOW, null, NOW);
+                Set.of(), List.of(), List.of(), List.of(), List.of(), 0, NOW, null, NOW, null);
         return new CardLocation(1, "Board", "Todo", false, card);
     }
 }

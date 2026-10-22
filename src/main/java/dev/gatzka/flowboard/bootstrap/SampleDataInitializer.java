@@ -9,6 +9,15 @@ import dev.gatzka.flowboard.domain.Priority;
 import dev.gatzka.flowboard.repository.BoardRepository;
 import dev.gatzka.flowboard.security.AccountService;
 import dev.gatzka.flowboard.service.ActivityLog;
+import dev.gatzka.flowboard.service.AttachmentService;
+import java.awt.Color;
+import java.awt.GradientPaint;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import javax.imageio.ImageIO;
 import dev.gatzka.flowboard.service.BoardService;
 import dev.gatzka.flowboard.service.ChecklistService;
 import dev.gatzka.flowboard.service.CommentService;
@@ -45,12 +54,15 @@ class SampleDataInitializer implements ApplicationRunner {
     private final ChecklistService checklistService;
     private final CommentService commentService;
     private final DependencyService dependencies;
+    private final AttachmentService attachments;
     private final AccountService accounts;
     private final Clock clock;
 
     SampleDataInitializer(BoardRepository boards, BoardService boardService, ChecklistService checklistService,
-            CommentService commentService, DependencyService dependencies, AccountService accounts, Clock clock) {
+            CommentService commentService, DependencyService dependencies, AttachmentService attachments, AccountService accounts,
+            Clock clock) {
         this.boards = boards;
+        this.attachments = attachments;
         this.accounts = accounts;
         this.boardService = boardService;
         this.checklistService = checklistService;
@@ -89,8 +101,9 @@ class SampleDataInitializer implements ApplicationRunner {
                 - Keyboard shortcuts
                 """, Priority.MEDIUM, today.plusDays(4), today.plusDays(10), "Mara", "docs");
         CardSnapshot export = card(backlog, "Export a board as JSON", null, Priority.LOW, null, null, "feature");
-        card(backlog, "Polish dark mode contrast", "Check badges and lane headers against WCAG AA.",
+        CardSnapshot darkMode = card(backlog, "Polish dark mode contrast", "Check badges and lane headers against WCAG AA.",
                 Priority.LOW, null, "Priya", "design");
+        attachments.attach(darkMode.id(), "palette-mockup.png", "image/png", mockupImage(), "Priya");
 
         CardSnapshot sync = cardSpanning(inProgress, "Real-time sync via server push", """
                 Every mutation goes through `BoardService`, which records an activity entry and
@@ -126,6 +139,28 @@ class SampleDataInitializer implements ApplicationRunner {
                 Priority.MEDIUM, today.plusDays(7), null, "decision");
         card(lane(board, 1), "Order the tiles", null, Priority.URGENT, today, "Mara", "order");
         card(lane(board, 3), "Measure the room", null, Priority.HIGH, null, "Mara");
+    }
+
+    /** A small generated gradient, so the demo has a cover image without shipping a binary. */
+    static byte[] mockupImage() {
+        int width = 640;
+        int height = 240;
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        graphics.setPaint(new GradientPaint(0, 0, new Color(0x3b, 0x2f, 0x8f), width, height, new Color(0x14, 0x1a, 0x2e)));
+        graphics.fillRect(0, 0, width, height);
+        graphics.setColor(new Color(255, 255, 255, 40));
+        for (int i = 0; i < 6; i++) {
+            graphics.fillRoundRect(40 + i * 98, 60 + (i % 2) * 50, 70, 70, 16, 16);
+        }
+        graphics.dispose();
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", out);
+            return out.toByteArray();
+        } catch (IOException impossible) {
+            throw new UncheckedIOException(impossible);
+        }
     }
 
     private static long lane(BoardSnapshot board, int index) {

@@ -877,6 +877,29 @@ class BoardViewTest extends FlowboardUiTest {
     }
 
     @Test
+    void imageAttachmentsBecomeCoversAndCanBeSwitched() {
+        CardSnapshot created = createCard("Mockup");
+        attachmentService.attach(created.id(), "a.png", "image/png", new byte[] {1}, SEEDER);
+        attachmentService.attach(created.id(), "b.png", "image/png", new byte[] {2}, SEEDER);
+        openBoard();
+        assertThat($(com.vaadin.flow.component.html.Image.class, $(CardComponent.class).single()).withClassName("task-card__cover").all()).hasSize(1);
+        assertThat($(CardComponent.class).single().getClassNames()).contains("task-card--with-cover");
+
+        test($(CardComponent.class).single()).click();
+        CardEditorDialog dialog = $(CardEditorDialog.class).single();
+        test($(TabSheet.class, dialog).withClassName("card-tabs").single()).select("Files (2)");
+        List<Button> coverButtons = $(Button.class, $(AttachmentsSection.class).single()).withClassName("attachments__cover").all();
+        assertThat(coverButtons).extracting(Button::getText).containsExactly("Cover", "Use as cover");
+
+        test(coverButtons.get(1)).click();
+
+        assertThat($(Button.class, $(AttachmentsSection.class).single()).withClassName("attachments__cover").all())
+                .extracting(Button::getText).containsExactly("Use as cover", "Cover");
+        CardSnapshot after = service.findBoard(board.id()).orElseThrow().lanes().getFirst().cards().getFirst();
+        assertThat(after.cover()).map(a -> a.fileName()).hasValue("b.png");
+    }
+
+    @Test
     void mentionsLightUpTheInboxBell() {
         UserSession me = context.getBean(UserSession.class);
         me.setDisplayName("Priya");

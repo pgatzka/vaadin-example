@@ -61,6 +61,15 @@ public class AttachmentService {
         return CardSnapshot.of(card);
     }
 
+    /** Chooses the card's cover image; {@code null} goes back to the default (the first image). */
+    public CardSnapshot setCover(long cardId, Long attachmentId, String actor) {
+        Card card = requireCard(cardId);
+        card.setCover(attachmentId, clock.instant());
+        activityLog.record(BoardChangedEvent.content(boardIdOf(card), actor,
+                (attachmentId == null ? "removed the cover of \"%s\"" : "set the cover of \"%s\"").formatted(card.getTitle())).forCard(cardId));
+        return CardSnapshot.of(card);
+    }
+
     @Transactional(readOnly = true)
     public Optional<byte[]> content(long attachmentId) {
         return contents.findById(attachmentId).map(AttachmentData::getData);

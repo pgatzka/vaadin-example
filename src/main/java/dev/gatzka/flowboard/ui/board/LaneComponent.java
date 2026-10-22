@@ -239,6 +239,7 @@ final class LaneComponent extends Div {
             if (actions.isWatching(card)) {
                 component.markWatching();
             }
+            card.cover().ifPresent(cover -> component.showCover(cover, actions::attachmentContent));
             makeDraggable(component, card);
             makeInsertTarget(component, card, actions, row);
             component.enableKeyboardActions(key -> actions.moveCardByKeyboard(card, key), () -> actions.addCardNear(card));

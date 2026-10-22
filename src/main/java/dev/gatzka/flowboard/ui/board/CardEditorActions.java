@@ -65,6 +65,9 @@ interface CardEditorActions {
 
     java.util.Optional<byte[]> attachmentContent(long attachmentId);
 
+    /** Makes the attachment the card's cover image, or clears the choice with {@code null}. */
+    CardSnapshot setCover(long cardId, Long attachmentId);
+
     CardSnapshot addBlocker(long cardId, long blockerId);
 
     CardSnapshot removeBlocker(long cardId, long blockerId);

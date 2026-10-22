@@ -58,6 +58,10 @@ public class Card {
     @Column(name = "start_date")
     private LocalDate startDate;
 
+    /** An image attachment shown on the card; null means the first image attachment, if any. */
+    @Column(name = "cover_attachment_id")
+    private Long coverAttachmentId;
+
     @Column(length = 60)
     private String assignee;
 
@@ -222,11 +226,27 @@ public class Card {
 
     public void removeAttachment(Attachment attachment, Instant now) {
         if (attachments.remove(attachment)) {
+            if (attachment.getId() != null && attachment.getId().equals(coverAttachmentId)) {
+                coverAttachmentId = null;
+            }
             updatedAt = requireNonNull(now);
         }
     }
 
     /** Attachments oldest first; read-only, modify through the card. */
+    public Long getCoverAttachmentId() {
+        return coverAttachmentId;
+    }
+
+    /** Picks the attachment shown as the card's cover; it must be one of the card's own image attachments. */
+    public void setCover(Long attachmentId, Instant now) {
+        if (attachmentId != null && attachments.stream().noneMatch(a -> attachmentId.equals(a.getId()) && a.getContentType().startsWith("image/"))) {
+            throw new IllegalArgumentException("The cover must be an image attached to this card");
+        }
+        this.coverAttachmentId = attachmentId;
+        this.updatedAt = requireNonNull(now);
+    }
+
     public List<Attachment> getAttachments() {
         return attachments.stream()
                 .sorted(Comparator.comparing(Attachment::getUploadedAt).thenComparing(Attachment::getId))

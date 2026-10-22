@@ -8,6 +8,10 @@ import com.vaadin.flow.component.badge.BadgeVariant;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.server.streams.DownloadHandler;
+import com.vaadin.flow.server.streams.DownloadResponse;
+import dev.gatzka.flowboard.domain.AttachmentSnapshot;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import dev.gatzka.flowboard.domain.CardAge;
@@ -104,6 +108,18 @@ public final class CardComponent extends Div {
             removeClassName("task-card--selected");
         }
         getElement().setAttribute("aria-selected", Boolean.toString(selected));
+    }
+
+    /** Shows an image attachment across the top of the card. */
+    public void showCover(AttachmentSnapshot cover, java.util.function.LongFunction<java.util.Optional<byte[]>> content) {
+        DownloadHandler handler = DownloadHandler.fromInputStream(event -> content.apply(cover.id())
+                .map(bytes -> new DownloadResponse(new java.io.ByteArrayInputStream(bytes), cover.fileName(), cover.contentType(), bytes.length))
+                .orElseGet(() -> DownloadResponse.error(404)), cover.fileName()).inline();
+        Image image = new Image(handler, "");
+        image.addClassName("task-card__cover");
+        image.getElement().setAttribute("draggable", "false");
+        addComponentAsFirst(image);
+        addClassName("task-card--with-cover");
     }
 
     /** Flags the card as changed since the viewer last opened the board. */

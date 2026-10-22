@@ -79,6 +79,9 @@ interface BoardActions {
     /** Whether the current user watches the card, for the eye marker. */
     boolean isWatching(CardSnapshot card);
 
+    /** The bytes of an attachment, for cover images. */
+    java.util.Optional<byte[]> attachmentContent(long attachmentId);
+
     /** When the current user last opened this board before now, or {@code null} on their first visit. */
     java.time.Instant lastVisit();
 }
